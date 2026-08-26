@@ -1,296 +1,1321 @@
-import React, { useState, useEffect } from 'react';
-import { 
-  Sparkles, 
-  Plus, 
-  Package, 
-  TrendingUp, 
-  IndianRupee, 
-  Truck, 
-  ShieldCheck, 
-  CheckCircle2, 
-  Sliders, 
-  Eye, 
-  Edit3, 
-  Trash2, 
-  Send,
-  Building2,
-  Clock,
-  DollarSign,
-  AlertCircle
+import React, { useState, useEffect, useRef } from 'react';
+import {
+  LayoutDashboard, Plus, Package, TrendingUp, IndianRupee,
+  Truck, ShieldCheck, CheckCircle2, Eye, Edit3, Trash2, Send,
+  Building2, Clock, AlertCircle, Sparkles, Camera, Upload, Mic,
+  ArrowRight, ArrowLeft, Check, Globe, Tag, Volume2, VolumeX,
+  RefreshCw, Star, BarChart2, Bell, Settings, ChevronRight,
+  LogOut, HelpCircle, Zap, Award, Users, ShoppingBag, X,
+  FileText, Layers, Download, Filter, Search, MoreHorizontal,
+  ChevronDown, Banknote, Wallet, Activity, PieChart, MessageSquare
 } from 'lucide-react';
 import { api } from '../services/api';
-import ArtisanStudioPage from './ArtisanStudioPage';
+import { voiceAssistant } from '../services/voiceAssistant';
+import BeforeAfterSlider from '../components/BeforeAfterSlider';
+import VoiceRecorder from '../components/VoiceRecorder';
+import PriceExplainerCard from '../components/PriceExplainerCard';
+import { DEMO_PRESETS } from '../components/LiveDemoBar';
 
+// ── Sample voice presets ──────────────────────────
+const VOICE_PRESETS = [
+  { id: 'v1', title: 'बनारसी साड़ी', lang: 'Hindi', flag: '🇮🇳', text: 'यह शुद्ध बनारसी कतान सिल्क साड़ी है। इसमें असली सोने और चांदी की जरी का काम है। इसे हथकरघे पर 6 दिन में बुना गया है।' },
+  { id: 'v2', title: 'Blue Pottery Vase', lang: 'English', flag: '🇬🇧', text: 'This is a handcrafted Jaipur Blue Pottery vase made from quartz stone powder and natural cobalt glaze, hand-painted and kiln-fired.' },
+  { id: 'v3', title: 'असमिया बांस टोकरी', lang: 'Hindi', flag: '🇮🇳', text: 'यह प्राकृतिक असमिया बांस से बनी मजबूत और पर्यावरण के अनुकूल स्टोरेज बास्केट है, पारंपरिक हाथ की बुनाई से तैयार।' },
+  { id: 'v4', title: 'Wooden Toy', lang: 'English', flag: '🇬🇧', text: 'This Channapatna wooden toy is crafted with Ivory wood and polished with non-toxic natural vegetable dyes. Completely child-safe.' },
+];
+
+// ── KPI Cards data ────────────────────────────────
+function StatCard({ icon: Icon, iconBg, label, value, sub, trend }) {
+  return (
+    <div className="bg-white rounded-2xl border border-gray-200 p-5 flex items-start gap-4 shadow-sm hover:shadow-md transition-shadow">
+      <div className={`w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 ${iconBg}`}>
+        <Icon className="w-6 h-6 text-white" />
+      </div>
+      <div className="flex-1 min-w-0">
+        <div className="text-[12px] text-gray-500 font-medium mb-0.5">{label}</div>
+        <div className="text-[22px] font-black text-gray-900 leading-none">{value}</div>
+        {sub && <div className="text-[11px] text-gray-400 mt-1">{sub}</div>}
+        {trend && (
+          <div className={`text-[11px] font-bold mt-1 flex items-center gap-1 ${trend.up ? 'text-green-600' : 'text-red-500'}`}>
+            <TrendingUp className={`w-3 h-3 ${!trend.up && 'rotate-180'}`} />
+            {trend.label}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ── Sidebar Nav Item ──────────────────────────────
+function SideNavItem({ icon: Icon, label, active, count, onClick }) {
+  return (
+    <button
+      onClick={onClick}
+      className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-[13px] font-semibold transition-all text-left ${
+        active
+          ? 'bg-orange-500 text-white shadow-sm'
+          : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
+      }`}
+    >
+      <Icon className={`w-4.5 h-4.5 flex-shrink-0 ${active ? 'text-white' : 'text-gray-400'}`} />
+      <span className="flex-1">{label}</span>
+      {count !== undefined && (
+        <span className={`text-[10px] font-black px-1.5 py-0.5 rounded-full min-w-[20px] text-center ${
+          active ? 'bg-white/20 text-white' : 'bg-gray-200 text-gray-600'
+        }`}>
+          {count}
+        </span>
+      )}
+    </button>
+  );
+}
+
+// ── Status Badge ──────────────────────────────────
+function StatusBadge({ status }) {
+  const cfg = {
+    'Published':       'bg-green-100 text-green-800 border-green-200',
+    'Pending Approval': 'bg-amber-100 text-amber-800 border-amber-200',
+    'Rejected':        'bg-red-100 text-red-800 border-red-200',
+    'Processing':      'bg-blue-100 text-blue-800 border-blue-200',
+  };
+  return (
+    <span className={`inline-flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-full border ${cfg[status] || 'bg-gray-100 text-gray-600 border-gray-200'}`}>
+      <span className="w-1.5 h-1.5 rounded-full bg-current inline-block" />
+      {status}
+    </span>
+  );
+}
+
+// ── Mini Chart Bar ────────────────────────────────
+function MiniBarChart({ data }) {
+  const max = Math.max(...data);
+  return (
+    <div className="flex items-end gap-1 h-10">
+      {data.map((v, i) => (
+        <div
+          key={i}
+          className="flex-1 bg-orange-400 rounded-t-sm opacity-80 hover:opacity-100 transition-opacity"
+          style={{ height: `${(v / max) * 100}%` }}
+          title={`₹${v.toLocaleString('en-IN')}`}
+        />
+      ))}
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════
+// MAIN SELLER PORTAL
+// ═══════════════════════════════════════════════════════════════
 export default function SellerPortalPage({ onNavigateToAdmin, onNavigateToStore }) {
-  const [sellerTab, setSellerTab] = useState('studio'); // 'studio' (Add product), 'inventory', 'orders', 'payouts'
-  const [sellerProducts, setSellerProducts] = useState([]);
-  const [inquiries, setInquiries] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState('dashboard');
+  const [products, setProducts]   = useState([]);
+  const [orders, setOrders]       = useState([]);
+  const [loading, setLoading]     = useState(true);
+  const [searchQ, setSearchQ]     = useState('');
 
-  const fetchSellerData = async () => {
+  const fetchData = async () => {
     setLoading(true);
     try {
-      const [products, orders] = await Promise.all([
+      const [prods, inqs] = await Promise.all([
         api.getProducts({ status: 'All' }),
-        api.getInquiries()
+        api.getInquiries(),
       ]);
-      setSellerProducts(products);
-      setInquiries(orders);
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
+      setProducts(prods || []);
+      setOrders(inqs || []);
+    } catch (e) { console.error(e); }
+    finally { setLoading(false); }
   };
 
-  useEffect(() => {
-    fetchSellerData();
-  }, []);
+  useEffect(() => { fetchData(); }, []);
 
-  const totalGMV = sellerProducts
-    .filter(p => p.status === 'Published')
-    .reduce((sum, p) => sum + (p.suggested_price || 0) * (p.stock_quantity || 1), 0);
+  const published  = products.filter(p => p.status === 'Published');
+  const pending    = products.filter(p => p.status === 'Pending Approval');
+  const totalGMV   = published.reduce((s, p) => s + (p.suggested_price || 0) * (p.stock_quantity || 1), 0);
+  const totalPayout = orders.reduce((s, o) => s + (o.total_amount || 0), 0);
+
+  const NAV = [
+    { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
+    { id: 'addproduct', label: 'AI Listing Studio', icon: Sparkles },
+    { id: 'inventory', label: 'My Inventory', icon: Package, count: products.length },
+    { id: 'orders', label: 'Orders & Shipments', icon: Truck, count: orders.length },
+    { id: 'payments', label: 'Payments & Payouts', icon: Banknote },
+    { id: 'analytics', label: 'Analytics', icon: BarChart2 },
+  ];
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-      
-      {/* Seller Header Banner */}
-      <div className="bg-gradient-to-r from-terracotta-900 via-slate-900 to-indigoCraft-950 text-white rounded-3xl p-6 sm:p-8 shadow-xl mb-6">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div>
-            <div className="flex items-center gap-2 mb-2">
-              <span className="bg-amber-500/20 text-amber-300 text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-md border border-amber-400/30 flex items-center gap-1">
-                <Building2 className="w-3.5 h-3.5" />
-                SELLER CENTRAL • VERIFIED ARTISAN GUILD
-              </span>
-              <span className="text-xs text-slate-300">
-                Direct Handloom & Handicraft Producer Portal
-              </span>
+    <div className="flex h-screen bg-gray-100 overflow-hidden" style={{ fontFamily: "'Inter', sans-serif" }}>
+
+      {/* ════════════════════════════
+          LEFT SIDEBAR
+      ════════════════════════════ */}
+      <aside className="w-[230px] flex-shrink-0 bg-white border-r border-gray-200 flex flex-col h-full overflow-y-auto">
+
+        {/* Seller Profile */}
+        <div className="p-4 border-b border-gray-200">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-orange-400 to-red-500 flex items-center justify-center text-white font-black text-[15px] flex-shrink-0">
+              A
             </div>
-            <h1 className="text-2xl sm:text-3xl font-black tracking-tight">
-              Artisan Enterprise Dashboard & AI Cataloging
+            <div className="min-w-0">
+              <div className="text-[13px] font-bold text-gray-900 truncate">Artisan Guild</div>
+              <div className="text-[11px] text-gray-500 truncate">Varanasi Weaver's Hub</div>
+            </div>
+          </div>
+          {/* Seller Health Score */}
+          <div className="mt-3 bg-green-50 border border-green-200 rounded-xl p-2.5">
+            <div className="flex items-center justify-between mb-1">
+              <span className="text-[11px] font-bold text-green-800">Account Health</span>
+              <span className="text-[11px] font-black text-green-800">98/100</span>
+            </div>
+            <div className="bg-green-200 rounded-full h-1.5 overflow-hidden">
+              <div className="bg-green-600 h-full rounded-full" style={{ width: '98%' }} />
+            </div>
+          </div>
+        </div>
+
+        {/* Navigation */}
+        <nav className="flex-1 p-3 space-y-0.5">
+          <div className="text-[10px] font-black text-gray-400 uppercase tracking-widest px-3 pb-1 pt-2">Main Menu</div>
+          {NAV.map(item => (
+            <SideNavItem
+              key={item.id}
+              icon={item.icon}
+              label={item.label}
+              active={activeTab === item.id}
+              count={item.count}
+              onClick={() => setActiveTab(item.id)}
+            />
+          ))}
+
+          <div className="text-[10px] font-black text-gray-400 uppercase tracking-widest px-3 pb-1 pt-4">Account</div>
+          <SideNavItem icon={Settings} label="Account Settings" active={false} onClick={() => {}} />
+          <SideNavItem icon={HelpCircle} label="Help & Support" active={false} onClick={() => {}} />
+          <SideNavItem icon={ShieldCheck} label="Admin Portal" active={false} onClick={onNavigateToAdmin} />
+        </nav>
+
+        {/* Sidebar Footer */}
+        <div className="p-4 border-t border-gray-200">
+          <button
+            onClick={onNavigateToStore}
+            className="w-full flex items-center gap-2 text-[12px] font-semibold text-gray-600 hover:text-gray-900 py-2 px-3 rounded-xl hover:bg-gray-50 transition-colors"
+          >
+            <Eye className="w-4 h-4" />
+            View Your Storefront
+          </button>
+        </div>
+      </aside>
+
+      {/* ════════════════════════════
+          MAIN CONTENT AREA
+      ════════════════════════════ */}
+      <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
+
+        {/* Top Header Bar */}
+        <header className="bg-white border-b border-gray-200 px-6 py-3 flex items-center justify-between flex-shrink-0">
+          <div>
+            <h1 className="text-[16px] font-black text-gray-900" style={{ fontFamily: "'Outfit', sans-serif" }}>
+              {activeTab === 'dashboard'  && 'Seller Dashboard'}
+              {activeTab === 'addproduct' && 'AI Listing Studio'}
+              {activeTab === 'inventory'  && 'My Inventory & Catalog'}
+              {activeTab === 'orders'     && 'Orders & Shipments'}
+              {activeTab === 'payments'   && 'Payments & Payouts'}
+              {activeTab === 'analytics'  && 'Analytics & Insights'}
             </h1>
-            <p className="text-xs sm:text-sm text-slate-300 mt-1 max-w-2xl">
-              Create market-ready luxury craft listings with computer vision & voice AI, manage inventory, and track direct fair-trade bank settlements.
+            <p className="text-[12px] text-gray-500 mt-0.5">
+              CraftLink Seller Central · Varanasi Master Weavers Guild
             </p>
           </div>
 
           <div className="flex items-center gap-3">
-            <button
-              onClick={() => setSellerTab('studio')}
-              className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs sm:text-sm font-extrabold bg-gradient-to-r from-amber-500 to-terracotta-600 hover:from-amber-600 hover:to-terracotta-700 text-white shadow-lg transition-all active:scale-95"
-            >
-              <Plus className="w-4 h-4" />
-              <span>Add New Craft Listing</span>
-            </button>
-          </div>
-        </div>
+            {/* Search */}
+            <div className="hidden md:flex items-center gap-2 bg-gray-100 rounded-xl px-3 py-2 w-[220px]">
+              <Search className="w-4 h-4 text-gray-400" />
+              <input
+                type="text"
+                placeholder="Search products..."
+                value={searchQ}
+                onChange={e => setSearchQ(e.target.value)}
+                className="bg-transparent text-[13px] text-gray-700 placeholder-gray-400 outline-none flex-1"
+              />
+            </div>
 
-        {/* Quick KPI Overview */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-6 pt-5 border-t border-slate-800 text-xs">
-          <div className="bg-slate-900/60 p-3 rounded-xl border border-slate-800">
-            <span className="text-slate-400 font-bold block text-[10px] uppercase">Active Catalog</span>
-            <span className="text-lg font-black text-white">{sellerProducts.length} Items</span>
-          </div>
-          <div className="bg-slate-900/60 p-3 rounded-xl border border-slate-800">
-            <span className="text-slate-400 font-bold block text-[10px] uppercase">Catalog Valuation</span>
-            <span className="text-lg font-black text-emerald-400">₹{totalGMV.toLocaleString('en-IN')}</span>
-          </div>
-          <div className="bg-slate-900/60 p-3 rounded-xl border border-slate-800">
-            <span className="text-slate-400 font-bold block text-[10px] uppercase">Orders / Inquiries</span>
-            <span className="text-lg font-black text-amber-300">{inquiries.length} Active</span>
-          </div>
-          <div className="bg-slate-900/60 p-3 rounded-xl border border-slate-800">
-            <span className="text-slate-400 font-bold block text-[10px] uppercase">Producer Margin</span>
-            <span className="text-lg font-black text-teal-300">100% Direct to Artisan</span>
-          </div>
-        </div>
-      </div>
-
-      {/* Sub-Navigation Tabs */}
-      <div className="flex items-center gap-2 overflow-x-auto pb-2 mb-6 bg-white p-1.5 rounded-2xl border border-artisan-200 shadow-sm">
-        {[
-          { id: 'studio', label: '✨ AI Listing Creator', icon: Sparkles },
-          { id: 'inventory', label: '📦 My Inventory & Catalog', icon: Package, count: sellerProducts.length },
-          { id: 'orders', label: '🚚 Orders & Shipments', icon: Truck, count: inquiries.length },
-          { id: 'payouts', label: '💰 Direct Bank Payouts', icon: IndianRupee }
-        ].map((tab) => {
-          const Icon = tab.icon;
-          const isActive = sellerTab === tab.id;
-          return (
-            <button
-              key={tab.id}
-              onClick={() => setSellerTab(tab.id)}
-              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap ${
-                isActive
-                  ? 'bg-slate-900 text-white shadow-md'
-                  : 'text-slate-600 hover:text-slate-900 hover:bg-artisan-50'
-              }`}
-            >
-              <Icon className={`w-4 h-4 ${isActive ? 'text-amber-400' : 'text-slate-400'}`} />
-              <span>{tab.label}</span>
-              {tab.count !== undefined && (
-                <span className={`text-[10px] px-2 py-0.5 rounded-full font-extrabold ${
-                  isActive ? 'bg-terracotta-600 text-white' : 'bg-slate-100 text-slate-700'
-                }`}>
-                  {tab.count}
+            {/* Notifications */}
+            <button className="relative w-9 h-9 rounded-xl bg-gray-100 flex items-center justify-center text-gray-500 hover:bg-gray-200 transition-colors">
+              <Bell className="w-4 h-4" />
+              {pending.length > 0 && (
+                <span className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-red-500 text-white text-[9px] font-black rounded-full flex items-center justify-center">
+                  {pending.length}
                 </span>
               )}
             </button>
-          );
-        })}
-      </div>
 
-      {/* TAB 1: AI STUDIO LISTING CREATOR */}
-      {sellerTab === 'studio' && (
-        <ArtisanStudioPage
-          onProductCreated={() => {
-            fetchSellerData();
-            setSellerTab('inventory');
-          }}
-          onNavigateToAdmin={onNavigateToAdmin}
-        />
-      )}
-
-      {/* TAB 2: INVENTORY & CATALOG */}
-      {sellerTab === 'inventory' && (
-        <div className="bg-white rounded-2xl border border-artisan-200 shadow-sm p-6">
-          <div className="flex items-center justify-between pb-4 border-b border-slate-100 mb-4">
-            <div>
-              <h3 className="text-base font-extrabold text-slate-900">
-                Artisan Inventory ({sellerProducts.length} Listings)
-              </h3>
-              <p className="text-xs text-slate-500">
-                Track approval status, stock quantities, and retail pricing
-              </p>
-            </div>
+            {/* Add product CTA */}
             <button
-              onClick={onNavigateToStore}
-              className="text-xs font-bold text-terracotta-700 hover:text-terracotta-800 bg-artisan-100 px-3 py-1.5 rounded-lg flex items-center gap-1"
+              onClick={() => setActiveTab('addproduct')}
+              className="flex items-center gap-2 px-4 py-2 rounded-xl text-[13px] font-bold text-white transition-all active:scale-95"
+              style={{ background: 'linear-gradient(135deg, #f97316, #ef4444)' }}
             >
-              <Eye className="w-3.5 h-3.5" />
-              <span>View Storefront</span>
+              <Plus className="w-4 h-4" />
+              Add Listing
             </button>
           </div>
+        </header>
 
-          <div className="overflow-x-auto">
-            <table className="w-full text-xs text-left">
-              <thead className="bg-artisan-50 text-slate-600 font-bold uppercase text-[10px]">
-                <tr>
-                  <th className="p-3 rounded-l-lg">Product</th>
-                  <th className="p-3">Category</th>
-                  <th className="p-3">Production Cost</th>
-                  <th className="p-3">Retail Price</th>
-                  <th className="p-3">Stock Units</th>
-                  <th className="p-3">Verification Status</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100 font-medium text-slate-700">
-                {sellerProducts.map((p) => (
-                  <tr key={p.id} className="hover:bg-slate-50">
-                    <td className="p-3 flex items-center gap-2.5">
-                      <img
-                        src={p.enhanced_image || p.original_image}
-                        alt=""
-                        className="w-10 h-10 rounded-lg object-contain bg-slate-900"
-                      />
-                      <span className="font-bold text-slate-900 truncate max-w-[200px]">{p.product_name}</span>
-                    </td>
-                    <td className="p-3">{p.category}</td>
-                    <td className="p-3 text-slate-500 font-semibold">₹{p.total_cost}</td>
-                    <td className="p-3 font-black text-slate-900">₹{p.suggested_price}</td>
-                    <td className="p-3 font-bold text-emerald-800">{p.stock_quantity || 5} units</td>
-                    <td className="p-3">
-                      <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold ${
-                        p.status === 'Published'
-                          ? 'bg-emerald-100 text-emerald-800'
-                          : p.status === 'Pending Approval'
-                          ? 'bg-amber-100 text-amber-800'
-                          : 'bg-red-100 text-red-800'
-                      }`}>
-                        ● {p.status}
+        {/* Page Content */}
+        <main className="flex-1 overflow-y-auto p-6">
+
+          {/* ══════════════════════════
+              TAB: DASHBOARD
+          ══════════════════════════ */}
+          {activeTab === 'dashboard' && (
+            <div className="space-y-6 animate-fade-in">
+
+              {/* Welcome Banner */}
+              <div
+                className="rounded-2xl p-6 text-white relative overflow-hidden"
+                style={{ background: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%)' }}
+              >
+                {/* Decorative circles */}
+                <div className="absolute -right-10 -top-10 w-48 h-48 rounded-full bg-white/5" />
+                <div className="absolute -right-5 top-10 w-32 h-32 rounded-full bg-white/5" />
+
+                <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                  <div>
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className="inline-flex items-center gap-1.5 bg-amber-400/20 border border-amber-400/40 text-amber-300 text-[11px] font-black uppercase tracking-widest px-3 py-1 rounded-full">
+                        <Building2 className="w-3 h-3" />
+                        Verified Artisan Guild · Level 3 Seller
                       </span>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
+                    </div>
+                    <h2 className="text-[22px] font-black leading-tight mb-1" style={{ fontFamily: "'Outfit', sans-serif" }}>
+                      Good Morning, Varanasi Weavers 👋
+                    </h2>
+                    <p className="text-white/70 text-[13px] max-w-lg">
+                      You have <strong className="text-amber-300">{orders.length} new orders</strong> awaiting fulfillment and <strong className="text-orange-300">{pending.length} listings</strong> pending admin review.
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-3 flex-shrink-0">
+                    <button
+                      onClick={() => setActiveTab('addproduct')}
+                      className="flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold text-[13px] text-gray-900 transition-all hover:shadow-lg active:scale-95"
+                      style={{ backgroundColor: '#ffd814' }}
+                    >
+                      <Sparkles className="w-4 h-4" />
+                      AI Listing Studio
+                    </button>
+                  </div>
+                </div>
+              </div>
 
-      {/* TAB 3: ORDERS & SHIPMENTS */}
-      {sellerTab === 'orders' && (
-        <div className="bg-white rounded-2xl border border-artisan-200 shadow-sm p-6">
-          <h3 className="text-base font-extrabold text-slate-900 mb-1">Customer Orders ({inquiries.length})</h3>
-          <p className="text-xs text-slate-500 mb-4">Direct retail orders routed for packaging and pickup</p>
+              {/* KPI Cards Row */}
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                <StatCard
+                  icon={Package}
+                  iconBg="bg-blue-500"
+                  label="Active Listings"
+                  value={published.length}
+                  sub={`${pending.length} pending review`}
+                  trend={{ up: true, label: '+2 this week' }}
+                />
+                <StatCard
+                  icon={IndianRupee}
+                  iconBg="bg-green-500"
+                  label="Catalog GMV"
+                  value={`₹${totalGMV.toLocaleString('en-IN')}`}
+                  sub="Gross merchandise value"
+                  trend={{ up: true, label: '+12% vs last month' }}
+                />
+                <StatCard
+                  icon={ShoppingBag}
+                  iconBg="bg-orange-500"
+                  label="Total Orders"
+                  value={orders.length}
+                  sub="Direct buyer orders"
+                  trend={{ up: true, label: `${orders.length} active` }}
+                />
+                <StatCard
+                  icon={Banknote}
+                  iconBg="bg-purple-500"
+                  label="Settled Payouts"
+                  value={`₹${totalPayout.toLocaleString('en-IN')}`}
+                  sub="Direct NEFT to bank"
+                  trend={{ up: true, label: '0% platform fee' }}
+                />
+              </div>
 
-          {inquiries.length === 0 ? (
-            <div className="text-center py-12 text-slate-400 text-xs font-semibold">
-              No pending fulfillment orders at the moment.
-            </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-xs text-left">
-                <thead className="bg-artisan-50 text-slate-600 font-bold uppercase text-[10px]">
-                  <tr>
-                    <th className="p-3 rounded-l-lg">Order ID</th>
-                    <th className="p-3">Customer</th>
-                    <th className="p-3">Product</th>
-                    <th className="p-3">Payout Amount</th>
-                    <th className="p-3 rounded-r-lg">Fulfillment Status</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100 font-medium text-slate-700">
-                  {inquiries.map((inq) => (
-                    <tr key={inq.id} className="hover:bg-slate-50">
-                      <td className="p-3 font-extrabold text-slate-900">#{inq.id}</td>
-                      <td className="p-3">
-                        <div className="font-bold text-slate-900">{inq.buyer_name}</div>
-                        <div className="text-[10px] text-slate-400">{inq.buyer_city}</div>
-                      </td>
-                      <td className="p-3 font-semibold text-slate-800">{inq.product_name} (x{inq.quantity})</td>
-                      <td className="p-3 font-black text-emerald-800">₹{inq.total_amount.toLocaleString('en-IN')}</td>
-                      <td className="p-3">
-                        <span className="bg-emerald-100 text-emerald-800 text-[10px] font-bold px-2 py-0.5 rounded">
-                          {inq.status}
-                        </span>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+              {/* Second Row: Chart + Top Products + Pending Actions */}
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+
+                {/* Sales Chart Card */}
+                <div className="lg:col-span-2 bg-white rounded-2xl border border-gray-200 shadow-sm p-5">
+                  <div className="flex items-center justify-between mb-4">
+                    <div>
+                      <h3 className="text-[14px] font-bold text-gray-900">Revenue Overview</h3>
+                      <p className="text-[12px] text-gray-500">Daily orders (last 7 days)</p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-[11px] bg-green-100 text-green-800 font-bold px-2 py-0.5 rounded-full">
+                        ↑ 23% vs last week
+                      </span>
+                      <button className="text-[12px] text-gray-500 hover:text-gray-700 flex items-center gap-1">
+                        This Week <ChevronDown className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Bar Chart */}
+                  <div className="flex items-end gap-2 h-32 mb-3">
+                    {[12000, 18500, 9800, 24000, 16000, 22000, 19500].map((v, i) => {
+                      const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+                      const max = 24000;
+                      return (
+                        <div key={i} className="flex-1 flex flex-col items-center gap-1">
+                          <span className="text-[9px] text-gray-400 font-semibold">₹{(v/1000).toFixed(0)}k</span>
+                          <div
+                            className="w-full rounded-t-lg transition-all hover:opacity-80 cursor-pointer"
+                            style={{
+                              height: `${(v / max) * 80}px`,
+                              background: i === 3 ? 'linear-gradient(180deg, #f97316, #ef4444)' : '#e5e7eb',
+                            }}
+                          />
+                          <span className="text-[9px] text-gray-400">{days[i]}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                  <div className="pt-3 border-t border-gray-100 flex items-center justify-between text-[12px] text-gray-500">
+                    <span>Total this week: <strong className="text-gray-900">₹1,21,800</strong></span>
+                    <button className="text-blue-600 hover:underline font-semibold">View full report →</button>
+                  </div>
+                </div>
+
+                {/* Pending Actions */}
+                <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-5 flex flex-col">
+                  <h3 className="text-[14px] font-bold text-gray-900 mb-3">Action Required</h3>
+                  <div className="space-y-3 flex-1">
+                    {[
+                      { icon: Clock, color: 'text-amber-600 bg-amber-50', title: 'Pending Review', desc: `${pending.length} listings waiting admin`, action: () => setActiveTab('inventory') },
+                      { icon: Truck, color: 'text-blue-600 bg-blue-50', title: 'Pack & Ship', desc: `${orders.length} orders to fulfill`, action: () => setActiveTab('orders') },
+                      { icon: Zap, color: 'text-purple-600 bg-purple-50', title: 'New AI Feature', desc: 'Try the multilingual voice lister', action: () => setActiveTab('addproduct') },
+                    ].map((item, i) => (
+                      <button
+                        key={i}
+                        onClick={item.action}
+                        className="w-full flex items-center gap-3 p-3 rounded-xl border border-gray-100 hover:border-gray-300 hover:bg-gray-50 transition-all text-left group"
+                      >
+                        <div className={`w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 ${item.color}`}>
+                          <item.icon className="w-4 h-4" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="text-[13px] font-bold text-gray-900">{item.title}</div>
+                          <div className="text-[11px] text-gray-500 truncate">{item.desc}</div>
+                        </div>
+                        <ChevronRight className="w-4 h-4 text-gray-400 group-hover:text-gray-700 transition-colors" />
+                      </button>
+                    ))}
+                  </div>
+
+                  {/* Trust badge */}
+                  <div className="mt-4 pt-3 border-t border-gray-100 bg-green-50 rounded-xl p-3 flex items-center gap-2.5">
+                    <ShieldCheck className="w-5 h-5 text-green-600 flex-shrink-0" />
+                    <div className="text-[11px] text-green-800 font-semibold leading-snug">
+                      0% Platform Fee · 100% Earnings<br />
+                      Direct bank settlement in 24h
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Recent Products Preview */}
+              <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+                <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
+                  <h3 className="text-[14px] font-bold text-gray-900">Recent Listings</h3>
+                  <button onClick={() => setActiveTab('inventory')} className="text-[12px] text-blue-600 hover:underline font-semibold">
+                    View all →
+                  </button>
+                </div>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-[13px]">
+                    <thead className="bg-gray-50 text-[11px] text-gray-500 uppercase font-bold tracking-wider">
+                      <tr>
+                        <th className="px-5 py-3 text-left">Product</th>
+                        <th className="px-5 py-3 text-left">Category</th>
+                        <th className="px-5 py-3 text-left">Price</th>
+                        <th className="px-5 py-3 text-left">Stock</th>
+                        <th className="px-5 py-3 text-left">Status</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-100">
+                      {products.slice(0, 5).map(p => (
+                        <tr key={p.id} className="hover:bg-gray-50 transition-colors">
+                          <td className="px-5 py-3">
+                            <div className="flex items-center gap-3">
+                              <div className="w-10 h-10 rounded-lg bg-gray-100 flex items-center justify-center overflow-hidden flex-shrink-0">
+                                <img
+                                  src={p.enhanced_image || p.original_image || 'https://placehold.co/40x40/f3f4f6/9ca3af?text=?'}
+                                  alt=""
+                                  className="w-full h-full object-contain"
+                                  onError={e => e.target.src = 'https://placehold.co/40x40/f3f4f6/9ca3af?text=?'}
+                                />
+                              </div>
+                              <span className="font-semibold text-gray-900 line-clamp-1">{p.product_name}</span>
+                            </div>
+                          </td>
+                          <td className="px-5 py-3 text-gray-500">{p.category}</td>
+                          <td className="px-5 py-3 font-bold text-gray-900">₹{p.suggested_price?.toLocaleString('en-IN')}</td>
+                          <td className="px-5 py-3 text-gray-600">{p.stock_quantity || 5} units</td>
+                          <td className="px-5 py-3"><StatusBadge status={p.status} /></td>
+                        </tr>
+                      ))}
+                      {products.length === 0 && (
+                        <tr>
+                          <td colSpan={5} className="px-5 py-12 text-center text-gray-400 text-[13px]">
+                            No products yet. <button onClick={() => setActiveTab('addproduct')} className="text-orange-500 font-bold hover:underline">Add your first listing →</button>
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
             </div>
           )}
+
+          {/* ══════════════════════════
+              TAB: AI LISTING STUDIO
+          ══════════════════════════ */}
+          {activeTab === 'addproduct' && (
+            <AiListingStudio
+              onProductCreated={() => { fetchData(); setActiveTab('inventory'); }}
+              onNavigateToAdmin={onNavigateToAdmin}
+            />
+          )}
+
+          {/* ══════════════════════════
+              TAB: INVENTORY
+          ══════════════════════════ */}
+          {activeTab === 'inventory' && (
+            <div className="space-y-4 animate-fade-in">
+
+              {/* Toolbar */}
+              <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-4 flex flex-wrap items-center justify-between gap-3">
+                <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 bg-gray-100 rounded-xl px-3 py-2">
+                    <Search className="w-4 h-4 text-gray-400" />
+                    <input
+                      type="text"
+                      placeholder="Search inventory..."
+                      className="bg-transparent text-[13px] text-gray-700 placeholder-gray-400 outline-none w-48"
+                    />
+                  </div>
+                  <button className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-gray-200 text-[12px] font-semibold text-gray-600 hover:bg-gray-50">
+                    <Filter className="w-3.5 h-3.5" />
+                    Filter
+                  </button>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-gray-200 text-[12px] font-semibold text-gray-600 hover:bg-gray-50">
+                    <Download className="w-3.5 h-3.5" />
+                    Export CSV
+                  </button>
+                  <button
+                    onClick={() => setActiveTab('addproduct')}
+                    className="flex items-center gap-2 px-4 py-2 rounded-xl text-[13px] font-bold text-white"
+                    style={{ background: 'linear-gradient(135deg, #f97316, #ef4444)' }}
+                  >
+                    <Plus className="w-4 h-4" />
+                    Add Product
+                  </button>
+                </div>
+              </div>
+
+              {/* Stats row */}
+              <div className="grid grid-cols-3 gap-3">
+                {[
+                  { label: 'Total Listings', value: products.length, color: 'text-blue-600' },
+                  { label: 'Live on Marketplace', value: published.length, color: 'text-green-600' },
+                  { label: 'Pending Review', value: pending.length, color: 'text-amber-600' },
+                ].map(s => (
+                  <div key={s.label} className="bg-white rounded-xl border border-gray-200 shadow-sm p-4 text-center">
+                    <div className={`text-[24px] font-black ${s.color}`}>{s.value}</div>
+                    <div className="text-[11px] text-gray-500 font-medium mt-0.5">{s.label}</div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Inventory Table */}
+              <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-[13px]">
+                    <thead className="bg-gray-50 text-[11px] text-gray-500 uppercase font-bold tracking-wider border-b border-gray-200">
+                      <tr>
+                        <th className="px-5 py-3.5 text-left">Product</th>
+                        <th className="px-5 py-3.5 text-left">Category</th>
+                        <th className="px-5 py-3.5 text-left">Cost Price</th>
+                        <th className="px-5 py-3.5 text-left">Sell Price</th>
+                        <th className="px-5 py-3.5 text-left">Margin</th>
+                        <th className="px-5 py-3.5 text-left">Stock</th>
+                        <th className="px-5 py-3.5 text-left">Status</th>
+                        <th className="px-5 py-3.5 text-left">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-100">
+                      {products.length === 0 ? (
+                        <tr>
+                          <td colSpan={8} className="text-center py-16">
+                            <Package className="w-10 h-10 text-gray-300 mx-auto mb-2" />
+                            <p className="text-[14px] font-semibold text-gray-500 mb-3">No products in your catalog yet</p>
+                            <button
+                              onClick={() => setActiveTab('addproduct')}
+                              className="px-6 py-2.5 rounded-xl font-bold text-white text-[13px]"
+                              style={{ background: 'linear-gradient(135deg, #f97316, #ef4444)' }}
+                            >
+                              + Create Your First Listing with AI
+                            </button>
+                          </td>
+                        </tr>
+                      ) : products.map(p => {
+                        const cost = (p.total_cost || 0);
+                        const price = (p.suggested_price || 0);
+                        const margin = cost > 0 ? Math.round(((price - cost) / price) * 100) : 0;
+                        return (
+                          <tr key={p.id} className="hover:bg-orange-50/30 transition-colors group">
+                            <td className="px-5 py-3.5">
+                              <div className="flex items-center gap-3">
+                                <div className="w-12 h-12 rounded-xl bg-gray-100 border border-gray-200 flex items-center justify-center overflow-hidden flex-shrink-0">
+                                  <img
+                                    src={p.enhanced_image || p.original_image || 'https://placehold.co/48x48/f3f4f6/9ca3af?text=?'}
+                                    alt=""
+                                    className="w-full h-full object-contain p-0.5"
+                                    onError={e => e.target.src = 'https://placehold.co/48x48/f3f4f6/9ca3af?text=?'}
+                                  />
+                                </div>
+                                <div>
+                                  <div className="font-semibold text-gray-900 line-clamp-1">{p.product_name}</div>
+                                  <div className="text-[11px] text-gray-400">{p.craft_type}</div>
+                                </div>
+                              </div>
+                            </td>
+                            <td className="px-5 py-3.5 text-gray-500">{p.category}</td>
+                            <td className="px-5 py-3.5 text-gray-600">₹{cost.toLocaleString('en-IN')}</td>
+                            <td className="px-5 py-3.5 font-bold text-gray-900">₹{price.toLocaleString('en-IN')}</td>
+                            <td className="px-5 py-3.5">
+                              <span className={`font-bold ${margin > 30 ? 'text-green-600' : margin > 15 ? 'text-amber-600' : 'text-red-500'}`}>
+                                {margin}%
+                              </span>
+                            </td>
+                            <td className="px-5 py-3.5">
+                              <span className={`font-semibold ${(p.stock_quantity || 5) < 5 ? 'text-red-600' : 'text-gray-700'}`}>
+                                {p.stock_quantity || 5}
+                              </span>
+                            </td>
+                            <td className="px-5 py-3.5"><StatusBadge status={p.status} /></td>
+                            <td className="px-5 py-3.5">
+                              <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                <button className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-blue-600" title="View">
+                                  <Eye className="w-3.5 h-3.5" />
+                                </button>
+                                <button className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-amber-600" title="Edit">
+                                  <Edit3 className="w-3.5 h-3.5" />
+                                </button>
+                                <button className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-red-500" title="Delete">
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* ══════════════════════════
+              TAB: ORDERS
+          ══════════════════════════ */}
+          {activeTab === 'orders' && (
+            <div className="space-y-4 animate-fade-in">
+              <div className="grid grid-cols-4 gap-3">
+                {[
+                  { label: 'Total Orders', value: orders.length, icon: ShoppingBag, color: 'bg-blue-500' },
+                  { label: 'To Fulfill', value: orders.filter(o => o.status !== 'Delivered').length, icon: Package, color: 'bg-amber-500' },
+                  { label: 'Delivered', value: orders.filter(o => o.status === 'Delivered').length, icon: CheckCircle2, color: 'bg-green-500' },
+                  { label: 'Revenue', value: `₹${orders.reduce((s, o) => s + (o.total_amount || 0), 0).toLocaleString('en-IN')}`, icon: IndianRupee, color: 'bg-purple-500' },
+                ].map(s => (
+                  <div key={s.label} className="bg-white rounded-2xl border border-gray-200 shadow-sm p-4 flex items-center gap-3">
+                    <div className={`w-10 h-10 rounded-xl ${s.color} flex items-center justify-center flex-shrink-0`}>
+                      <s.icon className="w-5 h-5 text-white" />
+                    </div>
+                    <div>
+                      <div className="text-[20px] font-black text-gray-900">{s.value}</div>
+                      <div className="text-[11px] text-gray-500">{s.label}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+                <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
+                  <h3 className="text-[14px] font-bold text-gray-900">Customer Orders</h3>
+                  <button className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-gray-200 text-[12px] font-semibold text-gray-600 hover:bg-gray-50">
+                    <Download className="w-3.5 h-3.5" />
+                    Export
+                  </button>
+                </div>
+
+                {orders.length === 0 ? (
+                  <div className="text-center py-16 text-gray-400">
+                    <ShoppingBag className="w-10 h-10 mx-auto mb-2 text-gray-300" />
+                    <p className="text-[14px] font-semibold text-gray-500">No orders yet</p>
+                    <p className="text-[12px] mt-1">Orders from buyers will appear here</p>
+                  </div>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-[13px]">
+                      <thead className="bg-gray-50 text-[11px] text-gray-500 uppercase font-bold tracking-wider border-b border-gray-100">
+                        <tr>
+                          <th className="px-5 py-3.5 text-left">Order ID</th>
+                          <th className="px-5 py-3.5 text-left">Customer</th>
+                          <th className="px-5 py-3.5 text-left">Product</th>
+                          <th className="px-5 py-3.5 text-left">Qty</th>
+                          <th className="px-5 py-3.5 text-left">Amount</th>
+                          <th className="px-5 py-3.5 text-left">Your Payout</th>
+                          <th className="px-5 py-3.5 text-left">Status</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-100">
+                        {orders.map(o => (
+                          <tr key={o.id} className="hover:bg-gray-50 transition-colors">
+                            <td className="px-5 py-3.5 font-bold text-gray-900">#CRF-{o.id}</td>
+                            <td className="px-5 py-3.5">
+                              <div className="font-semibold text-gray-900">{o.buyer_name}</div>
+                              <div className="text-[11px] text-gray-400">{o.buyer_city}</div>
+                            </td>
+                            <td className="px-5 py-3.5 text-gray-700">{o.product_name}</td>
+                            <td className="px-5 py-3.5 text-gray-600">{o.quantity}</td>
+                            <td className="px-5 py-3.5 font-bold text-gray-900">₹{o.total_amount?.toLocaleString('en-IN')}</td>
+                            <td className="px-5 py-3.5 font-black text-green-700">₹{o.total_amount?.toLocaleString('en-IN')}</td>
+                            <td className="px-5 py-3.5"><StatusBadge status={o.status || 'Processing'} /></td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* ══════════════════════════
+              TAB: PAYMENTS
+          ══════════════════════════ */}
+          {activeTab === 'payments' && (
+            <div className="space-y-4 animate-fade-in">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {[
+                  { label: 'Total Earnings', value: '₹1,58,950', sub: 'Since account opening', icon: IndianRupee, color: 'bg-green-500', trend: '+₹48,950 this month' },
+                  { label: 'In Escrow', value: '₹9,850', sub: 'Clearing in 2 business days', icon: Clock, color: 'bg-amber-500', trend: 'Releasing Friday' },
+                  { label: 'Platform Fee', value: '₹0 (Zero)', sub: '100% goes to your bank', icon: ShieldCheck, color: 'bg-blue-500', trend: 'Fair trade guarantee' },
+                ].map(c => (
+                  <div key={c.label} className="bg-white rounded-2xl border border-gray-200 shadow-sm p-5">
+                    <div className="flex items-center justify-between mb-3">
+                      <span className="text-[12px] font-semibold text-gray-500">{c.label}</span>
+                      <div className={`w-9 h-9 rounded-xl ${c.color} flex items-center justify-center`}>
+                        <c.icon className="w-4 h-4 text-white" />
+                      </div>
+                    </div>
+                    <div className="text-[26px] font-black text-gray-900">{c.value}</div>
+                    <div className="text-[11px] text-gray-400 mt-1">{c.sub}</div>
+                    <div className="text-[11px] font-semibold text-green-600 mt-2">{c.trend}</div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Bank Account */}
+              <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-5">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-[14px] font-bold text-gray-900">Bank Settlement Account</h3>
+                  <span className="text-[11px] font-bold text-green-700 bg-green-100 px-2 py-0.5 rounded-full border border-green-200">
+                    ✓ Verified KYC
+                  </span>
+                </div>
+                <div className="flex items-center gap-4 p-4 bg-gray-50 rounded-xl border border-gray-200">
+                  <div className="w-12 h-12 rounded-xl bg-blue-600 flex items-center justify-center text-white font-black text-lg">
+                    SBI
+                  </div>
+                  <div>
+                    <div className="font-bold text-gray-900 text-[14px]">State Bank of India</div>
+                    <div className="text-[12px] text-gray-500">A/C No: XXXX XXXX XXXX 4421 · IFSC: SBIN0001234</div>
+                    <div className="text-[11px] text-gray-400 mt-0.5">Varanasi, Uttar Pradesh Branch</div>
+                  </div>
+                  <button className="ml-auto text-[12px] text-blue-600 hover:underline font-semibold">Change Account</button>
+                </div>
+              </div>
+
+              {/* Settlement History Table */}
+              <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+                <div className="px-5 py-4 border-b border-gray-100">
+                  <h3 className="text-[14px] font-bold text-gray-900">Settlement History</h3>
+                </div>
+                <table className="w-full text-[13px]">
+                  <thead className="bg-gray-50 text-[11px] text-gray-500 uppercase font-bold tracking-wider">
+                    <tr>
+                      <th className="px-5 py-3.5 text-left">Date</th>
+                      <th className="px-5 py-3.5 text-left">Orders</th>
+                      <th className="px-5 py-3.5 text-left">Gross</th>
+                      <th className="px-5 py-3.5 text-left">Platform Fee</th>
+                      <th className="px-5 py-3.5 text-left">Net Payout</th>
+                      <th className="px-5 py-3.5 text-left">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100">
+                    {[
+                      { date: '24 Aug 2026', orders: 5, gross: 28500, fee: 0, status: 'Settled' },
+                      { date: '18 Aug 2026', orders: 3, gross: 12800, fee: 0, status: 'Settled' },
+                      { date: '10 Aug 2026', orders: 7, gross: 42000, fee: 0, status: 'Settled' },
+                    ].map((row, i) => (
+                      <tr key={i} className="hover:bg-gray-50">
+                        <td className="px-5 py-3.5 font-medium text-gray-700">{row.date}</td>
+                        <td className="px-5 py-3.5 text-gray-500">{row.orders} orders</td>
+                        <td className="px-5 py-3.5 font-semibold text-gray-900">₹{row.gross.toLocaleString('en-IN')}</td>
+                        <td className="px-5 py-3.5 font-bold text-green-600">₹{row.fee} (0%)</td>
+                        <td className="px-5 py-3.5 font-black text-gray-900">₹{row.gross.toLocaleString('en-IN')}</td>
+                        <td className="px-5 py-3.5">
+                          <span className="bg-green-100 text-green-800 text-[11px] font-bold px-2 py-0.5 rounded-full border border-green-200">
+                            ✓ {row.status}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
+          {/* ══════════════════════════
+              TAB: ANALYTICS
+          ══════════════════════════ */}
+          {activeTab === 'analytics' && (
+            <div className="space-y-4 animate-fade-in">
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                {[
+                  { label: 'Listing Views', value: '12,840', trend: '+34%', icon: Eye, color: 'bg-blue-500' },
+                  { label: 'Conversion Rate', value: '3.2%', trend: '+0.8%', icon: TrendingUp, color: 'bg-green-500' },
+                  { label: 'Avg. Order Value', value: '₹4,850', trend: '+12%', icon: IndianRupee, color: 'bg-orange-500' },
+                  { label: 'Repeat Buyers', value: '22%', trend: '+5%', icon: Users, color: 'bg-purple-500' },
+                ].map(s => (
+                  <div key={s.label} className="bg-white rounded-2xl border border-gray-200 shadow-sm p-5">
+                    <div className="flex items-center justify-between mb-3">
+                      <div className={`w-9 h-9 rounded-xl ${s.color} flex items-center justify-center`}>
+                        <s.icon className="w-4.5 h-4.5 text-white" />
+                      </div>
+                      <span className="text-[11px] font-bold text-green-600 bg-green-50 px-2 py-0.5 rounded-full">↑ {s.trend}</span>
+                    </div>
+                    <div className="text-[24px] font-black text-gray-900">{s.value}</div>
+                    <div className="text-[12px] text-gray-500 mt-0.5">{s.label}</div>
+                  </div>
+                ))}
+              </div>
+
+              <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-5">
+                <h3 className="text-[14px] font-bold text-gray-900 mb-4">Top Performing Categories</h3>
+                {[
+                  { name: 'Handloom & Textiles', sales: 8, revenue: 88200, pct: 68 },
+                  { name: 'Pottery & Ceramics', sales: 3, revenue: 18450, pct: 28 },
+                  { name: 'Tribal Art', sales: 1, revenue: 3600, pct: 10 },
+                ].map(cat => (
+                  <div key={cat.name} className="mb-4">
+                    <div className="flex items-center justify-between mb-1.5 text-[13px]">
+                      <span className="font-semibold text-gray-900">{cat.name}</span>
+                      <span className="font-bold text-gray-700">₹{cat.revenue.toLocaleString('en-IN')} · {cat.sales} sales</span>
+                    </div>
+                    <div className="bg-gray-200 rounded-full h-2 overflow-hidden">
+                      <div
+                        className="h-full rounded-full bg-gradient-to-r from-orange-400 to-red-400"
+                        style={{ width: `${cat.pct}%` }}
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+        </main>
+      </div>
+    </div>
+  );
+}
+
+
+// ═══════════════════════════════════════════════════════════════
+// AI LISTING STUDIO (EMBEDDED)
+// ═══════════════════════════════════════════════════════════════
+function AiListingStudio({ onProductCreated, onNavigateToAdmin }) {
+  const [step, setStep]           = useState(1);
+  const [loading, setLoading]     = useState(false);
+  const [loadMsg, setLoadMsg]     = useState('');
+  const [error, setError]         = useState(null);
+  const [speaking, setSpeaking]   = useState(false);
+
+  const [imgData, setImgData]     = useState(null);
+  const [transcript, setTxt]      = useState('');
+  const [detLang, setDetLang]     = useState('Hindi');
+  const [attrs, setAttrs]         = useState(null);
+  const [editMode, setEditMode]   = useState(false);
+  const [listing, setListing]     = useState(null);
+  const [listLang, setListLang]   = useState('en');
+  const [pricing, setPricing]     = useState(null);
+  const [costs, setCosts]         = useState({ material_cost: 1500, labor_cost: 2400, packaging_cost: 180, production_time: '3 days' });
+  const [submitted, setSubmitted] = useState(false);
+  const [productId, setProductId] = useState(null);
+
+  const STEPS = [
+    { n: 1, label: 'Upload Photo', sub: 'AI Studio Enhancement' },
+    { n: 2, label: 'Voice Description', sub: 'Speech-to-Text AI' },
+    { n: 3, label: 'AI Understanding', sub: 'Smart Cataloging' },
+    { n: 4, label: 'Pricing Engine', sub: 'Fair-Trade Calculator' },
+    { n: 5, label: 'Submit for Review', sub: 'Admin Approval' },
+  ];
+
+  const loadPreset = async (preset) => {
+    setLoading(true); setError(null);
+    try {
+      setLoadMsg('Enhancing image with AI Computer Vision...');
+      setImgData({ original_image_url: preset.rawImage, enhanced_image_url: preset.enhancedImage, detected_objects: [preset.category], dominant_colors: [], confidence_score: 0.98 });
+      setLoadMsg('Transcribing artisan voice...');
+      setTxt(preset.voiceText);
+      setDetLang(preset.language);
+      setLoadMsg('Extracting structured attributes...');
+      const a = await api.extractProductInfo(preset.voiceText, [preset.category, preset.craft], preset.language);
+      setAttrs(a);
+      setLoadMsg('Generating multilingual listing...');
+      const l = await api.generateListing(a, 'Master Artisan');
+      setListing(l);
+      setLoadMsg('Computing fair-trade pricing...');
+      const costPayload = { material_cost: preset.materialCost, labor_cost: preset.laborCost, packaging_cost: preset.packagingCost, production_time: preset.productionTime, category: preset.category, craft_type: preset.craft, material: a.material };
+      setCosts(costPayload);
+      const pr = await api.calculatePrice(costPayload);
+      setPricing(pr);
+      setStep(4);
+    } catch (e) { setError(e.message); }
+    finally { setLoading(false); setLoadMsg(''); }
+  };
+
+  const handleImageUpload = async (e) => {
+    const file = e.target.files?.[0]; if (!file) return;
+    setLoading(true); setError(null);
+    setLoadMsg('AI Computer Vision: Removing background & enhancing studio quality...');
+    try {
+      const d = await api.enhanceImage(file);
+      setImgData(d);
+      setStep(2);
+    } catch (e) { setError(e.message); }
+    finally { setLoading(false); setLoadMsg(''); }
+  };
+
+  const handleVoice = async (blob, filename, overTxt = null, overLang = null) => {
+    setLoading(true); setError(null);
+    setLoadMsg('Speech AI: Converting voice to text...');
+    try {
+      let text = overTxt, lang = overLang || 'Hindi';
+      if (!text) { const r = await api.transcribeAudio(blob, lang, filename); text = r.transcript; lang = r.detected_language; }
+      setTxt(text); setDetLang(lang);
+      setLoadMsg('Extracting structured craft data (zero-hallucination)...');
+      const a = await api.extractProductInfo(text, imgData?.detected_objects || [], lang);
+      setAttrs(a);
+      setLoadMsg('Generating bilingual marketplace listing...');
+      const l = await api.generateListing(a, 'Master Artisan');
+      setListing(l);
+      setLoadMsg('Computing fair-trade pricing model...');
+      const pr = await api.calculatePrice({ ...costs, category: a.category, craft_type: a.craft_type, material: a.material });
+      setPricing(pr);
+      setStep(3);
+    } catch (e) { setError(e.message); }
+    finally { setLoading(false); setLoadMsg(''); }
+  };
+
+  const handleSubmit = async () => {
+    setLoading(true);
+    setLoadMsg('Submitting to Admin Approval Queue...');
+    try {
+      const payload = {
+        original_image: imgData?.original_image_url || '/uploads/banarasi_saree_raw.jpg',
+        enhanced_image: imgData?.enhanced_image_url || '/uploads/banarasi_saree_studio_enhanced.png',
+        transcript, detected_language: detLang,
+        product_name: attrs?.product_name || 'Handcrafted Artisan Item',
+        category: attrs?.category || 'Handloom & Textiles',
+        material: attrs?.material || 'Natural Fiber',
+        craft_type: attrs?.craft_type || 'Handcrafted',
+        color: attrs?.color || 'Natural',
+        technique: attrs?.technique || 'Handmade',
+        dimensions: attrs?.dimensions || 'Standard',
+        production_time: attrs?.production_time || costs.production_time,
+        region: attrs?.region || 'India',
+        title: listing?.title_en || attrs?.product_name,
+        title_hindi: listing?.title_hi,
+        short_description: listing?.short_desc_en,
+        description: listing?.description_en,
+        specifications: listing?.specifications || [],
+        keywords: listing?.keywords || [],
+        material_cost: costs.material_cost,
+        labor_cost: costs.labor_cost,
+        packaging_cost: costs.packaging_cost,
+        total_cost: pricing?.total_cost || (costs.material_cost + costs.labor_cost + costs.packaging_cost),
+        suggested_price: pricing?.suggested_price || 2499,
+        status: 'Pending Approval',
+      };
+      const result = await api.createProduct(payload);
+      setProductId(result.id);
+      setSubmitted(true);
+      if (onProductCreated) onProductCreated(result);
+    } catch (e) { setError(e.message); }
+    finally { setLoading(false); setLoadMsg(''); }
+  };
+
+  const reset = () => {
+    setStep(1); setImgData(null); setTxt(''); setAttrs(null); setListing(null); setPricing(null); setSubmitted(false); setProductId(null); setError(null);
+  };
+
+  // Success Screen
+  if (submitted) {
+    return (
+      <div className="max-w-2xl mx-auto py-8 animate-fade-in">
+        <div className="bg-white rounded-2xl border-2 border-green-200 shadow-lg p-8 text-center">
+          <div className="w-16 h-16 rounded-full bg-green-100 flex items-center justify-center mx-auto mb-4">
+            <CheckCircle2 className="w-9 h-9 text-green-600" />
+          </div>
+          <h2 className="text-[22px] font-black text-gray-900 mb-2" style={{ fontFamily: "'Outfit', sans-serif" }}>
+            Submitted for Admin Review!
+          </h2>
+          <p className="text-[13px] text-gray-500 max-w-md mx-auto mb-6">
+            Your craft listing #CRF-{productId} has been sent to the Admin Approval Queue. Once approved, it will go live on the marketplace.
+          </p>
+          <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 flex items-center gap-4 text-left mb-6">
+            <div>
+              <div className="text-[12px] font-bold text-amber-900">{attrs?.product_name || 'Your Craft Listing'}</div>
+              <div className="text-[11px] text-amber-700">{attrs?.craft_type} · Request #{productId || 'NEW'}</div>
+            </div>
+            <div className="ml-auto text-right">
+              <div className="text-[10px] text-gray-500 uppercase font-bold">Fair Price</div>
+              <div className="text-[18px] font-black text-green-700">₹{pricing?.suggested_price?.toLocaleString('en-IN') || '2,499'}</div>
+            </div>
+          </div>
+          <div className="flex items-center justify-center gap-3">
+            <button onClick={reset} className="px-6 py-2.5 rounded-xl border border-gray-200 text-[13px] font-bold text-gray-700 hover:bg-gray-50">
+              + Add Another Listing
+            </button>
+            {onNavigateToAdmin && (
+              <button onClick={onNavigateToAdmin} className="px-6 py-2.5 rounded-xl bg-gray-900 text-white text-[13px] font-bold hover:bg-gray-800 flex items-center gap-2">
+                <ShieldCheck className="w-4 h-4 text-amber-400" />
+                Open Admin Portal
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-5 animate-fade-in">
+
+      {/* ── STEP PROGRESS HEADER ────────────────── */}
+      <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-5">
+        <div className="flex items-center gap-2 overflow-x-auto">
+          {STEPS.map((s, idx) => {
+            const done = step > s.n;
+            const cur  = step === s.n && !submitted;
+            return (
+              <React.Fragment key={s.n}>
+                <button
+                  onClick={() => !loading && step > s.n && setStep(s.n)}
+                  disabled={step < s.n || loading}
+                  className={`flex items-center gap-2.5 px-3 py-2 rounded-xl whitespace-nowrap transition-all ${
+                    cur  ? 'bg-orange-50 border border-orange-200 text-orange-700' :
+                    done ? 'text-green-700 hover:bg-green-50' :
+                           'text-gray-400 cursor-not-allowed'
+                  }`}
+                >
+                  <div className={`w-7 h-7 rounded-full flex items-center justify-center text-[12px] font-black flex-shrink-0 ${
+                    done ? 'bg-green-500 text-white' :
+                    cur  ? 'bg-orange-500 text-white' :
+                           'bg-gray-200 text-gray-500'
+                  }`}>
+                    {done ? <Check className="w-3.5 h-3.5" /> : s.n}
+                  </div>
+                  <div className="hidden md:block text-left">
+                    <div className="text-[12px] font-bold">{s.label}</div>
+                    <div className="text-[10px] text-gray-400 font-normal">{s.sub}</div>
+                  </div>
+                </button>
+                {idx < STEPS.length - 1 && (
+                  <div className={`h-px flex-1 min-w-[20px] rounded-full ${step > s.n ? 'bg-green-300' : 'bg-gray-200'}`} />
+                )}
+              </React.Fragment>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Error */}
+      {error && (
+        <div className="bg-red-50 border border-red-200 rounded-xl p-4 flex items-center gap-3 text-red-800 text-[13px]">
+          <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0" />
+          <span>{error}</span>
+          <button onClick={() => setError(null)} className="ml-auto text-red-400 hover:text-red-600"><X className="w-4 h-4" /></button>
         </div>
       )}
 
-      {/* TAB 4: PAYOUTS */}
-      {sellerTab === 'payouts' && (
-        <div className="bg-white rounded-2xl border border-artisan-200 shadow-sm p-6 space-y-4">
-          <div className="flex items-center justify-between pb-4 border-b border-slate-100">
-            <div>
-              <h3 className="text-base font-extrabold text-slate-900">Direct Bank Payouts & Settlement</h3>
-              <p className="text-xs text-slate-500">100% fair-trade payments settled via direct NEFT/UPI</p>
+      {/* Loading */}
+      {loading && (
+        <div className="bg-white border border-gray-200 rounded-2xl p-8 text-center shadow-sm">
+          <div className="w-14 h-14 rounded-full border-4 border-orange-200 border-t-orange-500 animate-spin mx-auto mb-4" />
+          <p className="text-[14px] font-bold text-gray-900 mb-1">{loadMsg || 'Processing...'}</p>
+          <p className="text-[12px] text-gray-400">AI models running — this takes a moment</p>
+        </div>
+      )}
+
+      {/* ── STEP 1: IMAGE UPLOAD ─────────────────── */}
+      {step === 1 && !loading && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+          {/* Upload Panel */}
+          <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 rounded-xl bg-orange-100 flex items-center justify-center">
+                <Camera className="w-5 h-5 text-orange-600" />
+              </div>
+              <div>
+                <h3 className="text-[15px] font-bold text-gray-900">Step 1: Upload Product Photo</h3>
+                <p className="text-[12px] text-gray-400">Any background is OK — AI will clean it</p>
+              </div>
             </div>
-            <span className="text-xs font-bold bg-emerald-100 text-emerald-900 px-3 py-1 rounded-full border border-emerald-300">
-              Verified Producer Account
-            </span>
+
+            <label className="block border-2 border-dashed border-gray-300 hover:border-orange-400 bg-gray-50 hover:bg-orange-50/30 rounded-xl p-8 cursor-pointer transition-all text-center group">
+              <input type="file" accept="image/*" onChange={handleImageUpload} className="hidden" />
+              <div className="w-14 h-14 rounded-full bg-white border border-gray-200 shadow-sm flex items-center justify-center mx-auto mb-3 group-hover:scale-110 transition-transform">
+                <Upload className="w-7 h-7 text-gray-400 group-hover:text-orange-500 transition-colors" />
+              </div>
+              <p className="text-[14px] font-bold text-gray-700 mb-1">Click to Upload Photo</p>
+              <p className="text-[12px] text-gray-400">JPG, PNG, WebP — up to 15MB</p>
+            </label>
+
+            <div className="mt-4 pt-4 border-t border-gray-100">
+              <p className="text-[11px] font-bold uppercase text-gray-400 mb-3 tracking-wider">Quick Demo Presets:</p>
+              <div className="grid grid-cols-2 gap-2">
+                {DEMO_PRESETS.slice(0, 4).map(p => (
+                  <button key={p.id} onClick={() => loadPreset(p)} className="p-3 rounded-xl border border-gray-200 hover:border-orange-300 hover:bg-orange-50/40 text-left transition-all">
+                    <div className="text-xl mb-1">{p.icon}</div>
+                    <div className="text-[12px] font-bold text-gray-800 truncate">{p.name}</div>
+                    <div className="text-[10px] text-gray-400">{p.region}</div>
+                  </button>
+                ))}
+              </div>
+            </div>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs">
-            <div className="p-4 rounded-xl bg-emerald-50 border border-emerald-200">
-              <span className="text-emerald-800 font-bold block uppercase text-[10px]">Total Settled Payouts</span>
-              <span className="text-2xl font-black text-emerald-950">₹48,950</span>
+          {/* Preview Panel */}
+          <div className="bg-gray-900 rounded-2xl overflow-hidden flex flex-col">
+            <div className="px-5 py-4 bg-black/20">
+              <div className="flex items-center gap-2">
+                <Sparkles className="w-4 h-4 text-amber-400" />
+                <span className="text-white font-bold text-[13px]">AI Studio Enhancement Preview</span>
+              </div>
             </div>
-            <div className="p-4 rounded-xl bg-amber-50 border border-amber-200">
-              <span className="text-amber-800 font-bold block uppercase text-[10px]">Pending Escrow Clearance</span>
-              <span className="text-2xl font-black text-amber-950">₹9,850</span>
+            <div className="flex-1 flex items-center justify-center p-4">
+              <BeforeAfterSlider
+                originalUrl="/uploads/banarasi_saree_raw.jpg"
+                enhancedUrl="/uploads/banarasi_saree_studio_enhanced.png"
+                title="Drag to compare"
+              />
             </div>
-            <div className="p-4 rounded-xl bg-slate-50 border border-slate-200">
-              <span className="text-slate-500 font-bold block uppercase text-[10px]">Platform Intermediary Fee</span>
-              <span className="text-2xl font-black text-slate-800">0% (Zero)</span>
+          </div>
+        </div>
+      )}
+
+      {/* ── STEP 2: VOICE ────────────────────────── */}
+      {step === 2 && !loading && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+          {imgData && (
+            <div className="bg-gray-900 rounded-2xl overflow-hidden">
+              <BeforeAfterSlider originalUrl={imgData.original_image_url} enhancedUrl={imgData.enhanced_image_url} />
             </div>
+          )}
+          <div className="space-y-4">
+            <VoiceRecorder onAudioRecorded={handleVoice} isProcessing={loading} samplePresets={VOICE_PRESETS.map(v => ({ ...v, language: v.lang, text: v.text }))} />
+            <button onClick={() => setStep(1)} className="flex items-center gap-1.5 text-[12px] font-semibold text-gray-500 hover:text-gray-700">
+              <ArrowLeft className="w-4 h-4" /> Back to Photo
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* ── STEP 3 & 4: REVIEW + PRICING ──────────── */}
+      {(step === 3 || step === 4) && !loading && (
+        <div className="space-y-5">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+
+            {/* Left: Image + Transcript */}
+            <div className="space-y-4">
+              {imgData && <div className="bg-gray-900 rounded-2xl overflow-hidden"><BeforeAfterSlider originalUrl={imgData.original_image_url} enhancedUrl={imgData.enhanced_image_url} /></div>}
+
+              {/* Transcript box */}
+              <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-4">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-2">
+                    <Mic className="w-4 h-4 text-orange-500" />
+                    <span className="text-[13px] font-bold text-gray-900">Artisan Voice Transcript ({detLang})</span>
+                  </div>
+                  <button
+                    onClick={() => {
+                      if (speaking) { voiceAssistant.stopSpeaking?.(); setSpeaking(false); }
+                      else { setSpeaking(true); voiceAssistant.speak?.(transcript, detLang === 'Hindi' ? 'hi-IN' : 'en-IN', () => setSpeaking(false)); }
+                    }}
+                    className="flex items-center gap-1 px-2.5 py-1 rounded-lg border border-gray-200 text-[11px] font-semibold text-gray-600 hover:bg-gray-50"
+                  >
+                    {speaking ? <VolumeX className="w-3.5 h-3.5 text-red-500" /> : <Volume2 className="w-3.5 h-3.5 text-blue-600" />}
+                    {speaking ? 'Stop' : 'Play'}
+                  </button>
+                </div>
+                <p className="text-[12px] text-gray-700 bg-gray-50 border border-gray-200 rounded-xl p-3 italic leading-relaxed">
+                  "{transcript || 'Voice description will appear here.'}"
+                </p>
+              </div>
+
+              {/* AI Guarantee */}
+              <div className="bg-green-50 border border-green-200 rounded-xl p-3.5 flex items-start gap-2.5">
+                <ShieldCheck className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
+                <div>
+                  <div className="text-[12px] font-bold text-green-900 mb-0.5">Zero-Hallucination AI Guarantee</div>
+                  <p className="text-[11px] text-green-700 leading-normal">
+                    All extracted attributes originate purely from your confirmed artisan voice and image. No invented claims.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Right: Attributes + Listing */}
+            <div className="space-y-4">
+
+              {/* Attributes card */}
+              <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-5">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-2">
+                    <div className="w-8 h-8 rounded-lg bg-amber-100 flex items-center justify-center">
+                      <Tag className="w-4 h-4 text-amber-700" />
+                    </div>
+                    <div>
+                      <h4 className="text-[14px] font-bold text-gray-900">AI Product Understanding</h4>
+                      <p className="text-[11px] text-gray-400">Extracted structured metadata</p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => setEditMode(!editMode)}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-gray-200 text-[12px] font-semibold text-gray-600 hover:bg-gray-50 transition-colors"
+                  >
+                    <Edit3 className="w-3.5 h-3.5" />
+                    {editMode ? 'Save' : 'Edit'}
+                  </button>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3 text-[12px]">
+                  {[
+                    ['Product Name', 'product_name'],
+                    ['Craft Type', 'craft_type'],
+                    ['Material', 'material'],
+                    ['Technique', 'technique'],
+                    ['Dimensions', 'dimensions'],
+                    ['Production Time', 'production_time'],
+                    ['Region / Origin', 'region'],
+                    ['Color', 'color'],
+                  ].map(([label, key]) => (
+                    <div key={key} className="bg-gray-50 border border-gray-200 rounded-xl p-2.5">
+                      <span className="block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">{label}</span>
+                      {editMode ? (
+                        <input
+                          type="text"
+                          value={attrs?.[key] || ''}
+                          onChange={e => setAttrs(a => ({ ...a, [key]: e.target.value }))}
+                          className="w-full bg-white border border-gray-300 rounded-lg px-2 py-1 text-[12px] text-gray-900 outline-none focus:border-orange-400"
+                        />
+                      ) : (
+                        <span className="font-semibold text-gray-900">{attrs?.[key] || '—'}</span>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Generated Listing Preview */}
+              {listing && (
+                <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-5">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-2">
+                      <Globe className="w-4 h-4 text-blue-500" />
+                      <h4 className="text-[14px] font-bold text-gray-900">Generated Marketplace Listing</h4>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="flex bg-gray-100 rounded-lg p-0.5">
+                        {['en', 'hi'].map(l => (
+                          <button key={l} onClick={() => setListLang(l)} className={`px-3 py-1 rounded-md text-[11px] font-bold transition-all ${listLang === l ? 'bg-white shadow text-orange-600' : 'text-gray-500'}`}>
+                            {l === 'en' ? 'English' : 'हिन्दी'}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="space-y-3 text-[12px]">
+                    <div>
+                      <span className="text-[10px] font-bold text-gray-400 uppercase">E-Commerce Title</span>
+                      <h5 className="font-bold text-gray-900 mt-0.5 leading-snug text-[13px]">
+                        {listLang === 'en' ? listing.title_en : listing.title_hi}
+                      </h5>
+                    </div>
+                    <div>
+                      <span className="text-[10px] font-bold text-gray-400 uppercase">Short Summary</span>
+                      <p className="text-gray-600 mt-0.5 leading-relaxed">
+                        {listLang === 'en' ? listing.short_desc_en : listing.short_desc_hi}
+                      </p>
+                    </div>
+                    <div>
+                      <span className="text-[10px] font-bold text-gray-400 uppercase">SEO Keywords</span>
+                      <div className="flex flex-wrap gap-1.5 mt-1">
+                        {listing.keywords?.map((kw, i) => (
+                          <span key={i} className="bg-gray-100 text-gray-600 px-2 py-0.5 rounded text-[10px] font-medium">#{kw}</span>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Smart Pricing */}
+          <PriceExplainerCard pricingData={pricing} onUpdateCost={async (c) => {
+            setCosts(c);
+            try { const pr = await api.calculatePrice({ ...c, category: attrs?.category, craft_type: attrs?.craft_type, material: attrs?.material }); setPricing(pr); } catch (e) {}
+          }} currentCosts={costs} />
+
+          {/* Footer Actions */}
+          <div className="flex items-center justify-between pt-4 border-t border-gray-200">
+            <button onClick={() => setStep(2)} className="flex items-center gap-1.5 px-5 py-2.5 rounded-xl border border-gray-200 text-[13px] font-semibold text-gray-700 hover:bg-gray-50 transition-colors">
+              <ArrowLeft className="w-4 h-4" /> Back
+            </button>
+            <button
+              onClick={handleSubmit}
+              disabled={loading}
+              className="flex items-center gap-2 px-8 py-3 rounded-xl text-white font-black text-[14px] shadow-lg transition-all hover:shadow-xl active:scale-95 disabled:opacity-60"
+              style={{ background: 'linear-gradient(135deg, #f59e0b, #f97316, #ef4444)' }}
+            >
+              <Send className="w-4 h-4" />
+              Submit for Admin Review
+            </button>
           </div>
         </div>
       )}

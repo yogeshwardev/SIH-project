@@ -1,10 +1,11 @@
 import os
 from pathlib import Path
-from pydantic_settings import BaseSettings
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 class Settings(BaseSettings):
+    model_config = SettingsConfigDict(env_file=str(BASE_DIR / ".env"), extra="allow")
     PROJECT_NAME: str = "CraftLink AI"
     VERSION: str = "1.0.0"
     API_PREFIX: str = "/api"
@@ -22,6 +23,7 @@ class Settings(BaseSettings):
     AI_PROVIDER: str = "local"  # "local", "gemini", "openai", "groq"
     GEMINI_API_KEY: str = ""
     OPENAI_API_KEY: str = ""
+    OPENAI_TEXT_MODEL: str = "gpt-4.1-mini"
     OPENAI_TRANSCRIPTION_MODEL: str = "gpt-4o-mini-transcribe"
     OPENAI_TTS_MODEL: str = "gpt-4o-mini-tts"
     OPENAI_TTS_VOICE: str = "coral"
@@ -34,10 +36,6 @@ class Settings(BaseSettings):
     # Host & Port
     HOST: str = "0.0.0.0"
     PORT: int = 8000
-
-    class Config:
-        env_file = ".env"
-        extra = "allow"
 
 settings = Settings()
 

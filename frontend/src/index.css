@@ -2,46 +2,250 @@
 @tailwind components;
 @tailwind utilities;
 
+/* =========================================
+   GLOBAL FONT & BASE RESETS
+   ========================================= */
 @layer base {
-  body {
-    font-family: 'Plus Jakarta Sans', sans-serif;
+  * {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
   }
+  
+  body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background-color: #f3f4f6;
+    color: #111827;
+  }
+
   h1, h2, h3, h4, h5, h6 {
-    font-family: 'Outfit', sans-serif;
+    font-family: 'Outfit', 'Inter', sans-serif;
   }
 }
 
-/* Custom Scrollbars */
+/* =========================================
+   CUSTOM SCROLLBAR (Amazon-thin)
+   ========================================= */
 ::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+  width: 6px;
+  height: 6px;
 }
 ::-webkit-scrollbar-track {
-  background: #f1ede6;
+  background: #f3f4f6;
 }
 ::-webkit-scrollbar-thumb {
-  background: #d5a675;
-  border-radius: 4px;
+  background: #d1d5db;
+  border-radius: 99px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #c27d42;
+  background: #9ca3af;
 }
 
-/* Shimmer & Glow Animations */
-@keyframes pulse-slow {
-  0%, 100% { opacity: 1; transform: scale(1); }
-  50% { opacity: 0.85; transform: scale(1.03); }
+/* =========================================
+   KEYFRAME ANIMATIONS
+   ========================================= */
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
 }
 
-.animate-pulse-slow {
-  animation: pulse-slow 3s infinite ease-in-out;
+@keyframes slideInRight {
+  from { opacity: 0; transform: translateX(100%); }
+  to   { opacity: 1; transform: translateX(0); }
 }
 
-/* Craft patterned subtle background */
-.craft-pattern-bg {
-  background-color: #fdfbf7;
-  background-image: radial-gradient(#d5a675 0.75px, transparent 0.75px), radial-gradient(#d5a675 0.75px, #fdfbf7 0.75px);
-  background-size: 30px 30px;
-  background-position: 0 0, 15px 15px;
-  background-opacity: 0.15;
+@keyframes slideInUp {
+  from { opacity: 0; transform: translateY(40px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes shimmer {
+  0%   { background-position: -500px 0; }
+  100% { background-position: 500px 0; }
+}
+
+@keyframes pulseBadge {
+  0%, 100% { transform: scale(1); }
+  50%       { transform: scale(1.08); }
+}
+
+@keyframes bounceCart {
+  0%, 100% { transform: translateY(0); }
+  40%       { transform: translateY(-6px); }
+  60%       { transform: translateY(-3px); }
+}
+
+@keyframes gradientShift {
+  0%   { background-position: 0% 50%; }
+  50%  { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+@keyframes countdownPulse {
+  0%, 100% { color: #dc2626; }
+  50%       { color: #f87171; }
+}
+
+/* =========================================
+   UTILITY ANIMATION CLASSES
+   ========================================= */
+
+.animate-fade-in {
+  animation: fadeIn 0.3s ease-out forwards;
+}
+
+.animate-slide-right {
+  animation: slideInRight 0.35s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+}
+
+.animate-slide-up {
+  animation: slideInUp 0.4s ease-out forwards;
+}
+
+.animate-shimmer {
+  background: linear-gradient(90deg, #f3f4f6 25%, #e5e7eb 50%, #f3f4f6 75%);
+  background-size: 500px 100%;
+  animation: shimmer 1.4s infinite;
+}
+
+.animate-pulse-badge {
+  animation: pulseBadge 2s ease-in-out infinite;
+}
+
+.animate-bounce-cart {
+  animation: bounceCart 0.5s ease-in-out;
+}
+
+.animate-gradient {
+  background-size: 200% 200%;
+  animation: gradientShift 4s ease infinite;
+}
+
+.animate-countdown {
+  animation: countdownPulse 1s ease-in-out infinite;
+}
+
+/* =========================================
+   PRODUCT CARD HOVER LIFT
+   ========================================= */
+.product-card-hover {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.product-card-hover:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 12px 40px rgba(0,0,0,0.12);
+}
+
+/* =========================================
+   AMAZON / FLIPKART SPECIFIC UTILITIES
+   ========================================= */
+
+/* Price strike-through with proper spacing */
+.mrp-strike {
+  text-decoration: line-through;
+  color: #6b7280;
+  font-size: 0.75rem;
+}
+
+/* Star rating fill */
+.stars-filled {
+  color: #f59e0b;
+}
+
+/* Prime badge gradient */
+.prime-badge {
+  background: linear-gradient(135deg, #00A8E1, #0066A2);
+  color: white;
+  font-style: italic;
+  font-weight: 900;
+  letter-spacing: -0.3px;
+}
+
+/* Deal percentage badge */
+.deal-badge {
+  background-color: #cc0c39;
+  color: white;
+  font-weight: 900;
+  font-size: 0.7rem;
+  padding: 1px 6px;
+  border-radius: 3px;
+}
+
+/* Yellow CTA Button (Amazon Add to Cart) */
+.btn-amazon-cart {
+  background-color: #ffd814;
+  border: 1px solid #fcd200;
+  color: #0f1111;
+  font-weight: 700;
+  font-size: 0.8rem;
+  padding: 8px 0;
+  border-radius: 8px;
+  width: 100%;
+  transition: background-color 0.15s ease;
+  cursor: pointer;
+}
+.btn-amazon-cart:hover {
+  background-color: #f7ca00;
+}
+
+/* Orange Buy Now Button */
+.btn-amazon-buy {
+  background-color: #ffa41c;
+  border: 1px solid #ff8f00;
+  color: #0f1111;
+  font-weight: 700;
+  font-size: 0.8rem;
+  padding: 8px 0;
+  border-radius: 8px;
+  width: 100%;
+  transition: background-color 0.15s ease;
+  cursor: pointer;
+}
+.btn-amazon-buy:hover {
+  background-color: #fa8900;
+}
+
+/* =========================================
+   SKELETON LOADING PLACEHOLDER
+   ========================================= */
+.skeleton {
+  background: linear-gradient(90deg, #e5e7eb 25%, #f3f4f6 50%, #e5e7eb 75%);
+  background-size: 500px 100%;
+  animation: shimmer 1.4s infinite;
+  border-radius: 6px;
+}
+
+/* =========================================
+   HERO CAROUSEL SMOOTH TRANSITION
+   ========================================= */
+.hero-slide {
+  transition: opacity 0.6s ease-in-out;
+}
+
+/* =========================================
+   FILTER SIDEBAR ACTIVE STATE
+   ========================================= */
+.filter-active {
+  color: #c45500;
+  font-weight: 700;
+}
+
+/* =========================================
+   IMAGE HOVER ZOOM EFFECT
+   ========================================= */
+.img-zoom-container {
+  overflow: hidden;
+}
+.img-zoom-container img {
+  transition: transform 0.35s ease;
+}
+.img-zoom-container:hover img {
+  transform: scale(1.06);
+}
+
+/* =========================================
+   HEADER SEARCH BAR FOCUS
+   ========================================= */
+.search-bar-wrapper:focus-within {
+  box-shadow: 0 0 0 3px #ffa41c;
 }

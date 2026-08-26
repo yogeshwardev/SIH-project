@@ -139,6 +139,10 @@ AI_PROVIDER=local
 # Optional Cloud API Keys (Leave blank to use robust built-in local engine)
 GEMINI_API_KEY=
 OPENAI_API_KEY=
+OPENAI_TEXT_MODEL=gpt-4.1-mini
+OPENAI_TRANSCRIPTION_MODEL=gpt-4o-mini-transcribe
+OPENAI_TTS_MODEL=gpt-4o-mini-tts
+OPENAI_TTS_VOICE=coral
 
 HOST=0.0.0.0
 PORT=8000

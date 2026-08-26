@@ -14,7 +14,7 @@ class CommercialProductIntelligenceService:
             "material": "Pure Katan Silk with Gold & Silver Zari",
             "region": "Varanasi, Uttar Pradesh",
             "technique": "Handloom Jacquard Weaving with Kadwa/Kadhwa Motif Technique",
-            "keywords": ["banarasi", "saree", "katan", "silk", "zari", "varanasi", "handloom", "wedding", "brocade"]
+            "keywords": ["banarasi", "saree", "katan", "silk", "zari", "varanasi", "handloom", "wedding", "brocade", "बनारसी", "साड़ी", "सिल्क", "जरी"]
         },
         "Jaipur Blue Pottery": {
             "category": "Pottery & Ceramics",
@@ -30,7 +30,7 @@ class CommercialProductIntelligenceService:
             "material": "Natural Assam Bamboo (Bhaluka / Jati)",
             "region": "Barpeta, Assam",
             "technique": "Splitting, Fine Slicing & Hand Weaving",
-            "keywords": ["bamboo", "basket", "assam", "cane", "eco-friendly", "storage", "handwoven", "natural"]
+            "keywords": ["bamboo", "basket", "assam", "cane", "eco-friendly", "storage", "handwoven", "natural", "बांस", "टोकरी", "असमिया"]
         },
         "Bastar Dhokra Art": {
             "category": "Metal Craft & Bell Metal",
@@ -38,7 +38,7 @@ class CommercialProductIntelligenceService:
             "material": "Recycled Brass & Bell Metal (Alloy)",
             "region": "Bastar, Chhattisgarh",
             "technique": "4000-year-old Cire-Perdue Lost-Wax Casting",
-            "keywords": ["dhokra", "dokra", "bell metal", "brass", "tribal", "bastar", "figurine", "lost wax", "sculpture"]
+            "keywords": ["dhokra", "dokra", "bell metal", "brass", "tribal", "bastar", "figurine", "lost wax", "sculpture", "ढोकरा", "मूर्ति", "बस्तर"]
         },
         "Channapatna Wooden Toys": {
             "category": "Woodcraft & Carving",
@@ -46,7 +46,7 @@ class CommercialProductIntelligenceService:
             "material": "Seasoned Ivory Wood (Aale Mara) & Organic Lacquer Dyes",
             "region": "Channapatna, Karnataka",
             "technique": "Traditional Wood Lathe Turning & Vegetable Lacquer Buffing",
-            "keywords": ["channapatna", "wooden toy", "montessori", "ivory wood", "lacquer", "karnataka", "child safe"]
+            "keywords": ["channapatna", "wooden toy", "montessori", "ivory wood", "lacquer", "karnataka", "child safe", "चन्नपटना", "लकड़ी", "खिलौना"]
         },
         "Kanchipuram Silk": {
             "category": "Handloom & Textiles",
@@ -80,18 +80,37 @@ class CommercialProductIntelligenceService:
                 break
 
         if not matched_craft_key:
-            # Fallback based on visual cues
-            matched_craft_key = "Banarasi Silk Weaving"
+            visual_text = " ".join(detected_objects or []).lower()
+            for key, data in self.CRAFT_TAXONOMIES.items():
+                if key.lower() in visual_text or any(keyword in visual_text for keyword in data["keywords"]):
+                    matched_craft_key = key
+                    break
 
-        taxonomy = self.CRAFT_TAXONOMIES[matched_craft_key]
+        taxonomy = self.CRAFT_TAXONOMIES.get(matched_craft_key, {
+            "category": "Handicrafts",
+            "craft_type": "Traditional Handcrafted Product",
+            "material": "Not provided",
+            "region": "India",
+            "technique": "Handcrafted",
+            "keywords": [],
+        })
 
         # 2. Extract Dimensions
         dim_match = re.search(r'(\d+(?:\.\d+)?)\s*(?:मीटर|meter|m|इंच|inch|in|cm|सेमी|फिट|feet|ft)', text_lower)
-        extracted_dim = f"{dim_match.group(0)} standard craft dimension" if dim_match else "Standard Artisanal Specification"
+        unit_map = {"मीटर": "meters", "meter": "meters", "m": "meters", "इंच": "inches", "inch": "inches", "in": "inches", "cm": "cm", "सेमी": "cm", "फिट": "feet", "feet": "feet", "ft": "feet"}
+        extracted_dim = "Not provided"
+        if dim_match:
+            raw_dim = dim_match.group(0)
+            number = dim_match.group(1)
+            unit = raw_dim[len(number):].strip()
+            extracted_dim = f"{number} {unit_map.get(unit, unit)}"
 
         # 3. Extract Production Duration
-        time_match = re.search(r'(\d+)\s*(?:दिन|day|days|सप्ताह|week|घंटे|hours)', text_lower)
-        extracted_time = f"{time_match.group(0)}" if time_match else "2-4 days"
+        time_match = re.search(r'(\d+)\s*(दिन|day|days|सप्ताह|week|weeks|घंटे|hour|hours)', text_lower)
+        extracted_time = "Not provided"
+        if time_match:
+            time_units = {"दिन": "days", "day": "days", "days": "days", "सप्ताह": "weeks", "week": "weeks", "weeks": "weeks", "घंटे": "hours", "hour": "hours", "hours": "hours"}
+            extracted_time = f"{time_match.group(1)} {time_units[time_match.group(2)]}"
 
         # 4. Extract Colors
         color_map = {
@@ -128,8 +147,8 @@ class CommercialProductIntelligenceService:
             "craft_type": "HIGH",
             "technique": "HIGH",
             "region": "HIGH",
-            "dimensions": "HIGH" if dim_match else "CONFIRMED_DEFAULT",
-            "production_time": "HIGH" if time_match else "CONFIRMED_DEFAULT"
+            "dimensions": "HIGH" if dim_match else "NOT_PROVIDED",
+            "production_time": "HIGH" if time_match else "NOT_PROVIDED"
         }
 
         return {
@@ -140,7 +159,7 @@ class CommercialProductIntelligenceService:
             "color": found_color,
             "technique": taxonomy["technique"],
             "dimensions": extracted_dim,
-            "weight": "Verified Standard",
+            "weight": "Not provided",
             "production_time": extracted_time,
             "region": taxonomy["region"],
             "confidence_scores": confidence_scores

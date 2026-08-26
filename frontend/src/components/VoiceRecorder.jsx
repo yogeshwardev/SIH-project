@@ -144,8 +144,8 @@ export default function VoiceRecorder({ onAudioRecorded, isProcessing, samplePre
   const handleSelectSample = (sample) => {
     setLiveTranscript(sample.text);
     transcriptRef.current = sample.text;
-    const fakeBlob = new Blob([sample.text], { type: 'audio/wav' });
-    onAudioRecorded(fakeBlob, `${sample.id}.wav`, sample.text, sample.language);
+    const sampleMarker = new Blob([sample.text], { type: 'text/plain' });
+    onAudioRecorded(sampleMarker, `${sample.id}.txt`, sample.text, sample.language);
   };
 
   const formatTime = (seconds) => {

@@ -1,360 +1,346 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
-  Star, 
-  Heart, 
-  ShoppingBag, 
-  Zap, 
-  ShieldCheck, 
-  Check, 
-  Truck, 
-  MapPin, 
-  Clock, 
-  X, 
-  Volume2, 
-  VolumeX, 
-  Share2, 
-  RotateCcw,
-  Award,
-  ChevronRight,
-  Sparkles,
-  SlidersHorizontal
+  ChevronLeft, ChevronRight, Heart, ShoppingCart, Zap, ShieldCheck,
+  Star, Truck, MapPin, RotateCcw, Check, X, Volume2, VolumeX, SlidersHorizontal, Package
 } from 'lucide-react';
-import BeforeAfterSlider from './BeforeAfterSlider';
 import { voiceAssistant } from '../services/voiceAssistant';
 
-export default function ProductDetailModal({ 
-  product, 
-  onClose, 
-  onAddToCart, 
-  onBuyNow 
-}) {
-  const [selectedImage, setSelectedImage] = useState(product?.enhanced_image || product?.original_image);
-  const [showSliderMode, setShowSliderMode] = useState(false);
-  const [quantity, setQuantity] = useState(1);
-  const [pincode, setPincode] = useState('110001');
-  const [pincodeChecked, setPincodeChecked] = useState(true);
-  const [isPlayingStory, setIsPlayingStory] = useState(false);
-  const [isWishlisted, setIsWishlisted] = useState(false);
-  const [addedNotice, setAddedNotice] = useState(false);
+export default function ProductDetailModal({ product, onClose, onAddToCart, onBuyNow }) {
+  const [mainImg, setMainImg]           = useState(0);
+  const [quantity, setQuantity]         = useState(1);
+  const [pincode, setPincode]           = useState('110001');
+  const [addedMsg, setAddedMsg]         = useState(false);
+  const [wishlisted, setWishlisted]     = useState(false);
+  const [speaking, setSpeaking]         = useState(false);
+  const [showSlider, setShowSlider]     = useState(false);
+
+  useEffect(() => {
+    document.body.style.overflow = 'hidden';
+    return () => { document.body.style.overflow = ''; voiceAssistant.stopSpeaking?.(); };
+  }, []);
 
   if (!product) return null;
 
-  const discount = product.discount_pct || 35;
-  const mrp = product.mrp || Math.round((product.suggested_price || 2499) * 1.5);
-  const price = product.price || product.suggested_price || 2499;
+  const price    = product.price || product.suggested_price || 2499;
+  const mrp      = product.mrp  || Math.round(price * 1.45);
+  const discount = product.discount_pct || Math.round(((mrp - price) / mrp) * 100);
+  const rating   = product.rating || 4.7;
 
-  const handlePlayVoice = () => {
-    const textToRead = product.description || product.short_description || product.title;
-    if (isPlayingStory) {
-      voiceAssistant.stopSpeaking();
-      setIsPlayingStory(false);
+  const gallery = [
+    product.enhanced_image || product.original_image,
+    product.original_image || product.enhanced_image,
+    ...(product.gallery || []),
+  ].filter(Boolean).filter((v, i, a) => a.indexOf(v) === i).slice(0, 6);
+
+  const handleAddCart = () => {
+    onAddToCart({ ...product, quantity });
+    setAddedMsg(true);
+    setTimeout(() => setAddedMsg(false), 2500);
+  };
+
+  const toggleVoice = () => {
+    if (speaking) {
+      voiceAssistant.stopSpeaking?.();
+      setSpeaking(false);
     } else {
-      setIsPlayingStory(true);
-      voiceAssistant.speak(textToRead, 'hi-IN', () => setIsPlayingStory(false));
+      setSpeaking(true);
+      voiceAssistant.speak?.(
+        `${product.product_name}. ${product.description || product.short_description || ''}`,
+        'hi-IN',
+        () => setSpeaking(false)
+      );
     }
   };
 
-  const handleAdd = () => {
-    onAddToCart({ ...product, quantity });
-    setAddedNotice(true);
-    setTimeout(() => setAddedNotice(false), 2500);
-  };
+  // Star breakdown (mock — looks like real Amazon)
+  const starRows = [5, 4, 3, 2, 1].map((s, i) => ({
+    star: s,
+    pct: [62, 22, 9, 4, 3][i],
+  }));
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-950/70 backdrop-blur-sm flex items-center justify-center p-2 sm:p-4 font-sans animate-fadeIn">
-      <div className="bg-white rounded-2xl max-w-6xl w-full max-h-[94vh] overflow-y-auto shadow-2xl border border-slate-200 text-slate-800">
-        
-        {/* Top Sticky Header */}
-        <div className="sticky top-0 z-20 bg-white border-b border-slate-200 px-5 py-3 flex items-center justify-between">
-          <div className="flex items-center gap-2 text-xs text-slate-500 font-semibold truncate">
-            <span>Marketplace</span>
-            <ChevronRight className="w-3.5 h-3.5" />
-            <span>{product.category}</span>
-            <ChevronRight className="w-3.5 h-3.5" />
-            <span className="text-slate-900 font-bold truncate">{product.product_name}</span>
-          </div>
+    <div
+      className="fixed inset-0 z-[60] bg-black/60 flex items-start justify-center p-2 sm:p-4 overflow-y-auto animate-fade-in"
+      style={{ fontFamily: "'Inter', sans-serif" }}
+      onClick={e => { if (e.target === e.currentTarget) onClose(); }}
+    >
+      <div className="bg-white rounded-xl w-full max-w-[1100px] my-4 shadow-modal overflow-hidden">
 
-          <div className="flex items-center gap-3 flex-shrink-0">
-            <button
-              onClick={() => setIsWishlisted(!isWishlisted)}
-              className="p-1.5 rounded-lg text-slate-400 hover:text-red-600 hover:bg-slate-100 transition-colors"
-              title="Add to Wishlist"
-            >
-              <Heart className={`w-5 h-5 ${isWishlisted ? 'fill-red-600 text-red-600' : ''}`} />
-            </button>
-            <button
-              onClick={() => {
-                voiceAssistant.stopSpeaking();
-                onClose();
-              }}
-              className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100"
-            >
-              <X className="w-6 h-6" />
-            </button>
+        {/* ── MODAL HEADER ─────────────────────────── */}
+        <div className="flex items-center justify-between px-5 py-3.5 bg-gray-50 border-b border-gray-200">
+          <div className="text-[12px] text-gray-500 flex items-center gap-1.5 truncate">
+            <span className="text-blue-600 hover:underline cursor-pointer">Marketplace</span>
+            <span>›</span>
+            <span className="text-blue-600 hover:underline cursor-pointer">{product.category}</span>
+            <span>›</span>
+            <span className="text-gray-800 font-semibold truncate">{product.product_name}</span>
           </div>
+          <button
+            onClick={() => { voiceAssistant.stopSpeaking?.(); onClose(); }}
+            className="p-1.5 rounded-full hover:bg-gray-200 text-gray-500 flex-shrink-0 transition-colors"
+          >
+            <X className="w-5 h-5" />
+          </button>
         </div>
 
-        {/* Main 3-Column PDP Grid */}
-        <div className="p-4 sm:p-6 lg:p-8 grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8">
-          
-          {/* ========================================== */}
-          {/* COLUMN 1: IMAGE GALLERY & VIEWER (5 COLS)  */}
-          {/* ========================================== */}
-          <div className="lg:col-span-5 space-y-4">
+        {/* ── MAIN PDP BODY ──────────────────────────── */}
+        <div className="p-4 sm:p-6 grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+          {/* COL 1: IMAGES (5 cols) */}
+          <div className="lg:col-span-5">
             
-            {showSliderMode ? (
-              <div className="bg-slate-900 rounded-xl overflow-hidden p-2">
-                <BeforeAfterSlider
-                  originalUrl={product.original_image}
-                  enhancedUrl={product.enhanced_image}
-                  title="Studio AI Transformation View"
-                />
+            {/* Thumbnails (vertical strip on left like Amazon) */}
+            <div className="flex gap-3">
+              <div className="flex flex-col gap-2 flex-shrink-0">
+                {gallery.map((img, i) => (
+                  <button
+                    key={i}
+                    onClick={() => setMainImg(i)}
+                    className={`w-14 h-14 rounded border-2 p-0.5 overflow-hidden flex-shrink-0 transition-colors ${
+                      mainImg === i ? 'border-amber-500' : 'border-gray-200 hover:border-gray-400'
+                    }`}
+                  >
+                    <img
+                      src={img}
+                      alt=""
+                      className="w-full h-full object-contain"
+                      onError={e => e.target.src = 'https://placehold.co/56x56/f3f4f6/9ca3af?text=img'}
+                    />
+                  </button>
+                ))}
               </div>
-            ) : (
-              <div className="relative aspect-[4/3] w-full bg-slate-950 rounded-xl overflow-hidden flex items-center justify-center border border-slate-200">
+
+              {/* Main Image */}
+              <div className="flex-1 bg-gray-50 rounded-lg overflow-hidden flex items-center justify-center" style={{ minHeight: '340px' }}>
                 <img
-                  src={selectedImage}
+                  src={gallery[mainImg] || gallery[0]}
                   alt={product.product_name}
-                  className="w-full h-full object-contain"
+                  className="max-w-full max-h-[400px] object-contain p-4"
+                  onError={e => e.target.src = 'https://placehold.co/400x400/f3f4f6/9ca3af?text=Image'}
                 />
-                
-                {product.badge && (
-                  <span className="absolute top-3 left-3 bg-[#e67a00] text-white text-xs font-black px-2.5 py-1 rounded shadow">
-                    {product.badge}
-                  </span>
-                )}
-              </div>
-            )}
-
-            {/* Toggle Raw vs Studio Split Slider */}
-            <div className="flex items-center justify-between gap-2">
-              <button
-                onClick={() => setShowSliderMode(!showSliderMode)}
-                className="flex-1 py-2 rounded-xl text-xs font-bold bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-300 flex items-center justify-center gap-1.5 transition-colors"
-              >
-                <SlidersHorizontal className="w-4 h-4 text-terracotta-600" />
-                <span>{showSliderMode ? 'Show Standard Photo' : 'Compare Raw vs AI Studio'}</span>
-              </button>
-
-              <button
-                onClick={handlePlayVoice}
-                className="py-2 px-3 rounded-xl text-xs font-bold bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-300 flex items-center gap-1.5 shadow-sm transition-colors"
-              >
-                {isPlayingStory ? <VolumeX className="w-4 h-4 text-red-600" /> : <Volume2 className="w-4 h-4 text-amber-700" />}
-                <span>{isPlayingStory ? 'Stop Audio' : '🔊 AI Voiceover'}</span>
-              </button>
-            </div>
-
-            {/* Trust Badges */}
-            <div className="grid grid-cols-2 gap-2 text-xs pt-2">
-              <div className="p-2.5 rounded-xl bg-emerald-50 border border-emerald-200 flex items-center gap-2">
-                <ShieldCheck className="w-4 h-4 text-emerald-700 flex-shrink-0" />
-                <span className="font-bold text-emerald-900">100% Certified GI Origin</span>
-              </div>
-              <div className="p-2.5 rounded-xl bg-blue-50 border border-blue-200 flex items-center gap-2">
-                <Award className="w-4 h-4 text-blue-700 flex-shrink-0" />
-                <span className="font-bold text-blue-900">Direct Master Artisan</span>
               </div>
             </div>
 
+            {/* Image Controls */}
+            <div className="flex items-center gap-2 mt-3">
+              <button
+                onClick={toggleVoice}
+                className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-gray-300 text-[12px] font-semibold text-gray-700 hover:bg-gray-50 transition-colors flex-1 justify-center"
+              >
+                {speaking ? <VolumeX className="w-4 h-4 text-red-500" /> : <Volume2 className="w-4 h-4 text-amber-600" />}
+                <span>{speaking ? 'Stop Audio' : '🔊 AI Voice Story'}</span>
+              </button>
+              
+              {product.original_image !== product.enhanced_image && (
+                <button
+                  onClick={() => setShowSlider(s => !s)}
+                  className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-blue-200 bg-blue-50 text-[12px] font-semibold text-blue-700 hover:bg-blue-100 transition-colors flex-1 justify-center"
+                >
+                  <SlidersHorizontal className="w-4 h-4" />
+                  <span>Before / After AI</span>
+                </button>
+              )}
+            </div>
+
+            {/* Trust strip */}
+            <div className="grid grid-cols-2 gap-2 mt-3">
+              <div className="bg-green-50 border border-green-200 rounded-lg p-2.5 flex items-center gap-2">
+                <ShieldCheck className="w-4 h-4 text-green-700 flex-shrink-0" />
+                <span className="text-[11px] font-bold text-green-900">GI Certified Origin</span>
+              </div>
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-2.5 flex items-center gap-2">
+                <Package className="w-4 h-4 text-blue-700 flex-shrink-0" />
+                <span className="text-[11px] font-bold text-blue-900">Direct Artisan</span>
+              </div>
+            </div>
           </div>
 
-          {/* ========================================== */}
-          {/* COLUMN 2: PRODUCT INFORMATION (4 COLS)     */}
-          {/* ========================================== */}
-          <div className="lg:col-span-4 space-y-4">
+          {/* COL 2: PRODUCT INFO (4 cols) */}
+          <div className="lg:col-span-4">
             
-            <div>
-              <a href="#artisan-store" className="text-xs font-extrabold text-[#007185] hover:underline hover:text-[#c45500]">
-                Visit the {product.brand_or_guild || product.artisan_name || 'Varanasi Master Weavers Guild'} Store
-              </a>
-              <h1 className="text-lg sm:text-xl font-bold text-slate-900 mt-1 leading-snug">
-                {product.title || product.product_name}
-              </h1>
+            {/* Brand */}
+            <a className="text-[13px] text-blue-600 hover:underline hover:text-orange-600 cursor-pointer">
+              {product.brand_or_guild || 'Verified Artisan Guild'}
+            </a>
+
+            {/* Title */}
+            <h1 className="text-[16px] sm:text-[18px] font-medium text-gray-900 mt-1.5 leading-snug">
+              {product.title || product.product_name}
+            </h1>
+
+            {/* Rating row */}
+            <div className="flex items-center gap-2 mt-2 pb-2 border-b border-gray-200">
+              <div className="flex items-center gap-0.5 text-amber-500">
+                {'★'.repeat(Math.floor(rating))}
+                {rating % 1 >= 0.5 && '½'}
+              </div>
+              <span className="text-[13px] text-blue-600 hover:underline cursor-pointer font-medium">
+                {rating} • {(product.review_count || 230).toLocaleString()} ratings
+              </span>
+              <span className="text-gray-300">|</span>
+              <span className="text-[13px] text-blue-600 hover:underline cursor-pointer">72 answered</span>
             </div>
 
-            {/* Star Rating & Answered Questions */}
-            <div className="flex items-center gap-3 text-xs border-b border-slate-100 pb-3">
-              <div className="flex items-center gap-1 text-amber-500">
-                <span className="font-black text-slate-900 text-sm">{product.rating || 4.8}</span>
-                <div className="flex text-amber-400 text-xs">
-                  {'★'.repeat(5)}
-                </div>
-              </div>
-              <span className="text-slate-400">•</span>
-              <span className="text-[#007185] font-semibold hover:underline cursor-pointer">
-                {(product.review_count || 1420).toLocaleString()} Ratings
-              </span>
-              <span className="text-slate-400">•</span>
-              <span className="text-[#007185] font-semibold hover:underline cursor-pointer">
-                85 Answered Questions
-              </span>
-            </div>
-
-            {/* Price Box */}
-            <div className="space-y-1 bg-slate-50 p-4 rounded-xl border border-slate-200">
-              <div className="flex items-center gap-2">
-                <span className="bg-[#cc0c39] text-white text-xs font-black px-2 py-0.5 rounded">
-                  -{discount}% OFF
+            {/* Price */}
+            <div className="mt-3 pb-3 border-b border-gray-200">
+              <div className="flex items-baseline gap-2">
+                <span className="text-[26px] font-bold text-gray-900">
+                  ₹{price.toLocaleString('en-IN')}
                 </span>
-                <span className="text-xs font-extrabold text-[#cc0c39] uppercase">
-                  Great Indian Handloom Festival Deal
+                <span className="text-green-700 font-semibold text-[13px]">
+                  -{discount}% ({product.badge || 'Deal'})
                 </span>
               </div>
-
-              <div className="flex items-baseline gap-2 pt-1">
-                <span className="text-sm font-normal text-slate-600">₹</span>
-                <span className="text-3xl font-black text-slate-950">
-                  {price.toLocaleString('en-IN')}
-                </span>
-                <span className="text-xs text-slate-500">
-                  M.R.P.: <span className="line-through">₹{mrp.toLocaleString('en-IN')}</span>
-                </span>
+              <div className="text-[12px] text-gray-500 mt-0.5">
+                M.R.P.: <span className="line-through">₹{mrp.toLocaleString('en-IN')}</span>
               </div>
-              <span className="text-[11px] text-slate-500 block">
-                Inclusive of all taxes • 0% Middleman Deduction (100% to Artisan Cluster)
-              </span>
+              <div className="text-[11px] text-gray-400 mt-1">
+                Inclusive of all taxes • Zero Middlemen — 100% to Artisan
+              </div>
             </div>
 
             {/* Specifications Table */}
-            <div>
-              <h3 className="text-xs font-black uppercase tracking-wider text-slate-900 mb-2">
-                Product Specifications
-              </h3>
-              <div className="border border-slate-200 rounded-xl overflow-hidden text-xs">
-                <div className="grid grid-cols-2 p-2 bg-slate-50 border-b border-slate-200">
-                  <span className="text-slate-500 font-bold">Category</span>
-                  <span className="font-semibold text-slate-900">{product.category}</span>
-                </div>
-                <div className="grid grid-cols-2 p-2 bg-white border-b border-slate-200">
-                  <span className="text-slate-500 font-bold">Craft Technique</span>
-                  <span className="font-semibold text-slate-900">{product.craft_type}</span>
-                </div>
-                <div className="grid grid-cols-2 p-2 bg-slate-50 border-b border-slate-200">
-                  <span className="text-slate-500 font-bold">Primary Material</span>
-                  <span className="font-semibold text-slate-900">{product.material}</span>
-                </div>
-                <div className="grid grid-cols-2 p-2 bg-white border-b border-slate-200">
-                  <span className="text-slate-500 font-bold">Origin Cluster</span>
-                  <span className="font-semibold text-slate-900">{product.region}</span>
-                </div>
-                <div className="grid grid-cols-2 p-2 bg-slate-50">
-                  <span className="text-slate-500 font-bold">Handcrafting Duration</span>
-                  <span className="font-semibold text-slate-900">{product.production_time || '3-5 days'}</span>
-                </div>
+            <div className="mt-3">
+              <table className="w-full text-[12px]">
+                <tbody>
+                  {[
+                    ['Category', product.category],
+                    ['Craft Type', product.craft_type],
+                    ['Material', product.material],
+                    ['Origin', product.region],
+                    ['Dimensions', product.dimensions],
+                    ['Production Time', product.production_time],
+                  ].filter(r => r[1]).map(([k, v]) => (
+                    <tr key={k} className="border-b border-gray-100">
+                      <td className="py-1.5 pr-4 text-gray-500 font-semibold w-[40%]">{k}</td>
+                      <td className="py-1.5 text-gray-900">{v}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {/* About this item */}
+            {product.features && (
+              <div className="mt-4">
+                <h4 className="font-bold text-gray-900 text-[13px] mb-1.5">About this item</h4>
+                <ul className="space-y-1">
+                  {product.features.map((f, i) => (
+                    <li key={i} className="flex items-start gap-2 text-[12px] text-gray-700">
+                      <span className="w-1.5 h-1.5 rounded-full bg-gray-400 flex-shrink-0 mt-1.5" />
+                      {f}
+                    </li>
+                  ))}
+                </ul>
               </div>
-            </div>
+            )}
 
-            {/* Bullet Points */}
-            <div>
-              <h3 className="text-xs font-black uppercase tracking-wider text-slate-900 mb-1.5">
-                About this item
-              </h3>
-              <ul className="space-y-1 text-xs text-slate-600">
-                {product.features ? product.features.map((f, i) => (
-                  <li key={i} className="flex items-start gap-1.5">
-                    <span className="w-1.5 h-1.5 rounded-full bg-amber-500 mt-1.5 flex-shrink-0"></span>
-                    <span>{f}</span>
-                  </li>
-                )) : (
-                  <li className="text-xs text-slate-600">{product.description}</li>
-                )}
-              </ul>
+            {/* Star breakdown (Amazon style) */}
+            <div className="mt-4 pt-3 border-t border-gray-200">
+              <h4 className="font-bold text-[13px] text-gray-900 mb-2">Customer Rating Distribution</h4>
+              {starRows.map(row => (
+                <div key={row.star} className="flex items-center gap-2 mb-1">
+                  <span className="text-[12px] text-blue-600 w-12 flex-shrink-0">{row.star} star</span>
+                  <div className="flex-1 bg-gray-200 rounded-full h-3 overflow-hidden">
+                    <div
+                      className="h-full bg-amber-400 rounded-full"
+                      style={{ width: `${row.pct}%` }}
+                    />
+                  </div>
+                  <span className="text-[12px] text-blue-600 w-8 text-right">{row.pct}%</span>
+                </div>
+              ))}
             </div>
-
           </div>
 
-          {/* ========================================== */}
-          {/* COLUMN 3: BUY BOX (3 COLS)                */}
-          {/* ========================================== */}
+          {/* COL 3: BUY BOX (3 cols) */}
           <div className="lg:col-span-3">
-            <div className="border border-slate-300 rounded-2xl p-5 shadow-sm space-y-4 bg-white sticky top-20">
+            <div className="border border-gray-300 rounded-xl p-4 space-y-3 sticky top-4" style={{ boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
               
-              <div className="text-2xl font-black text-slate-900">
+              {/* Price */}
+              <div className="text-[24px] font-bold text-gray-900">
                 ₹{price.toLocaleString('en-IN')}
               </div>
 
-              {/* Delivery Estimation */}
-              <div className="text-xs space-y-1.5">
-                <div className="flex items-center gap-1 text-[#007600] font-extrabold text-sm">
+              {/* Delivery estimate */}
+              <div className="text-[13px] space-y-1">
+                <div className="text-green-700 font-bold flex items-center gap-1.5">
                   <Truck className="w-4 h-4" />
-                  <span>FREE Delivery</span>
+                  FREE Delivery
                 </div>
-                <p className="text-slate-600 font-medium">
-                  Order within <strong className="text-slate-900">4 hrs 12 mins</strong> for delivery by <strong>Friday, 8 PM</strong>.
-                </p>
-                
-                {/* Pincode Checker */}
-                <div className="pt-2 flex items-center gap-1.5">
-                  <MapPin className="w-3.5 h-3.5 text-slate-400 flex-shrink-0" />
-                  <span className="text-slate-500">Deliver to</span>
-                  <strong className="text-slate-900">{pincode}</strong>
+                <div className="text-gray-700">
+                  Order within <strong>4 hrs 12 mins</strong> — Delivers by <strong>Friday 8 PM</strong>
                 </div>
               </div>
 
-              {/* Stock Status */}
-              <div>
-                <span className="text-sm font-extrabold text-[#007600] block">
-                  In Stock ({product.stock_quantity || 12} units available)
-                </span>
-                <span className="text-[11px] text-slate-500">
-                  Dispatched directly from Varanasi Artisan Guild
-                </span>
+              {/* Pincode */}
+              <div className="flex items-center gap-1.5 text-[12px] text-gray-600">
+                <MapPin className="w-3.5 h-3.5 text-gray-400" />
+                <span>Deliver to</span>
+                <input
+                  value={pincode}
+                  onChange={e => setPincode(e.target.value)}
+                  className="border border-gray-300 rounded px-1.5 py-0.5 text-gray-900 font-semibold w-20 text-center text-[12px]"
+                />
               </div>
 
-              {/* Quantity Selector */}
+              {/* Stock */}
+              <div className="text-green-700 font-bold text-[14px]">
+                In Stock ({product.stock_quantity || 12} available)
+              </div>
+
+              {/* Sold by */}
+              <div className="text-[12px] text-gray-500">
+                Sold by: <span className="text-blue-600 hover:underline cursor-pointer">{product.brand_or_guild}</span>
+              </div>
+
+              {/* Quantity */}
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Quantity:</label>
+                <label className="text-[12px] font-semibold text-gray-700 block mb-1">Qty:</label>
                 <select
                   value={quantity}
-                  onChange={(e) => setQuantity(Number(e.target.value))}
-                  className="w-full bg-slate-100 border border-slate-300 rounded-lg p-2 text-xs font-bold text-slate-900 cursor-pointer"
+                  onChange={e => setQuantity(Number(e.target.value))}
+                  className="border border-gray-300 rounded-lg px-3 py-1.5 text-[13px] font-semibold text-gray-900 bg-gray-50"
                 >
-                  {[1, 2, 3, 4, 5, 10].map((q) => (
-                    <option key={q} value={q}>
-                      {q}
-                    </option>
+                  {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(q => (
+                    <option key={q} value={q}>{q}</option>
                   ))}
                 </select>
               </div>
 
-              {/* Added to Cart Flash Notice */}
-              {addedNotice && (
-                <div className="p-2 rounded-lg bg-emerald-50 border border-emerald-300 text-emerald-900 text-xs font-bold flex items-center gap-1.5 animate-fadeIn">
-                  <Check className="w-4 h-4 text-emerald-700" />
-                  <span>Added {quantity} unit(s) to cart!</span>
+              {/* Added confirmation */}
+              {addedMsg && (
+                <div className="bg-green-50 border border-green-300 text-green-800 text-[12px] font-semibold p-2 rounded-lg flex items-center gap-2">
+                  <Check className="w-4 h-4" />
+                  Added {quantity} to cart!
                 </div>
               )}
 
-              {/* Amazon Style Yellow / Orange CTA Buttons */}
-              <div className="space-y-2.5 pt-2">
-                <button
-                  onClick={handleAdd}
-                  className="w-full py-3 rounded-full text-xs font-extrabold bg-[#ffd814] hover:bg-[#f7ca00] text-slate-950 border border-[#fcd200] shadow-sm transition-all active:scale-95 flex items-center justify-center gap-2"
-                >
-                  <ShoppingBag className="w-4 h-4" />
-                  <span>Add to Cart</span>
-                </button>
+              {/* CTA Buttons */}
+              <button
+                onClick={handleAddCart}
+                className="btn-amazon-cart w-full py-2.5 rounded-full font-bold text-[14px] flex items-center justify-center gap-2"
+              >
+                <ShoppingCart className="w-4 h-4" />
+                Add to Cart
+              </button>
 
-                <button
-                  onClick={() => {
-                    onBuyNow({ ...product, quantity });
-                  }}
-                  className="w-full py-3 rounded-full text-xs font-extrabold bg-[#ffa41c] hover:bg-[#fa8900] text-slate-950 border border-[#ff8f00] shadow-sm transition-all active:scale-95 flex items-center justify-center"
-                >
-                  <span>Buy Now</span>
-                </button>
-              </div>
+              <button
+                onClick={() => onBuyNow({ ...product, quantity })}
+                className="btn-amazon-buy w-full py-2.5 rounded-full font-bold text-[14px] flex items-center justify-center"
+              >
+                Buy Now
+              </button>
 
-              {/* E-Commerce Guarantee Table */}
-              <div className="pt-3 border-t border-slate-200 text-[11px] text-slate-500 space-y-1.5">
+              {/* Guarantees */}
+              <div className="space-y-1.5 pt-2 border-t border-gray-200 text-[11px] text-gray-500">
                 <div className="flex items-center gap-2">
-                  <ShieldCheck className="w-4 h-4 text-slate-400" />
-                  <span>Secure 256-Bit SSL Transaction</span>
+                  <ShieldCheck className="w-3.5 h-3.5 text-gray-400" />
+                  Secure Transaction
                 </div>
                 <div className="flex items-center gap-2">
-                  <RotateCcw className="w-4 h-4 text-slate-400" />
-                  <span>7-Day Easy Returns & Exchange</span>
+                  <RotateCcw className="w-3.5 h-3.5 text-gray-400" />
+                  7-Day Easy Returns
                 </div>
               </div>
 

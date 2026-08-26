@@ -1,9 +1,7 @@
-import os
-import shutil
 import uuid
 from pathlib import Path
 from typing import List, Optional
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form, Query, status
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Query, status
 from sqlalchemy.orm import Session
 from sqlalchemy import or_
 
@@ -262,7 +260,7 @@ async def update_product(product_id: int, update_data: ProductUpdate, db: Sessio
     if not product:
         raise HTTPException(status_code=404, detail="Product not found")
 
-    update_dict = update_data.dict(exclude_unset=True)
+    update_dict = update_data.model_dump(exclude_unset=True)
     if "specifications" in update_dict and update_dict["specifications"] is not None:
         update_dict["specifications"] = safe_json_dumps(update_dict["specifications"])
     if "keywords" in update_dict and update_dict["keywords"] is not None:

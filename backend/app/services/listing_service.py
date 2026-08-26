@@ -162,22 +162,35 @@ class ListingService:
 
     def _call_openai_api(self, attr: ProductAttributes, artisan_name: str) -> MultilingualListingResponse:
         import requests
-        url = "https://api.openai.com/v1/chat/completions"
-        headers = {"Authorization": f"Bearer {settings.OPENAI_API_KEY}"}
+        url = "https://api.openai.com/v1/responses"
+        headers = {"Authorization": f"Bearer {settings.OPENAI_API_KEY}", "Content-Type": "application/json"}
         prompt = (
-            f"Generate an authentic bilingual e-commerce listing for an Indian handicraft without hallucinating:\n"
-            f"Attributes: {attr.dict()}"
+            "Generate an authentic bilingual e-commerce listing for the supplied Indian handicraft. "
+            "Use only the supplied attributes; never invent certifications, materials, dimensions, origin, or technique. "
+            f"Artisan: {artisan_name}. Attributes: {json.dumps(attr.model_dump(), ensure_ascii=False)}"
         )
         payload = {
-            "model": "gpt-3.5-turbo",
-            "messages": [{"role": "user", "content": prompt}],
-            "temperature": 0.3
+            "model": settings.OPENAI_TEXT_MODEL,
+            "instructions": "You write precise English and Hindi marketplace copy for Indian artisan products.",
+            "input": prompt,
+            "store": False,
+            "text": {
+                "format": {
+                    "type": "json_schema",
+                    "name": "craft_listing",
+                    "strict": True,
+                    "schema": MultilingualListingResponse.model_json_schema(),
+                }
+            },
         }
-        res = requests.post(url, headers=headers, json=payload, timeout=8)
+        res = requests.post(url, headers=headers, json=payload, timeout=45)
         if res.status_code == 200:
-            content = res.json()["choices"][0]["message"]["content"]
-            if "```json" in content:
-                content = content.split("```json")[1].split("```")[0]
+            body = res.json()
+            content = next(
+                part["text"]
+                for item in body.get("output", []) if item.get("type") == "message"
+                for part in item.get("content", []) if part.get("type") == "output_text"
+            )
             data = json.loads(content)
             return MultilingualListingResponse(**data)
         raise RuntimeError(f"OpenAI API returned {res.status_code}")

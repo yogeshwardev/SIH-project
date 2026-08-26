@@ -1,25 +1,32 @@
 import React, { useState } from 'react';
-import { 
-  Search, 
-  MapPin, 
-  ShoppingBag, 
-  ChevronDown, 
-  Globe, 
-  Building2, 
-  ShieldCheck, 
-  Sparkles, 
-  Menu, 
-  X,
-  Package,
-  Zap,
-  Truck
-} from 'lucide-react';
+import { Search, MapPin, ShoppingCart, ChevronDown, Menu, X, Sparkles, Building2, ShieldCheck, Package, Bell, Truck } from 'lucide-react';
+
+const CATEGORIES = [
+  'All Categories',
+  'Handloom & Textiles',
+  'Pottery & Ceramics',
+  'Woodcraft & Toys',
+  'Metal & Bell Metal',
+  'Cane & Bamboo',
+  'Tribal Paintings',
+];
+
+const NAV_LINKS = [
+  { label: "Today's Deals", icon: '⚡', scroll: 'deals' },
+  { label: 'Handloom Sarees', icon: '🧣', cat: 'Handloom & Textiles' },
+  { label: 'Blue Pottery', icon: '🏺', cat: 'Pottery & Ceramics' },
+  { label: 'Wooden Toys', icon: '🪵', cat: 'Woodcraft & Carving' },
+  { label: 'Tribal Art', icon: '🔱', cat: 'Metal Craft & Bell Metal' },
+  { label: 'Under ₹999', icon: '🔥', scroll: 'under999' },
+  { label: 'Best Sellers', icon: '⭐', scroll: 'bestsellers' },
+  { label: 'New Arrivals', icon: '🆕' },
+];
 
 export default function AmazonHeader({
   activeTab,
   setActiveTab,
-  cartCount,
-  cartTotal,
+  cartCount = 0,
+  cartTotal = 0,
   onOpenCart,
   onOpenOrders,
   searchTerm,
@@ -27,215 +34,237 @@ export default function AmazonHeader({
   onSearch,
   selectedCategory,
   setSelectedCategory,
-  userPincode,
+  userPincode = '110001',
   onOpenPincodeModal,
-  pendingAdminCount = 0
+  pendingAdminCount = 0,
 }) {
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-
-  const categories = [
-    'All Categories',
-    'Handloom & Textiles',
-    'Pottery & Ceramics',
-    'Woodcraft & Carving',
-    'Metal Craft & Bell Metal',
-    'Cane & Bamboo',
-    'Traditional Paintings'
-  ];
-
-  const quickLinks = [
-    { label: '⚡ Today\'s Deals', filter: 'deals' },
-    { label: '👗 Handlooms & Sarees', filter: 'Handloom & Textiles' },
-    { label: '🏺 Blue Pottery', filter: 'Pottery & Ceramics' },
-    { label: '🪵 Channapatna Toys', filter: 'Woodcraft & Carving' },
-    { label: '💍 Tribal Bell Metal', filter: 'Metal Craft & Bell Metal' },
-    { label: '🧺 Cane & Bamboo', filter: 'Cane & Bamboo' },
-    { label: '⭐ Best Sellers', filter: 'bestsellers' },
-    { label: '🔥 Under ₹999 Store', filter: 'under999' }
-  ];
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [localCat, setLocalCat] = useState('All Categories');
 
   return (
-    <header className="sticky top-0 z-50 bg-[#131921] text-white shadow-md font-sans">
-      
-      {/* Primary Top Nav Bar */}
-      <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-6">
-        <div className="flex items-center justify-between h-16 gap-2 sm:gap-4">
-          
-          {/* Brand Logo */}
-          <div 
+    <header className="sticky top-0 z-50 shadow-header" style={{ fontFamily: "'Inter', sans-serif" }}>
+
+      {/* ── TOP PROMO STRIP ─────────────────────────── */}
+      <div className="bg-[#232f3e] text-center py-1.5 text-[11px] font-semibold text-amber-300 tracking-wide hidden md:block">
+        🎉 &nbsp;FREE Delivery on orders above ₹499 &nbsp;•&nbsp; 7-Day Easy Returns &nbsp;•&nbsp; 100% GI-Certified Artisan Crafts
+      </div>
+
+      {/* ── MAIN HEADER BAR ─────────────────────────── */}
+      <div className="bg-[#131921] px-3 sm:px-4 lg:px-6">
+        <div className="flex items-center gap-2 sm:gap-3 h-[60px] max-w-[1400px] mx-auto">
+
+          {/* LOGO */}
+          <button
             onClick={() => setActiveTab('buyer')}
-            className="flex items-center gap-1.5 cursor-pointer py-1 px-2 border border-transparent hover:border-white rounded transition-colors group flex-shrink-0"
+            className="flex-shrink-0 flex items-center gap-2 border-2 border-transparent hover:border-white/40 rounded px-1.5 py-1 transition-colors group"
           >
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-amber-400 to-terracotta-600 flex items-center justify-center text-slate-950 font-black shadow">
-              <Sparkles className="w-5 h-5 text-slate-950" />
+            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center shadow-md">
+              <Sparkles className="w-4 h-4 text-white" />
             </div>
-            <div className="flex flex-col">
-              <div className="flex items-baseline">
-                <span className="font-black text-xl tracking-tight text-white">CraftLink</span>
-                <span className="text-amber-400 font-black text-lg">.in</span>
+            <div className="hidden sm:block leading-none">
+              <div className="flex items-baseline gap-0.5">
+                <span className="text-white font-black text-[18px] tracking-tight" style={{ fontFamily: "'Outfit', sans-serif" }}>CraftLink</span>
+                <span className="text-amber-400 font-black text-[16px]">.in</span>
               </div>
-              <span className="text-[9px] text-amber-300 -mt-1 font-semibold tracking-wider">DIRECT ARTISAN</span>
+              <div className="text-[9px] text-slate-400 font-bold tracking-widest">DIRECT ARTISAN</div>
             </div>
-          </div>
+          </button>
 
-          {/* Delivery Location Widget (Amazon style) */}
-          <div 
+          {/* DELIVER TO (Amazon Style) */}
+          <button
             onClick={onOpenPincodeModal}
-            className="hidden lg:flex items-center gap-1.5 cursor-pointer py-1.5 px-2 border border-transparent hover:border-white rounded transition-colors flex-shrink-0"
+            className="hidden xl:flex flex-col items-start border-2 border-transparent hover:border-white/40 rounded px-2 py-1.5 transition-colors flex-shrink-0"
           >
-            <MapPin className="w-4 h-4 text-amber-400 -mt-2" />
-            <div className="flex flex-col text-left leading-tight">
-              <span className="text-[11px] text-slate-400">Deliver to New Delhi</span>
-              <span className="text-xs font-bold text-white truncate max-w-[110px]">{userPincode || '110001'} (Update)</span>
+            <span className="text-[11px] text-slate-400 leading-none">Deliver to</span>
+            <div className="flex items-center gap-1 mt-0.5">
+              <MapPin className="w-3.5 h-3.5 text-white flex-shrink-0" />
+              <span className="text-white text-[13px] font-bold leading-none">{userPincode}</span>
             </div>
-          </div>
+          </button>
 
-          {/* Mega Search Bar (Amazon / Flipkart style) */}
-          <div className="flex-1 max-w-2xl relative">
-            <form 
-              onSubmit={(e) => {
-                e.preventDefault();
-                onSearch();
-              }}
-              className="flex items-center rounded-lg overflow-hidden bg-white focus-within:ring-2 focus-within:ring-amber-400 shadow-inner"
+          {/* SEARCH BAR */}
+          <div className="flex-1 min-w-0">
+            <form
+              onSubmit={e => { e.preventDefault(); onSearch?.(); }}
+              className="flex h-[42px] rounded-lg overflow-hidden search-bar-wrapper"
             >
               {/* Category Dropdown */}
-              <div className="hidden sm:flex items-center bg-slate-100 border-r border-slate-300 text-slate-700 text-xs px-2.5 py-2.5 font-medium cursor-pointer">
+              <div className="hidden sm:flex items-center bg-[#f3f4f6] border-r border-gray-300 flex-shrink-0">
                 <select
-                  value={selectedCategory}
-                  onChange={(e) => setSelectedCategory(e.target.value)}
-                  className="bg-transparent border-none outline-none cursor-pointer pr-1 text-slate-800 font-semibold"
+                  value={localCat}
+                  onChange={e => { setLocalCat(e.target.value); setSelectedCategory?.(e.target.value); }}
+                  className="h-full bg-transparent text-[12px] font-semibold text-gray-700 pl-2 pr-6 outline-none cursor-pointer"
+                  style={{ appearance: 'auto' }}
                 >
-                  {categories.map((c) => (
-                    <option key={c} value={c} className="text-slate-900">
-                      {c}
-                    </option>
+                  {CATEGORIES.map(c => (
+                    <option key={c} value={c}>{c}</option>
                   ))}
                 </select>
               </div>
 
-              {/* Text Input */}
+              {/* Input */}
               <input
                 type="text"
-                placeholder="Search Banarasi silk, Jaipur blue pottery, wooden toys, tribal art..."
                 value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full px-3 py-2 text-xs sm:text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none"
+                onChange={e => setSearchTerm?.(e.target.value)}
+                placeholder="Search for Banarasi silk, blue pottery, wooden toys, tribal art..."
+                className="flex-1 px-3 text-[13px] text-gray-900 placeholder-gray-400 bg-white outline-none min-w-0"
               />
 
-              {/* Submit Search Button */}
+              {/* Search Button */}
               <button
                 type="submit"
-                className="bg-amber-400 hover:bg-amber-500 text-slate-950 px-4 sm:px-5 py-2.5 sm:py-2.5 transition-colors flex items-center justify-center font-bold"
-                title="Search"
+                className="w-[50px] bg-amber-400 hover:bg-amber-500 flex items-center justify-center flex-shrink-0 transition-colors"
               >
-                <Search className="w-4 h-4 sm:w-5 sm:h-5 text-slate-950 stroke-[2.5]" />
+                <Search className="w-5 h-5 text-gray-900 stroke-[2.5]" />
               </button>
             </form>
           </div>
 
-          {/* Right Action Icons */}
-          <div className="flex items-center gap-1 sm:gap-2">
-            
-            {/* Returns & Orders (Amazon style) */}
+          {/* RIGHT ACTIONS */}
+          <div className="flex items-center gap-0.5 sm:gap-1 flex-shrink-0">
+
+            {/* Sign In / Account */}
+            <button className="hidden md:flex flex-col items-start border-2 border-transparent hover:border-white/40 rounded px-2 py-1.5 transition-colors">
+              <span className="text-[11px] text-slate-400 leading-none">Hello, Artisan</span>
+              <div className="flex items-center gap-1 mt-0.5">
+                <span className="text-white text-[13px] font-bold leading-none">Account ▾</span>
+              </div>
+            </button>
+
+            {/* Returns & Orders */}
             <button
               onClick={onOpenOrders}
-              className="hidden md:flex flex-col text-left py-1.5 px-2 border border-transparent hover:border-white rounded transition-colors"
+              className="hidden md:flex flex-col items-start border-2 border-transparent hover:border-white/40 rounded px-2 py-1.5 transition-colors"
             >
-              <span className="text-[11px] text-slate-400">Returns</span>
-              <span className="text-xs font-bold text-white">& Orders</span>
+              <span className="text-[11px] text-slate-400 leading-none">Returns</span>
+              <span className="text-white text-[13px] font-bold leading-none mt-0.5">& Orders</span>
             </button>
 
-            {/* Seller Central / Supplier Hub (Meesho / Flipkart style) */}
+            {/* Seller Central */}
             <button
               onClick={() => setActiveTab('seller')}
-              className={`flex items-center gap-1.5 py-1.5 px-2.5 rounded-lg text-xs font-bold transition-all ${
+              className={`hidden lg:flex flex-col items-start border-2 rounded px-2 py-1.5 transition-colors ${
                 activeTab === 'seller'
-                  ? 'bg-amber-400 text-slate-950'
-                  : 'bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700'
+                  ? 'border-amber-400 bg-amber-400/10'
+                  : 'border-transparent hover:border-white/40'
               }`}
-              title="Artisan Seller Central"
             >
-              <Building2 className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">Seller Central</span>
+              <span className="text-[11px] text-slate-400 leading-none">Sell on</span>
+              <span className={`text-[13px] font-bold leading-none mt-0.5 ${activeTab === 'seller' ? 'text-amber-400' : 'text-white'}`}>
+                CraftLink
+              </span>
             </button>
 
-            {/* Admin Portal */}
+            {/* Admin */}
             <button
               onClick={() => setActiveTab('admin')}
-              className={`flex items-center gap-1 py-1.5 px-2 rounded-lg text-xs font-bold transition-all relative ${
+              className={`relative flex items-center gap-1 border-2 rounded px-2 py-2 transition-colors ${
                 activeTab === 'admin'
-                  ? 'bg-emerald-500 text-slate-950'
-                  : 'text-slate-300 hover:text-white hover:bg-slate-800'
+                  ? 'border-green-400 text-green-400'
+                  : 'border-transparent text-slate-300 hover:border-white/40 hover:text-white'
               }`}
-              title="Operations & Governance"
+              title="Admin Portal"
             >
-              <ShieldCheck className="w-4 h-4 text-emerald-400" />
-              <span className="hidden lg:inline">Admin</span>
+              <ShieldCheck className="w-5 h-5" />
               {pendingAdminCount > 0 && (
-                <span className="w-2 h-2 rounded-full bg-amber-400 animate-ping absolute top-1 right-1"></span>
+                <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white text-[9px] font-black rounded-full flex items-center justify-center">
+                  {pendingAdminCount}
+                </span>
               )}
             </button>
 
-            {/* Cart Button (Amazon Yellow Badge Style) */}
+            {/* CART */}
             <button
               onClick={onOpenCart}
-              className="flex items-center gap-2 py-1.5 px-2.5 border border-transparent hover:border-white rounded transition-colors group"
+              className="flex items-end gap-1.5 border-2 border-transparent hover:border-white/40 rounded px-2 py-1 transition-colors relative"
             >
               <div className="relative">
-                <ShoppingBag className="w-6 h-6 text-amber-400" />
-                <span className="absolute -top-1.5 -right-2 bg-amber-400 text-slate-950 text-[11px] font-black w-5 h-5 rounded-full flex items-center justify-center shadow">
+                <ShoppingCart className="w-9 h-9 text-white" strokeWidth={1.8} />
+                {/* Cart count badge */}
+                <span className="absolute -top-1 left-3 min-w-[20px] h-5 bg-amber-400 text-[#0f1111] text-[11px] font-black rounded-full flex items-center justify-center px-1">
                   {cartCount}
                 </span>
               </div>
-              <div className="hidden sm:flex flex-col text-left">
-                <span className="text-[10px] text-slate-400 font-bold uppercase">Cart</span>
-                <span className="text-xs font-extrabold text-amber-300">₹{cartTotal?.toLocaleString('en-IN') || 0}</span>
+              <div className="hidden sm:block pb-1">
+                <span className="text-white font-black text-[13px] leading-none">Cart</span>
               </div>
             </button>
 
+            {/* Mobile Menu Toggle */}
+            <button
+              onClick={() => setMobileMenuOpen(m => !m)}
+              className="md:hidden p-2 text-white hover:text-amber-400"
+            >
+              {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+            </button>
           </div>
 
         </div>
       </div>
 
-      {/* Secondary Horizontal Category Navigation Bar (Flipkart / Amazon style) */}
-      <div className="bg-[#232f3e] text-slate-200 border-t border-slate-700/50 overflow-x-auto text-xs py-1.5 px-3 sm:px-4 lg:px-6">
-        <div className="max-w-7xl mx-auto flex items-center gap-4 sm:gap-6 whitespace-nowrap">
-          
-          <button 
+      {/* ── SECONDARY NAV BAR (Category Links) ─────── */}
+      <div className="bg-[#232f3e] overflow-x-auto scrollbar-none">
+        <div className="flex items-center gap-0 h-10 max-w-[1400px] mx-auto px-3 sm:px-4 lg:px-6 whitespace-nowrap">
+
+          {/* "All" hamburger */}
+          <button
             onClick={() => setActiveTab('buyer')}
-            className="flex items-center gap-1.5 font-extrabold text-white hover:text-amber-400 py-1"
+            className="flex items-center gap-1.5 text-white text-[13px] font-bold hover:text-amber-300 px-3 h-full border-2 border-transparent hover:border-white/30 transition-colors flex-shrink-0"
           >
             <Menu className="w-4 h-4" />
-            <span>All Categories</span>
+            <span>All</span>
           </button>
 
-          {quickLinks.map((item, idx) => (
+          {NAV_LINKS.map((link, i) => (
             <button
-              key={idx}
+              key={i}
               onClick={() => {
                 setActiveTab('buyer');
-                if (item.filter.startsWith('Handloom') || item.filter.startsWith('Pottery') || item.filter.startsWith('Woodcraft') || item.filter.startsWith('Metal') || item.filter.startsWith('Cane')) {
-                  setSelectedCategory(item.filter);
-                } else if (item.filter === 'deals' || item.filter === 'under999' || item.filter === 'bestsellers') {
-                  const el = document.getElementById(item.filter);
-                  if (el) el.scrollIntoView({ behavior: 'smooth' });
+                if (link.cat) setSelectedCategory?.(link.cat);
+                if (link.scroll) {
+                  setTimeout(() => {
+                    document.getElementById(link.scroll)?.scrollIntoView({ behavior: 'smooth' });
+                  }, 100);
                 }
               }}
-              className="hover:text-amber-300 font-medium py-1 transition-colors border-b-2 border-transparent hover:border-amber-400"
+              className="text-white text-[13px] hover:text-amber-300 px-3 h-full border-2 border-transparent hover:border-white/30 transition-colors flex-shrink-0 font-medium"
             >
-              {item.label}
+              {link.icon} {link.label}
             </button>
           ))}
 
-          <div className="ml-auto hidden md:flex items-center gap-2 text-emerald-400 font-bold text-[11px]">
+          {/* Trust badge on right */}
+          <div className="ml-auto hidden lg:flex items-center gap-1.5 text-emerald-400 text-[12px] font-semibold flex-shrink-0 pl-3">
             <Truck className="w-3.5 h-3.5" />
-            <span>Direct from 100+ Verified GI Artisan Clusters</span>
+            <span>100+ GI Artisan Clusters</span>
           </div>
-
         </div>
       </div>
+
+      {/* ── MOBILE MENU ─────────────────────────────── */}
+      {mobileMenuOpen && (
+        <div className="md:hidden bg-white border-b border-gray-200 p-4 space-y-3 animate-fade-in">
+          <button
+            onClick={() => { setActiveTab('seller'); setMobileMenuOpen(false); }}
+            className="w-full text-left px-4 py-2.5 rounded-lg bg-amber-50 border border-amber-200 text-amber-900 font-bold text-sm"
+          >
+            🏪 Sell on CraftLink (0% Commission)
+          </button>
+          <button
+            onClick={() => { onOpenOrders?.(); setMobileMenuOpen(false); }}
+            className="w-full text-left px-4 py-2.5 rounded-lg bg-gray-50 border border-gray-200 text-gray-800 font-semibold text-sm"
+          >
+            📦 Returns & Orders
+          </button>
+          <button
+            onClick={() => { setActiveTab('admin'); setMobileMenuOpen(false); }}
+            className="w-full text-left px-4 py-2.5 rounded-lg bg-gray-50 border border-gray-200 text-gray-800 font-semibold text-sm"
+          >
+            🛡 Admin Portal {pendingAdminCount > 0 && `(${pendingAdminCount} pending)`}
+          </button>
+        </div>
+      )}
 
     </header>
   );

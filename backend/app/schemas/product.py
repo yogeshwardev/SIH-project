@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 from typing import Optional, List, Dict, Any
 from datetime import datetime
 
@@ -172,6 +172,7 @@ class ProductUpdate(BaseModel):
     badge: Optional[str] = None
 
 class ProductResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
     id: int
     artisan_id: Optional[int]
     artisan_name: Optional[str] = None
@@ -227,9 +228,6 @@ class ProductResponse(BaseModel):
     created_at: datetime
     updated_at: datetime
 
-    class Config:
-        from_attributes = True
-
 # --- Order & Inquiry Schemas ---
 class OrderInquiryCreate(BaseModel):
     product_id: int
@@ -243,6 +241,7 @@ class OrderInquiryCreate(BaseModel):
     message: Optional[str] = None
 
 class OrderInquiryResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
     id: int
     product_id: int
     product_name: Optional[str] = None
@@ -257,9 +256,6 @@ class OrderInquiryResponse(BaseModel):
     message: Optional[str]
     status: str
     created_at: datetime
-
-    class Config:
-        from_attributes = True
 
 class AdminActionRequest(BaseModel):
     admin_notes: Optional[str] = "Approved by CraftLink AI Quality Assurance"

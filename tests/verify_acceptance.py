@@ -270,8 +270,10 @@ def run_acceptance_tests():
         print(f"✗ Test 15 Failed: {e}")
 
     print("------------------------------------------------------------------")
-    print(f"  ACCEPTANCE TEST SUMMARY: {passed_tests}/{total_tests} TESTS PASSED (100%)")
+    percentage = round((passed_tests / total_tests) * 100)
+    print(f"  ACCEPTANCE TEST SUMMARY: {passed_tests}/{total_tests} TESTS PASSED ({percentage}%)")
     print("==================================================================")
+    return passed_tests == total_tests
 
 if __name__ == "__main__":
-    run_acceptance_tests()
+    raise SystemExit(0 if run_acceptance_tests() else 1)

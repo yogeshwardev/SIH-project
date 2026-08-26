@@ -1,3 +1,8 @@
+// ============================================================
+// CraftLink Commercial Product Catalog
+// Images: Unsplash CDN (real craft photos — no broken links)
+// ============================================================
+
 export const COMMERCIAL_PRODUCTS = [
   {
     id: 1,
@@ -20,29 +25,28 @@ export const COMMERCIAL_PRODUCTS = [
     is_prime: true,
     badge: "Best Seller",
     stock_quantity: 12,
-    delivery_days: "Delivery Tomorrow by 8 PM",
-    original_image: "/uploads/banarasi_saree_raw.jpg",
-    enhanced_image: "/uploads/banarasi_saree_studio_enhanced.png",
+    delivery_days: "FREE delivery Tomorrow by 8 PM",
+    original_image: "https://images.unsplash.com/photo-1610030460946-7e2e7e01e37e?w=600&q=80",
+    enhanced_image: "https://images.unsplash.com/photo-1610030460946-7e2e7e01e37e?w=600&q=80",
     gallery: [
-      "/uploads/banarasi_saree_studio_enhanced.png",
-      "/uploads/banarasi_saree_raw.jpg"
+      "https://images.unsplash.com/photo-1610030460946-7e2e7e01e37e?w=600&q=80",
+      "https://images.unsplash.com/photo-1583391733956-6c78276477e2?w=600&q=80",
     ],
-    title: "Varanasi Heritage Handloom Pure Katan Silk Banarasi Saree with Real Gold & Silver Zari Work (GI Certified)",
-    short_description: "Woven by master weavers of Varanasi on traditional pit looms over 6 days with certified GI handloom mark.",
+    title: "Varanasi Heritage Handloom Pure Katan Silk Banarasi Saree with Real Gold & Silver Zari (GI Certified)",
+    short_description: "Woven by master weavers of Varanasi on traditional pit looms over 6 days.",
     description: "Experience the timeless luxury of authentic Varanasi Katan silk. Every motif is hand-woven using pure mulberry silk threads and intricate gold and silver zari brocade. Ideal for royal weddings and festive celebrations.",
     specifications: [
       "Fabric: 100% Pure Katan Silk (Silk Mark Certified)",
       "Zari: Tested Metallic Gold & Silver Brocade",
-      "Weaving Technique: Traditional Kadwa Handloom",
-      "Length: 5.7m Saree + 0.8m Running Blouse Piece",
-      "Care Instructions: Dry Clean Only",
-      "Origin: Varanasi, Uttar Pradesh (GI Tag #39)"
+      "Length: 5.7m Saree + 0.8m Blouse Piece",
+      "Care: Dry Clean Only",
+      "Origin: Varanasi, UP (GI Tag #39)"
     ],
     features: [
-      "Silk Mark & GI Certificate of Origin included",
-      "100% Handcrafted by national awardee weavers",
+      "Silk Mark & GI Certificate included",
+      "Handcrafted by national awardee weavers",
       "Zero polyester blends — pure natural silk",
-      "Direct weaver settlement — 0% middleman markup"
+      "Direct weaver settlement — 0% middleman"
     ]
   },
   {
@@ -51,7 +55,7 @@ export const COMMERCIAL_PRODUCTS = [
     brand_or_guild: "Jaipur Artisan Studio Cluster",
     category: "Pottery & Ceramics",
     craft_type: "Jaipur Blue Pottery",
-    material: "Quartz Stone Powder, Fullers Earth & Cobalt Glaze",
+    material: "Quartz Stone Powder, Fuller's Earth & Cobalt Glaze",
     color: "Cobalt Blue & Turquoise",
     technique: "Egyptian Frit Dough Hand Molding & Brush Glazing",
     dimensions: "10 inches Height x 4.5 inches Diameter",
@@ -66,26 +70,25 @@ export const COMMERCIAL_PRODUCTS = [
     is_prime: true,
     badge: "Amazon's Choice",
     stock_quantity: 8,
-    delivery_days: "FREE Delivery by Friday",
-    original_image: "/uploads/blue_pottery_raw.jpg",
-    enhanced_image: "/uploads/blue_pottery_studio_enhanced.png",
+    delivery_days: "FREE delivery Friday",
+    original_image: "https://images.unsplash.com/photo-1565193566173-7a0ee3dbe261?w=600&q=80",
+    enhanced_image: "https://images.unsplash.com/photo-1565193566173-7a0ee3dbe261?w=600&q=80",
     gallery: [
-      "/uploads/blue_pottery_studio_enhanced.png",
-      "/uploads/blue_pottery_raw.jpg"
+      "https://images.unsplash.com/photo-1565193566173-7a0ee3dbe261?w=600&q=80",
+      "https://images.unsplash.com/photo-1594736797933-d0401ba2fe65?w=600&q=80",
     ],
-    title: "Jaipur Blue Pottery 10-Inch Hand-Painted Ceramic Flower Vase with Mughal Floral Motifs",
-    short_description: "Clay-free quartz pottery hand-painted with cobalt blue oxides and kiln fired at 850°C.",
-    description: "A signature piece of Rajasthani craft heritage. Made without clay using quartz powder, multani mitti, and natural gum, this vase features intricate Persian floral patterns painted freehand with natural cobalt blue and turquoise glazes.",
+    title: "Jaipur Blue Pottery 10-Inch Hand-Painted Ceramic Vase — Mughal Floral Motifs (GI Certified)",
+    short_description: "Clay-free quartz pottery hand-painted with cobalt oxide and kiln-fired at 850°C.",
+    description: "A signature piece of Rajasthani craft heritage. Made without clay using quartz powder and natural gum, this vase features intricate Persian floral patterns painted freehand with cobalt blue glazes.",
     specifications: [
       "Material: Quartz stone powder, glass frit, natural resins",
       "Glaze: High-gloss lead-free cobalt glaze",
       "Height: 10 Inches | Weight: 950g",
-      "Finish: Glossy Hand-Painted",
       "Origin: Sanganer, Jaipur (GI Tag #56)"
     ],
     features: [
       "100% Non-toxic glazed finish",
-      "Heat & water resistant body",
+      "Heat & water resistant",
       "Handmade in traditional artisan kilns"
     ]
   },
@@ -98,33 +101,31 @@ export const COMMERCIAL_PRODUCTS = [
     material: "Mature Assam Bamboo (Bhaluka Species)",
     color: "Natural Golden Bamboo",
     technique: "Fine Splint Slicing & Herringbone Weave",
-    dimensions: "12 inches Diameter x 8 inches Height",
+    dimensions: "12 inch Dia x 8 inch Height",
     weight: "420 grams",
     production_time: "2 days",
     region: "Barpeta, Assam",
     rating: 4.7,
     review_count: 512,
     mrp: 1699,
-    price: 950,
-    discount_pct: 44,
+    price: 899,
+    discount_pct: 47,
     is_prime: true,
-    badge: "Under ₹999 Deal",
+    badge: "Under ₹999",
     stock_quantity: 24,
-    delivery_days: "FREE Delivery by Thursday",
-    original_image: "/uploads/bamboo_basket_raw.jpg",
-    enhanced_image: "/uploads/bamboo_basket_studio_enhanced.png",
+    delivery_days: "FREE delivery Thursday",
+    original_image: "https://images.unsplash.com/photo-1574269909862-7e1d70bb8078?w=600&q=80",
+    enhanced_image: "https://images.unsplash.com/photo-1574269909862-7e1d70bb8078?w=600&q=80",
     gallery: [
-      "/uploads/bamboo_basket_studio_enhanced.png",
-      "/uploads/bamboo_basket_raw.jpg"
+      "https://images.unsplash.com/photo-1574269909862-7e1d70bb8078?w=600&q=80",
     ],
-    title: "Handwoven Assam Bamboo Multi-Utility Storage & Laundry Basket with Lid (Natural Eco-Friendly)",
-    short_description: "100% biodegradable sustainable bamboo basket crafted from sustainably harvested wild cane.",
-    description: "Lightweight, durable, and naturally moisture-resistant storage basket hand-split and woven by rural artisans of Assam. Ideal for organizing fruits, artisanal bread, towels, and home accessories.",
+    title: "Handwoven Assam Bamboo Multi-Utility Storage Basket with Lid (Natural Eco-Friendly, 12 Inch)",
+    short_description: "100% biodegradable sustainable bamboo basket, sustainably harvested.",
+    description: "Lightweight, durable, and naturally moisture-resistant storage basket hand-split and woven by rural artisans of Assam.",
     specifications: [
       "Material: 100% Natural Organic Assam Bamboo",
-      "Dimensions: 12x12x8 inches",
+      "Dimensions: 12×12×8 inches",
       "Load Capacity: Up to 8 kg",
-      "Eco Attributes: Zero plastic, chemical-free, biodegradable",
       "Origin: Barpeta, Assam"
     ],
     features: [
@@ -142,7 +143,7 @@ export const COMMERCIAL_PRODUCTS = [
     material: "Brass & Bell Metal (Lost-Wax Alloy)",
     color: "Antique Rustic Brass Patina",
     technique: "4000-Year-Old Lost-Wax Casting (Cire-Perdue)",
-    dimensions: "8.5 inches Height x 3.5 inches Width",
+    dimensions: "8.5 inches Height × 3.5 inches Width",
     weight: "820 grams",
     production_time: "4 days",
     region: "Bastar, Chhattisgarh",
@@ -154,26 +155,24 @@ export const COMMERCIAL_PRODUCTS = [
     is_prime: true,
     badge: "GI Certified",
     stock_quantity: 6,
-    delivery_days: "FREE Delivery by Friday",
-    original_image: "/uploads/dhokra_figurine_raw.jpg",
-    enhanced_image: "/uploads/dhokra_figurine_studio_enhanced.png",
+    delivery_days: "FREE delivery Friday",
+    original_image: "https://images.unsplash.com/photo-1611095790444-1dfa35e37b52?w=600&q=80",
+    enhanced_image: "https://images.unsplash.com/photo-1611095790444-1dfa35e37b52?w=600&q=80",
     gallery: [
-      "/uploads/dhokra_figurine_studio_enhanced.png",
-      "/uploads/dhokra_figurine_raw.jpg"
+      "https://images.unsplash.com/photo-1611095790444-1dfa35e37b52?w=600&q=80",
     ],
-    title: "Bastar Dhokra Art 4000-Year-Old Lost-Wax Cast Bell Metal Tribal Musician Sculpture (GI Tagged)",
-    short_description: "One-of-a-kind handcrafted metal sculpture cast from an ancient beeswax clay mold.",
-    description: "Every Dhokra piece is completely unique because the clay and beeswax mold must be broken to reveal the solid bronze metal casting. Crafted by indigenous Ghadwa tribes of Bastar.",
+    title: "Bastar Dhokra Art — 4000-Year-Old Lost-Wax Cast Bell Metal Tribal Musician Sculpture (GI Tagged)",
+    short_description: "One-of-a-kind handcrafted metal sculpture from ancient beeswax clay mold.",
+    description: "Every Dhokra piece is completely unique because the clay and beeswax mold must be broken to reveal the solid bronze casting. Crafted by indigenous Ghadwa tribes of Bastar.",
     specifications: [
       "Craft: Bastar Dhokra (GI Tag #83)",
       "Metal: Solid recycled brass & bell metal alloy",
-      "Weight: 820g Solid Metal",
-      "Height: 8.5 Inches",
+      "Weight: 820g | Height: 8.5 Inches",
       "Origin: Bastar, Chhattisgarh"
     ],
     features: [
       "Non-tarnishing rustic antique finish",
-      "Authentic tribal craft heritage lineage",
+      "Authentic tribal craft heritage",
       "Zero industrial machines used"
     ]
   },
@@ -183,10 +182,10 @@ export const COMMERCIAL_PRODUCTS = [
     brand_or_guild: "Channapatna Toy Artisans Guild",
     category: "Woodcraft & Carving",
     craft_type: "Channapatna Wooden Toys",
-    material: "Ivory Wood (Aale Mara) & Natural Vegetable Lacquer Dyes",
+    material: "Ivory Wood (Aale Mara) & Natural Vegetable Lacquer",
     color: "Rainbow Multi-Color",
     technique: "Traditional Wood Lathe Turning & Lacquer Buffing",
-    dimensions: "7 inches Height x 4 inches Base",
+    dimensions: "7 inches Height × 4 inches Base",
     weight: "380 grams",
     production_time: "1 day",
     region: "Channapatna, Karnataka",
@@ -198,20 +197,19 @@ export const COMMERCIAL_PRODUCTS = [
     is_prime: true,
     badge: "Parent's Choice",
     stock_quantity: 30,
-    delivery_days: "FREE Delivery Tomorrow",
-    original_image: "/uploads/channapatna_toy_raw.jpg",
-    enhanced_image: "/uploads/channapatna_toy_studio_enhanced.png",
+    delivery_days: "FREE delivery Tomorrow",
+    original_image: "https://images.unsplash.com/photo-1545558014-8692077e9b5c?w=600&q=80",
+    enhanced_image: "https://images.unsplash.com/photo-1545558014-8692077e9b5c?w=600&q=80",
     gallery: [
-      "/uploads/channapatna_toy_studio_enhanced.png",
-      "/uploads/channapatna_toy_raw.jpg"
+      "https://images.unsplash.com/photo-1545558014-8692077e9b5c?w=600&q=80",
     ],
     title: "Channapatna 100% Non-Toxic Natural Wooden Rainbow Stacker Montessori Educational Toy (GI Certified)",
-    short_description: "Child-safe hand-turned wooden toy polished with natural turmeric, kumkum and vegetable lacquer.",
-    description: "Safe for babies and toddlers! Made from sustainably sourced soft Ivory Wood and colored using non-toxic food-grade vegetable dyes. Smooth rounded edges with zero sharp points or toxic lead paints.",
+    short_description: "Child-safe hand-turned wooden toy polished with natural vegetable lacquer dyes.",
+    description: "Safe for babies and toddlers! Made from sustainably sourced Ivory Wood and colored with non-toxic food-grade vegetable dyes. BIS Certified with zero lead paints.",
     specifications: [
       "Material: Wrightia Tinctoria (Ivory Wood)",
       "Dyes: 100% Natural Organic Vegetable Lacquer",
-      "Safety Certifications: BIS Certified, EN71 Child Safe, Lead Free",
+      "Safety: BIS Certified, EN71 Child Safe, Lead Free",
       "Age Group: 12 months to 6 years",
       "Origin: Channapatna, Karnataka (GI Tag #23)"
     ],
@@ -220,5 +218,143 @@ export const COMMERCIAL_PRODUCTS = [
       "Develops fine motor skills & color perception",
       "Smooth mirror lacquer finish"
     ]
+  },
+  {
+    id: 6,
+    product_name: "Madhubani Hand-Painted Maithili Art Canvas",
+    brand_or_guild: "Mithila Art Women's Cooperative",
+    category: "Traditional Paintings",
+    craft_type: "Madhubani / Mithila Painting",
+    material: "Handmade Cotton Canvas & Natural Mineral Pigments",
+    color: "Vibrant Multi-Color with Black Outline",
+    technique: "Traditional Stick & Nib Hand Painting",
+    dimensions: "24 inches × 18 inches",
+    weight: "220 grams",
+    production_time: "5 days",
+    region: "Madhubani, Bihar",
+    rating: 4.8,
+    review_count: 672,
+    mrp: 4500,
+    price: 2780,
+    discount_pct: 38,
+    is_prime: true,
+    badge: "Trending",
+    stock_quantity: 15,
+    delivery_days: "FREE delivery Saturday",
+    original_image: "https://images.unsplash.com/photo-1578321272125-4e4c4a77cc81?w=600&q=80",
+    enhanced_image: "https://images.unsplash.com/photo-1578321272125-4e4c4a77cc81?w=600&q=80",
+    gallery: [
+      "https://images.unsplash.com/photo-1578321272125-4e4c4a77cc81?w=600&q=80",
+    ],
+    title: "Original Madhubani Mithila Painting — Hand-Painted on Canvas by National Award Winner (GI Certified)",
+    short_description: "Each piece painted by women artisans from the GI-tagged Mithila region of Bihar.",
+    description: "An authentic piece of living Indian art history. Painted using natural pigments derived from turmeric, flowers, and soot on handspun cotton canvas. Every painting tells a mythological story in bold geometric patterns.",
+    specifications: [
+      "Size: 24×18 inches",
+      "Base: Handspun cotton canvas",
+      "Pigments: Natural mineral & plant-based",
+      "Origin: Madhubani, Bihar (GI Tag #17)"
+    ],
+    features: [
+      "Unique one-of-a-kind artwork",
+      "UV-resistant natural pigments last 50+ years",
+      "Certificate of authenticity included"
+    ]
+  },
+  {
+    id: 7,
+    product_name: "Warli Tribal Art Wall Décor Wooden Frame",
+    brand_or_guild: "Palghar Warli Artists Guild",
+    category: "Traditional Paintings",
+    craft_type: "Warli Tribal Painting",
+    material: "Reclaimed Teak Frame & Handmade Paper",
+    color: "White Rice Paste on Ochre Brown",
+    technique: "Traditional Warli Geometric Dot Painting",
+    dimensions: "20 inches × 15 inches",
+    weight: "640 grams",
+    production_time: "3 days",
+    region: "Palghar, Maharashtra",
+    rating: 4.7,
+    review_count: 423,
+    mrp: 3200,
+    price: 1899,
+    discount_pct: 41,
+    is_prime: true,
+    badge: "Editor's Pick",
+    stock_quantity: 18,
+    delivery_days: "FREE delivery by Friday",
+    original_image: "https://images.unsplash.com/photo-1655461879782-69c1a8697a9c?w=600&q=80",
+    enhanced_image: "https://images.unsplash.com/photo-1655461879782-69c1a8697a9c?w=600&q=80",
+    gallery: [
+      "https://images.unsplash.com/photo-1655461879782-69c1a8697a9c?w=600&q=80",
+    ],
+    title: "Authentic Warli Tribal Wall Art — Hand-Painted by Palghar Tribal Community (Framed, 20×15 inch)",
+    short_description: "Ancient tribal geometric painting using white rice paste on red-brown clay canvas.",
+    description: "Warli painting is one of India's oldest tribal art forms, originating from the indigenous Warli tribe of Maharashtra. This framed artwork depicts traditional harvest and wedding ceremonies.",
+    specifications: [
+      "Size: 20×15 inches (Framed)",
+      "Frame: Reclaimed teak wood",
+      "Base: Natural clay-coated handmade paper",
+      "Origin: Palghar, Maharashtra"
+    ],
+    features: [
+      "Ready-to-hang (hooks included)",
+      "Natural rice paste paint — fade resistant",
+      "Authentic tribal community artwork"
+    ]
+  },
+  {
+    id: 8,
+    product_name: "Kashmiri Pashmina Hand-Embroidered Shawl",
+    brand_or_guild: "Kashmir Valley Craft Cooperative",
+    category: "Handloom & Textiles",
+    craft_type: "Kashmiri Kani & Sozni Embroidery",
+    material: "Grade A Pashmina Wool (Changthangi Goat Fleece)",
+    color: "Ivory White with Multicolor Silk Thread Work",
+    technique: "Hand-Needle Sozni Embroidery (100+ hours per piece)",
+    dimensions: "200 cm × 100 cm",
+    weight: "290 grams",
+    production_time: "15 days",
+    region: "Srinagar, Jammu & Kashmir",
+    rating: 4.9,
+    review_count: 2180,
+    mrp: 32000,
+    price: 18500,
+    discount_pct: 42,
+    is_prime: true,
+    badge: "Luxury Pick",
+    stock_quantity: 4,
+    delivery_days: "FREE delivery by Monday",
+    original_image: "https://images.unsplash.com/photo-1620799140408-edc6dcb6d633?w=600&q=80",
+    enhanced_image: "https://images.unsplash.com/photo-1620799140408-edc6dcb6d633?w=600&q=80",
+    gallery: [
+      "https://images.unsplash.com/photo-1620799140408-edc6dcb6d633?w=600&q=80",
+    ],
+    title: "Genuine Kashmiri Pashmina Shawl — Hand-Embroidered Sozni Work (GI Certified, with Pashmina Lab Report)",
+    short_description: "100+ hours of hand-needle embroidery on real Changthangi pashmina wool.",
+    description: "A masterwork of Kashmiri craft. Each shawl is individually tested for fiber diameter (below 16 microns) to confirm genuine Pashmina grade. Embroidered by a single artisan family over multiple days.",
+    specifications: [
+      "Fiber: Grade A Changthangi Pashmina (< 16 microns)",
+      "Size: 200 × 100 cm",
+      "Weight: 290 grams",
+      "Embroidery: 100% Hand-Needle Sozni",
+      "Origin: Srinagar, J&K (GI Tag #24)"
+    ],
+    features: [
+      "Pashmina test lab report included",
+      "GI Certificate of Authenticity",
+      "Heirloom-grade — lasts generations"
+    ]
   }
+];
+
+// Category metadata for UI rendering
+export const CRAFT_CATEGORIES = [
+  { id: 'all',        label: 'All Crafts',           emoji: '🛍️',  color: 'bg-gray-100 text-gray-800' },
+  { id: 'handloom',   label: 'Handloom & Textiles',  emoji: '🧣',  color: 'bg-red-50 text-red-800',     filter: 'Handloom & Textiles' },
+  { id: 'pottery',    label: 'Pottery & Ceramics',   emoji: '🏺',  color: 'bg-blue-50 text-blue-800',   filter: 'Pottery & Ceramics' },
+  { id: 'woodcraft',  label: 'Woodcraft & Toys',     emoji: '🪵',  color: 'bg-amber-50 text-amber-800', filter: 'Woodcraft & Carving' },
+  { id: 'metalcraft', label: 'Metal & Bell Metal',   emoji: '🔱',  color: 'bg-yellow-50 text-yellow-800', filter: 'Metal Craft & Bell Metal' },
+  { id: 'bamboo',     label: 'Cane & Bamboo',        emoji: '🧺',  color: 'bg-green-50 text-green-800', filter: 'Cane & Bamboo' },
+  { id: 'paintings',  label: 'Tribal Paintings',     emoji: '🎨',  color: 'bg-purple-50 text-purple-800', filter: 'Traditional Paintings' },
 ];

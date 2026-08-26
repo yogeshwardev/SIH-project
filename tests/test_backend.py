@@ -1,5 +1,6 @@
 import os
 import sys
+import io
 import pytest
 from pathlib import Path
 from fastapi.testclient import TestClient
@@ -50,6 +51,32 @@ def test_health_endpoint():
     response = client.get("/health")
     assert response.status_code == 200
     assert response.json()["status"] == "healthy"
+
+def test_image_enhancement_endpoint_returns_renderable_urls():
+    from PIL import Image, ImageDraw
+
+    image = Image.new("RGB", (240, 180), "white")
+    ImageDraw.Draw(image).ellipse((50, 20, 190, 170), fill=(32, 110, 170))
+    payload = io.BytesIO()
+    image.save(payload, format="JPEG")
+    payload.seek(0)
+
+    response = client.post(
+        "/api/products/image-enhance",
+        files={"file": ("blue-pottery.jpg", payload, "image/jpeg")},
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert data["original_image_url"].startswith("/uploads/")
+    assert data["enhanced_image_url"].endswith("_studio_enhanced.png")
+    assert client.get(data["original_image_url"]).status_code == 200
+    assert client.get(data["enhanced_image_url"]).status_code == 200
+
+def test_speech_capabilities_are_explicit():
+    response = client.get("/api/speech/capabilities")
+    assert response.status_code == 200
+    assert response.json()["browser_dictation_fallback"] is True
+    assert "cloud_transcription" in response.json()
 
 def test_nlp_product_information_extraction():
     transcript = "यह शुद्ध बनारसी कतान सिल्क साड़ी है जिसे हथकरघे पर 6 दिन में बुना गया है। इसकी लंबाई 6.5 मीटर है।"

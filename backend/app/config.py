@@ -22,6 +22,9 @@ class Settings(BaseSettings):
     AI_PROVIDER: str = "local"  # "local", "gemini", "openai", "groq"
     GEMINI_API_KEY: str = ""
     OPENAI_API_KEY: str = ""
+    OPENAI_TRANSCRIPTION_MODEL: str = "gpt-4o-mini-transcribe"
+    OPENAI_TTS_MODEL: str = "gpt-4o-mini-tts"
+    OPENAI_TTS_VOICE: str = "coral"
     GROQ_API_KEY: str = ""
     
     # Image enhancement config

@@ -1,5 +1,6 @@
 import os
 import shutil
+import uuid
 from pathlib import Path
 from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form, Query, status
@@ -46,30 +47,44 @@ async def enhance_image(file: UploadFile = File(...)):
             detail=f"Invalid image format '{ext}'. Allowed: {list(ALLOWED_IMAGE_EXTENSIONS)}"
         )
 
-    # Save uploaded file
-    safe_name = sanitize_filename(file.filename)
+    content_type = (file.content_type or "").lower()
+    if content_type and not content_type.startswith("image/"):
+        raise HTTPException(status_code=400, detail="Uploaded file is not an image.")
+
+    # Save under a unique name so separate artisans never overwrite each other.
+    safe_name = f"{uuid.uuid4().hex[:10]}_{sanitize_filename(file.filename)}"
     input_filepath = settings.UPLOAD_DIR / safe_name
-    
+
+    max_bytes = settings.MAX_IMAGE_SIZE_MB * 1024 * 1024
+    size = 0
     with open(input_filepath, "wb") as buffer:
-        shutil.copyfileobj(file.file, buffer)
+        while chunk := await file.read(1024 * 1024):
+            size += len(chunk)
+            if size > max_bytes:
+                buffer.close()
+                input_filepath.unlink(missing_ok=True)
+                raise HTTPException(status_code=413, detail=f"Image exceeds {settings.MAX_IMAGE_SIZE_MB}MB limit.")
+            buffer.write(chunk)
 
     try:
         # Run real Computer Vision pipeline
         result = image_service.enhance_product_image(str(input_filepath))
         
-        # Build relative URLs for frontend
-        orig_url = f"/uploads/{Path(result['original_image_path']).name}"
-        enh_url = f"/uploads/{Path(result['enhanced_image_path']).name}"
-
         return ImageEnhanceResponse(
-            original_image_url=orig_url,
-            enhanced_image_url=enh_url,
+            original_image_url=result["original_image_url"],
+            enhanced_image_url=result["enhanced_image_url"],
             detected_objects=result["detected_objects"],
             dominant_colors=result["dominant_colors"],
             processing_time_seconds=result["processing_time_seconds"],
             confidence_score=result["confidence_score"]
         )
+    except HTTPException:
+        raise
+    except ValueError as e:
+        input_filepath.unlink(missing_ok=True)
+        raise HTTPException(status_code=400, detail=f"Image enhancement failed: {str(e)}")
     except Exception as e:
+        input_filepath.unlink(missing_ok=True)
         raise HTTPException(status_code=500, detail=f"Image enhancement failed: {str(e)}")
 
 @router.post("/extract-information", response_model=ProductAttributes)

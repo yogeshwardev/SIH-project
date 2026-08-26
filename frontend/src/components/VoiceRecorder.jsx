@@ -19,10 +19,13 @@ export default function VoiceRecorder({ onAudioRecorded, isProcessing, samplePre
   const [selectedLang, setSelectedLang] = useState('hi-IN');
   const [recordingTime, setRecordingTime] = useState(0);
   const [isPlayingVoiceover, setIsPlayingVoiceover] = useState(false);
+  const [recorderError, setRecorderError] = useState('');
   
   const timerRef = useRef(null);
   const mediaRecorderRef = useRef(null);
   const audioChunksRef = useRef([]);
+  const transcriptRef = useRef('');
+  const streamRef = useRef(null);
 
   const languageOptions = [
     { code: 'hi-IN', label: 'हिन्दी (Hindi)' },
@@ -38,13 +41,15 @@ export default function VoiceRecorder({ onAudioRecorded, isProcessing, samplePre
       if (timerRef.current) clearInterval(timerRef.current);
       voiceAssistant.stopListening();
       voiceAssistant.stopSpeaking();
+      streamRef.current?.getTracks().forEach((track) => track.stop());
     };
   }, []);
 
   // Start Voice Dictation & Audio Capture
   const handleStartRecording = async () => {
     setLiveTranscript('');
-    setIsRecording(true);
+    transcriptRef.current = '';
+    setRecorderError('');
     setRecordingTime(0);
 
     // 1. Start live Web Speech API stream
@@ -52,12 +57,15 @@ export default function VoiceRecorder({ onAudioRecorded, isProcessing, samplePre
       selectedLang,
       ({ combined }) => {
         if (combined) {
+          transcriptRef.current = combined;
           setLiveTranscript(combined);
         }
       },
-      ({ status }) => {
-        if (status === 'error' || status === 'unsupported') {
-          console.log('Live Web Speech API fallback active');
+      ({ status, error, fatal }) => {
+        if (status === 'unsupported') {
+          setRecorderError('Live captions are unavailable in this browser; the recording will be transcribed after you stop.');
+        } else if (status === 'error' && fatal) {
+          setRecorderError(`Live captions stopped (${error}). The recorded audio can still be transcribed.`);
         }
       }
     );
@@ -65,8 +73,11 @@ export default function VoiceRecorder({ onAudioRecorded, isProcessing, samplePre
     // 2. Start hardware MediaRecorder for raw audio payload
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      streamRef.current = stream;
       audioChunksRef.current = [];
-      const mediaRecorder = new MediaRecorder(stream);
+      const preferredType = ['audio/webm;codecs=opus', 'audio/webm', 'audio/mp4']
+        .find((type) => MediaRecorder.isTypeSupported?.(type));
+      const mediaRecorder = preferredType ? new MediaRecorder(stream, { mimeType: preferredType }) : new MediaRecorder(stream);
       mediaRecorderRef.current = mediaRecorder;
 
       mediaRecorder.ondataavailable = (e) => {
@@ -74,16 +85,25 @@ export default function VoiceRecorder({ onAudioRecorded, isProcessing, samplePre
       };
 
       mediaRecorder.onstop = () => {
-        const blob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
-        const finalLangName = selectedLang.startsWith('hi') ? 'Hindi' : 'English';
-        const finalSpokenText = liveTranscript.trim() || 'यह शुद्ध हस्तनिर्मित शिल्प उत्पाद है जिसे पारंपरिक विधि से बनाया गया है।';
-        onAudioRecorded(blob, 'artisan_speech.webm', finalSpokenText, finalLangName);
+        const mimeType = mediaRecorder.mimeType || preferredType || 'audio/webm';
+        const blob = new Blob(audioChunksRef.current, { type: mimeType });
+        const langName = languageOptions.find((item) => item.code === selectedLang)?.label.split(' (')[0] || 'Hindi';
+        const extension = mimeType.includes('mp4') ? 'm4a' : 'webm';
+        window.setTimeout(() => {
+          const finalSpokenText = transcriptRef.current.trim();
+          onAudioRecorded(blob, `artisan_speech.${extension}`, finalSpokenText || null, langName);
+        }, 250);
         stream.getTracks().forEach((track) => track.stop());
+        streamRef.current = null;
       };
 
       mediaRecorder.start();
+      setIsRecording(true);
     } catch (err) {
-      console.warn('Microphone stream error, live speech API will provide transcription:', err);
+      voiceAssistant.stopListening();
+      setIsRecording(false);
+      setRecorderError('Microphone access failed. Allow microphone permission in the browser and try again.');
+      return;
     }
 
     timerRef.current = setInterval(() => {
@@ -99,9 +119,13 @@ export default function VoiceRecorder({ onAudioRecorded, isProcessing, samplePre
     if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
       mediaRecorderRef.current.stop();
     } else {
-      const finalLangName = selectedLang.startsWith('hi') ? 'Hindi' : 'English';
-      const fakeBlob = new Blob([liveTranscript], { type: 'audio/wav' });
-      onAudioRecorded(fakeBlob, 'voice.wav', liveTranscript, finalLangName);
+      const finalText = transcriptRef.current.trim();
+      if (finalText) {
+        const finalLangName = selectedLang.startsWith('hi') ? 'Hindi' : 'English';
+        onAudioRecorded(new Blob(), 'voice.txt', finalText, finalLangName);
+      } else {
+        setRecorderError('No recording was captured. Please allow microphone access and try again.');
+      }
     }
   };
 
@@ -119,6 +143,7 @@ export default function VoiceRecorder({ onAudioRecorded, isProcessing, samplePre
 
   const handleSelectSample = (sample) => {
     setLiveTranscript(sample.text);
+    transcriptRef.current = sample.text;
     const fakeBlob = new Blob([sample.text], { type: 'audio/wav' });
     onAudioRecorded(fakeBlob, `${sample.id}.wav`, sample.text, sample.language);
   };
@@ -239,6 +264,12 @@ export default function VoiceRecorder({ onAudioRecorded, isProcessing, samplePre
         )}
 
       </div>
+
+      {recorderError && (
+        <div role="alert" className="mb-4 rounded-xl border border-amber-300 bg-amber-50 px-3 py-2 text-xs font-medium text-amber-900">
+          {recorderError}
+        </div>
+      )}
 
       {/* Preset Prompts for 100% Demo Reliability */}
       {samplePresets.length > 0 && (

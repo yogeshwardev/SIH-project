@@ -18,6 +18,10 @@ class SpeechTranscribeResponse(BaseModel):
     confidence: float
     audio_duration_seconds: Optional[float] = 0.0
 
+class SpeechSynthesizeRequest(BaseModel):
+    text: str = Field(..., min_length=1, max_length=4096)
+    language: Optional[str] = "hi-IN"
+
 # --- Product Intelligence Extraction Schemas ---
 class ProductExtractRequest(BaseModel):
     transcript: str

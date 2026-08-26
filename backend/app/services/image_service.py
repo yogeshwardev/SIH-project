@@ -3,7 +3,7 @@ import uuid
 import time
 import cv2
 import numpy as np
-from PIL import Image, ImageEnhance, ImageFilter
+from PIL import Image, ImageEnhance, ImageFilter, ImageOps
 from typing import Tuple, List, Dict, Any
 
 from backend.app.config import settings
@@ -25,10 +25,18 @@ class ComputerVisionStudioService:
     def enhance_product_image(self, input_image_path: str) -> Dict[str, Any]:
         start_time = time.time()
 
-        # Load image via OpenCV
-        img_bgr = cv2.imread(input_image_path)
-        if img_bgr is None:
-            raise ValueError(f"Unable to read input image from: {input_image_path}")
+        # Pillow validates the payload and applies phone-camera EXIF orientation.
+        try:
+            with Image.open(input_image_path) as source:
+                source.verify()
+            with Image.open(input_image_path) as source:
+                source = ImageOps.exif_transpose(source).convert("RGB")
+                max_dimension = 2400
+                if max(source.size) > max_dimension:
+                    source.thumbnail((max_dimension, max_dimension), Image.Resampling.LANCZOS)
+                img_bgr = cv2.cvtColor(np.asarray(source), cv2.COLOR_RGB2BGR)
+        except Exception as exc:
+            raise ValueError("The uploaded file is not a valid readable image.") from exc
 
         orig_h, orig_w = img_bgr.shape[:2]
 
@@ -52,9 +60,9 @@ class ComputerVisionStudioService:
         fgd_model = np.zeros((1, 65), np.float64)
 
         # Elliptical / Rectangular focus bounding box with 6% margin
-        margin_x = int(orig_w * 0.05)
-        margin_y = int(orig_h * 0.05)
-        rect = (margin_x, margin_y, orig_w - (2 * margin_x), orig_h - (2 * margin_y))
+        margin_x = max(1, int(orig_w * 0.05))
+        margin_y = max(1, int(orig_h * 0.05))
+        rect = (margin_x, margin_y, max(1, orig_w - (2 * margin_x)), max(1, orig_h - (2 * margin_y)))
 
         try:
             cv2.grabCut(enhanced_bgr, mask, rect, bgd_model, fgd_model, 6, cv2.GC_INIT_WITH_RECT)

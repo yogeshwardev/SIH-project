@@ -17,9 +17,9 @@ export const api = {
   },
 
   // 2. Speech-to-Text Transcription
-  async transcribeAudio(file, languageHint = null) {
+  async transcribeAudio(file, languageHint = null, filename = 'artisan_speech.webm') {
     const formData = new FormData();
-    formData.append('file', file);
+    formData.append('file', file, filename);
     if (languageHint) {
       formData.append('language_hint', languageHint);
     }

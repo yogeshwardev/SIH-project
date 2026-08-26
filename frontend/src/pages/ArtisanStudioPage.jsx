@@ -154,7 +154,7 @@ export default function ArtisanStudioPage({ onProductCreated, activePreset, onNa
       let lang = overrideLang || 'Hindi';
 
       if (!speechText) {
-        const res = await api.transcribeAudio(blob, 'Hindi');
+        const res = await api.transcribeAudio(blob, lang, filename);
         speechText = res.transcript;
         lang = res.detected_language;
       }

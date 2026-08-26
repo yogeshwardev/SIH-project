@@ -1,0 +1,10 @@
+category_id,category_name,description,typical_margin_min,typical_margin_max
+textiles,Handloom & Textiles,Handwoven sarees shawls fabrics and traditional apparel,0.25,0.45
+pottery,Pottery & Ceramics,Clay terracotta blue pottery and ceramic homeware,0.30,0.55
+woodcraft,Woodcraft & Carving,Hand-carved wooden figurines utility items and toys,0.35,0.60
+metalcraft,Metal Craft & Bell Metal,Dhokra brass bell metal and wrought iron crafts,0.30,0.50
+cane_bamboo,Cane & Bamboo,Natural fiber baskets furniture mats and accessories,0.35,0.55
+paintings,Traditional Paintings,Madhubani Warli Pattachitra Pichwai and folk art,0.40,0.70
+leather,Traditional Leathercraft,Handcrafted Kolhapuri footwear mojari and bags,0.25,0.45
+jewellery,Handmade Jewellery,Terracotta beaded filigree and tribal ornaments,0.35,0.65
+stonecraft,Stone & Marble Inlay,Hand-carved soapstone marble inlay and stone art,0.30,0.55

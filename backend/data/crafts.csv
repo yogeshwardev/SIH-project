@@ -1,0 +1,21 @@
+craft_id,craft_name,category_id,origin_state,typical_material,craft_complexity,hourly_labor_rate,gi_status
+banarasi_silk,Banarasi Silk Weaving,textiles,Uttar Pradesh,Mulberry Silk & Zari,High,160,GI Certified
+chanderi_handloom,Chanderi Weaving,textiles,Madhya Pradesh,Silk Cotton,Medium,130,GI Certified
+madhubani_art,Madhubani Painting,paintings,Bihar,Handmade Paper & Natural Pigments,High,140,GI Certified
+dhokra_metal,Dhokra Bell Metal Casting,metalcraft,Odisha / Chhattisgarh,Brass & Bronze (Lost-Wax),High,150,GI Certified
+blue_pottery,Jaipur Blue Pottery,pottery,Rajasthan,Quartz Powder & Glass,Medium,120,GI Certified
+terracotta_clay,Gorakhpur Terracotta,pottery,Uttar Pradesh,Natural Clay,Medium,110,GI Certified
+channapatna_toys,Channapatna Wooden Toys,woodcraft,Karnataka,Wrightia Tinctoria Ivory Wood & Lacquer,Medium,125,GI Certified
+warli_painting,Warli Tribal Art,paintings,Maharashtra,Canvas / Mud Base & Rice Paste,Medium,115,GI Certified
+bamboo_weaving,Assam Bamboo Craft,cane_bamboo,Assam,Natural Bamboo & Cane,Medium,110,Recognized Craft
+pashmina_craft,Kashmir Pashmina Weaving,textiles,Jammu & Kashmir,Cashmere Wool,High,200,GI Certified
+bidriware,Bidriware Inlay Craft,metalcraft,Karnataka,Zinc & Copper with Pure Silver Inlay,High,180,GI Certified
+kolhapuri_chappal,Kolhapuri Leathercraft,leather,Maharashtra,Vegetable Tanned Leather,Medium,130,GI Certified
+pattachitra,Raghurajpur Pattachitra,paintings,Odisha,Tussar Silk / Palm Leaf,High,160,GI Certified
+phulkari_embroidery,Punjab Phulkari Embroidery,textiles,Punjab,Khaddar Cotton & Silk Thread,High,135,GI Certified
+filigree_silver,Tarakasi Silver Filigree,jewellery,Odisha,Pure Silver Wire,High,220,GI Certified
+sanganeri_print,Sanganeri Hand Block Print,textiles,Rajasthan,Pure Cotton & Natural Dyes,Medium,120,GI Certified
+kutch_embroidery,Kutch Mirror Work Embroidery,textiles,Gujarat,Cotton Fabric & Glass Mirrors,High,145,GI Certified
+saharanpur_wood,Saharanpur Wood Carving,woodcraft,Uttar Pradesh,Sheesham Wood,High,140,GI Certified
+tanjore_painting,Thanjavur Gold Leaf Painting,paintings,Tamil Nadu,Teak Wood & 22k Gold Foil,High,210,GI Certified
+bell_metal_bengal,Bankura Dokra & Terracotta,metalcraft,West Bengal,Clay & Brass Alloy,High,135,GI Certified

@@ -52,14 +52,25 @@ def test_health_endpoint():
     assert response.status_code == 200
     assert response.json()["status"] == "healthy"
 
-def test_image_enhancement_endpoint_returns_renderable_urls():
+def test_image_enhancement_endpoint_returns_renderable_urls(monkeypatch):
     from PIL import Image, ImageDraw
+    import numpy as np
 
     image = Image.new("RGB", (240, 180), "white")
     ImageDraw.Draw(image).ellipse((50, 20, 190, 170), fill=(32, 110, 170))
     payload = io.BytesIO()
     image.save(payload, format="JPEG")
     payload.seek(0)
+
+    def test_segment(source):
+        width, height = source.size
+        alpha = np.zeros((height, width), dtype=np.uint8)
+        cv_center = (width // 2, height // 2)
+        import cv2
+        cv2.ellipse(alpha, cv_center, (70, 70), 0, 0, 360, 255, -1)
+        return alpha, "test-segmentation", 0.99
+
+    monkeypatch.setattr(image_service, "_segment_product", test_segment)
 
     response = client.post(
         "/api/products/image-enhance",
@@ -69,6 +80,7 @@ def test_image_enhancement_endpoint_returns_renderable_urls():
     data = response.json()
     assert data["original_image_url"].startswith("/uploads/")
     assert data["enhanced_image_url"].endswith("_studio_enhanced.png")
+    assert data["segmentation_engine"] == "test-segmentation"
     assert client.get(data["original_image_url"]).status_code == 200
     assert client.get(data["enhanced_image_url"]).status_code == 200
 

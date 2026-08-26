@@ -27,15 +27,20 @@ export default function App() {
   const [pendingAdminCount, setPendingAdminCount] = useState(0);
 
   useEffect(() => {
+    let cancelled = false;
+    // One-time fetch on mount
     api.getPendingProducts?.()
-      .then(data => setPendingAdminCount(data?.length || 0))
+      .then(data => { if (!cancelled) setPendingAdminCount(data?.length || 0); })
       .catch(() => {});
+    // Poll every 60 seconds (not 10) to avoid hammering the backend
     const interval = setInterval(() => {
-      api.getPendingProducts?.()
-        .then(data => setPendingAdminCount(data?.length || 0))
-        .catch(() => {});
-    }, 10000);
-    return () => clearInterval(interval);
+      if (!cancelled) {
+        api.getPendingProducts?.()
+          .then(data => { if (!cancelled) setPendingAdminCount(data?.length || 0); })
+          .catch(() => {});
+      }
+    }, 60000);
+    return () => { cancelled = true; clearInterval(interval); };
   }, []);
 
   // Cart operations

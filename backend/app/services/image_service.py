@@ -1,167 +1,243 @@
 import os
-import uuid
+import threading
 import time
+import uuid
+from typing import Any, Dict, List, Tuple
+
 import cv2
 import numpy as np
 from PIL import Image, ImageEnhance, ImageFilter, ImageOps
-from typing import Tuple, List, Dict, Any
 
 from backend.app.config import settings
 
+
 class ComputerVisionStudioService:
-    """
-    Commercial-Grade Studio Image Processing Engine:
-    1. Multi-Stage Contrast & Color Balancing (CLAHE in LAB color space).
-    2. Intelligent Foreground Object Segmentation & Background Removal.
-    3. Realistic Multi-Layer Grounding Drop Shadow Synthesizer.
-    4. Studio Lighting Normalization & Anti-Aliased Edge Feathering.
-    5. High-Resolution Output Generation for E-Commerce Catalogs.
-    """
+    """High-resolution product cutout and catalog-studio compositor."""
 
     def __init__(self):
         self.upload_dir = settings.UPLOAD_DIR
+        self._segmentation_session = None
+        self._session_lock = threading.Lock()
         os.makedirs(self.upload_dir, exist_ok=True)
 
     def enhance_product_image(self, input_image_path: str) -> Dict[str, Any]:
         start_time = time.time()
+        source = self._load_and_normalize(input_image_path)
+        source_rgb = np.asarray(source)
+        alpha, engine, mask_quality = self._segment_product(source)
+        enhanced_rgb = self._enhance_product_color(source_rgb, alpha)
+        foreground = np.dstack((enhanced_rgb, alpha)).astype(np.uint8)
+        studio_canvas = self._composite_studio_scene(foreground)
 
-        # Pillow validates the payload and applies phone-camera EXIF orientation.
-        try:
-            with Image.open(input_image_path) as source:
-                source.verify()
-            with Image.open(input_image_path) as source:
-                source = ImageOps.exif_transpose(source).convert("RGB")
-                max_dimension = 2400
-                if max(source.size) > max_dimension:
-                    source.thumbnail((max_dimension, max_dimension), Image.Resampling.LANCZOS)
-                img_bgr = cv2.cvtColor(np.asarray(source), cv2.COLOR_RGB2BGR)
-        except Exception as exc:
-            raise ValueError("The uploaded file is not a valid readable image.") from exc
+        output_filename = f"{uuid.uuid4().hex[:8]}_studio_enhanced.png"
+        output_filepath = self.upload_dir / output_filename
+        studio_canvas.save(output_filepath, format="PNG", optimize=True)
 
-        orig_h, orig_w = img_bgr.shape[:2]
-
-        # 1. CLAHE Contrast & Lightness Enhancement in LAB Color Space
-        lab = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2LAB)
-        l_channel, a_channel, b_channel = cv2.split(lab)
-
-        clahe = cv2.createCLAHE(clipLimit=2.2, tileGridSize=(8, 8))
-        cl = clahe.apply(l_channel)
-
-        merged_lab = cv2.merge((cl, a_channel, b_channel))
-        enhanced_bgr = cv2.cvtColor(merged_lab, cv2.COLOR_LAB2BGR)
-
-        # 2. Extract Dominant Colors & Object Hints
-        dominant_colors = self._extract_dominant_palette(enhanced_bgr)
-        detected_crafts = self._classify_visual_features(enhanced_bgr)
-
-        # 3. High-Quality Foreground Segmentation (GrabCut with Elliptical Prior)
-        mask = np.zeros(enhanced_bgr.shape[:2], np.uint8)
-        bgd_model = np.zeros((1, 65), np.float64)
-        fgd_model = np.zeros((1, 65), np.float64)
-
-        # Elliptical / Rectangular focus bounding box with 6% margin
-        margin_x = max(1, int(orig_w * 0.05))
-        margin_y = max(1, int(orig_h * 0.05))
-        rect = (margin_x, margin_y, max(1, orig_w - (2 * margin_x)), max(1, orig_h - (2 * margin_y)))
-
-        try:
-            cv2.grabCut(enhanced_bgr, mask, rect, bgd_model, fgd_model, 6, cv2.GC_INIT_WITH_RECT)
-            seg_mask = np.where((mask == 2) | (mask == 0), 0, 1).astype('uint8')
-        except Exception:
-            # Safe Fallback: Threshold mask
-            gray = cv2.cvtColor(enhanced_bgr, cv2.COLOR_BGR2GRAY)
-            _, seg_mask = cv2.threshold(gray, 240, 1, cv2.THRESH_BINARY_INV)
-
-        # Anti-aliasing / Feathering on mask edges
-        feathered_mask = cv2.GaussianBlur(seg_mask * 255, (7, 7), 0).astype(np.float32) / 255.0
-
-        # Convert to RGBA
-        enhanced_rgb = cv2.cvtColor(enhanced_bgr, cv2.COLOR_BGR2RGB)
-        foreground_rgba = np.zeros((orig_h, orig_w, 4), dtype=np.uint8)
-        foreground_rgba[:, :, :3] = enhanced_rgb
-        foreground_rgba[:, :, 3] = (feathered_mask * 255).astype(np.uint8)
-
-        # 4. Generate Studio Canvas with Multi-Layer Drop Shadow
-        studio_canvas = self._composite_studio_scene(foreground_rgba, orig_w, orig_h)
-
-        # 5. Save Output
-        filename_base = str(uuid.uuid4())[:8]
-        output_filename = f"{filename_base}_studio_enhanced.png"
-        output_filepath = os.path.join(self.upload_dir, output_filename)
-
-        studio_canvas.save(output_filepath, format="PNG", optimize=True, quality=95)
-        processing_time = round(time.time() - start_time, 2)
-
+        enhanced_bgr = cv2.cvtColor(enhanced_rgb, cv2.COLOR_RGB2BGR)
         return {
             "original_image_url": f"/uploads/{os.path.basename(input_image_path)}",
             "enhanced_image_url": f"/uploads/{output_filename}",
-            "detected_objects": detected_crafts,
-            "dominant_colors": dominant_colors,
-            "processing_time_seconds": processing_time,
-            "confidence_score": 0.985
+            "detected_objects": self._classify_visual_features(enhanced_bgr),
+            "dominant_colors": self._extract_dominant_palette(enhanced_bgr, alpha),
+            "processing_time_seconds": round(time.time() - start_time, 2),
+            "confidence_score": round(0.91 + (mask_quality * 0.08), 3),
+            "segmentation_engine": engine,
+            "mask_quality_score": round(mask_quality, 3),
         }
 
-    def _composite_studio_scene(self, fg_rgba_array: np.ndarray, orig_w: int, orig_h: int) -> Image.Image:
-        """
-        Creates a high-end luxury studio backdrop with soft ambient ground shadows.
-        """
-        fg_pil = Image.fromarray(fg_rgba_array, mode='RGBA')
+    def warmup(self) -> None:
+        """Load model weights outside the first artisan request."""
+        try:
+            from rembg import new_session
 
-        # Standard e-commerce square/portrait canvas (1200 x 1200 or matched aspect)
-        canvas_w = max(1000, orig_w)
-        canvas_h = max(1000, orig_h)
+            with self._session_lock:
+                if self._segmentation_session is None:
+                    self._segmentation_session = new_session(settings.IMAGE_SEGMENTATION_MODEL)
+        except Exception:
+            # A later request can retry; GrabCut remains available meanwhile.
+            return
 
-        # Soft luxury gradient canvas (#FFFFFF to #F8F9FA)
-        canvas = Image.new("RGBA", (canvas_w, canvas_h), (250, 250, 252, 255))
+    @staticmethod
+    def _load_and_normalize(input_image_path: str) -> Image.Image:
+        try:
+            with Image.open(input_image_path) as candidate:
+                candidate.verify()
+            with Image.open(input_image_path) as candidate:
+                image = ImageOps.exif_transpose(candidate).convert("RGB")
+                if max(image.size) > 2400:
+                    image.thumbnail((2400, 2400), Image.Resampling.LANCZOS)
+                return image.copy()
+        except Exception as exc:
+            raise ValueError("The uploaded file is not a valid readable image.") from exc
 
-        # Position product centrally with slight vertical balance
-        pos_x = (canvas_w - orig_w) // 2
-        pos_y = (canvas_h - orig_h) // 2
+    @staticmethod
+    def _enhance_product_color(source_rgb: np.ndarray, alpha: np.ndarray) -> np.ndarray:
+        """Improve lighting without changing the product's authentic colour."""
+        bgr = cv2.cvtColor(source_rgb, cv2.COLOR_RGB2BGR)
+        lab = cv2.cvtColor(bgr, cv2.COLOR_BGR2LAB)
+        lightness, channel_a, channel_b = cv2.split(lab)
+        clip_limit = 1.45 if float(np.std(lightness)) > 55 else 1.9
+        lightness = cv2.createCLAHE(clipLimit=clip_limit, tileGridSize=(8, 8)).apply(lightness)
+        balanced = cv2.cvtColor(cv2.merge((lightness, channel_a, channel_b)), cv2.COLOR_LAB2BGR)
+        balanced = cv2.bilateralFilter(balanced, 5, 22, 22)
+        hsv = cv2.cvtColor(balanced, cv2.COLOR_BGR2HSV).astype(np.float32)
+        hsv[:, :, 1] = np.clip(hsv[:, :, 1] * 1.04, 0, 255)
+        balanced = cv2.cvtColor(hsv.astype(np.uint8), cv2.COLOR_HSV2BGR)
+        result = cv2.cvtColor(balanced, cv2.COLOR_BGR2RGB).astype(np.float32)
+        foreground = alpha >= 128
+        if np.any(foreground):
+            luma = (0.2126 * result[:, :, 0] + 0.7152 * result[:, :, 1] + 0.0722 * result[:, :, 2])
+            median_luma = float(np.median(luma[foreground]))
+            exposure = float(np.clip(145.0 / max(median_luma, 1.0), 0.92, 1.28))
+            result[foreground] = np.clip(result[foreground] * exposure, 0, 255)
+        return result.astype(np.uint8)
 
-        # Create soft grounding contact shadow
-        alpha_channel = fg_pil.split()[3]
-        shadow = Image.new("RGBA", fg_pil.size, (15, 23, 42, 0))
-        shadow_alpha = alpha_channel.point(lambda p: int(p * 0.28) if p > 0 else 0)
-        shadow.putalpha(shadow_alpha)
-        
-        # Blur shadow and offset downward
-        blurred_shadow = shadow.filter(ImageFilter.GaussianBlur(radius=16))
-        canvas.paste(blurred_shadow, (pos_x, pos_y + 18), blurred_shadow)
+    def _segment_product(self, source: Image.Image) -> Tuple[np.ndarray, str, float]:
+        try:
+            from rembg import new_session, remove
 
-        # Paste foreground product
-        canvas.paste(fg_pil, (pos_x, pos_y), fg_pil)
+            with self._session_lock:
+                if self._segmentation_session is None:
+                    self._segmentation_session = new_session(settings.IMAGE_SEGMENTATION_MODEL)
+            mask_image = remove(
+                source,
+                session=self._segmentation_session,
+                only_mask=True,
+                post_process_mask=False,
+            )
+            raw_mask = np.asarray(mask_image.convert("L"), dtype=np.uint8)
+            refined = self._refine_neural_mask(raw_mask)
+            quality, valid = self._score_mask(refined)
+            if valid:
+                return refined, settings.IMAGE_SEGMENTATION_MODEL, quality
+        except Exception:
+            # The app remains useful offline or before model weights finish downloading.
+            pass
 
-        # Final vibrancy & sharpness touch
-        enhancer = ImageEnhance.Sharpness(canvas.convert("RGB"))
-        final_img = enhancer.enhance(1.1)
+        fallback = self._grabcut_fallback(np.asarray(source))
+        quality, _ = self._score_mask(fallback)
+        return fallback, "grabcut-fallback", min(quality, 0.72)
 
-        return final_img
+    @staticmethod
+    def _refine_neural_mask(raw_mask: np.ndarray) -> np.ndarray:
+        """Remove stray text/dust while retaining the model's soft high-resolution edge."""
+        raw_mask = cv2.bilateralFilter(raw_mask, 5, 18, 18)
+        binary = (raw_mask >= 96).astype(np.uint8)
+        coordinates = np.column_stack(np.nonzero(binary))
+        slender = False
+        if len(coordinates) > 20:
+            eigenvalues = np.linalg.eigvalsh(np.cov(coordinates, rowvar=False))
+            slender = float(np.sqrt(eigenvalues[-1] / max(eigenvalues[0], 1e-6))) > 3.6
+        kernel_size = 9 if slender else 3
+        kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (kernel_size, kernel_size))
+        binary = cv2.morphologyEx(binary, cv2.MORPH_OPEN, kernel)
+        binary = cv2.morphologyEx(binary, cv2.MORPH_CLOSE, kernel)
 
-    def _extract_dominant_palette(self, img_bgr: np.ndarray) -> List[str]:
-        small = cv2.resize(img_bgr, (64, 64), interpolation=cv2.INTER_AREA)
-        pixels = small.reshape(-1, 3)
-        
-        # K-Means for dominant color palette
-        criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 10, 1.0)
-        _, _, centers = cv2.kmeans(pixels.astype(np.float32), 3, None, criteria, 10, cv2.KMEANS_RANDOM_CENTERS)
-        
-        hex_colors = []
-        for bgr in centers:
-            b, g, r = [int(c) for c in bgr]
-            hex_colors.append(f"#{r:02X}{g:02X}{b:02X}")
-        return hex_colors
+        count, labels, stats, _ = cv2.connectedComponentsWithStats(binary, 8)
+        if count <= 1:
+            return raw_mask
+        areas = stats[1:, cv2.CC_STAT_AREA]
+        largest = int(areas.max())
+        minimum = max(36, int(largest * 0.018))
+        keep = np.zeros_like(binary)
+        for label, area in enumerate(areas, start=1):
+            if int(area) >= minimum:
+                keep[labels == label] = 1
 
-    def _classify_visual_features(self, img_bgr: np.ndarray) -> List[str]:
-        # Intelligent visual feature heuristic based on color distribution & edge density
+        support_size = 3 if slender else 5
+        support = cv2.dilate(keep, np.ones((support_size, support_size), np.uint8), iterations=1)
+        refined = np.where(support > 0, raw_mask, 0).astype(np.uint8)
+        refined[keep > 0] = np.maximum(refined[keep > 0], 210)
+        refined[refined < 18] = 0
+        return cv2.GaussianBlur(refined, (3, 3), 0)
+
+    @staticmethod
+    def _grabcut_fallback(source_rgb: np.ndarray) -> np.ndarray:
+        bgr = cv2.cvtColor(source_rgb, cv2.COLOR_RGB2BGR)
+        height, width = bgr.shape[:2]
+        mask = np.zeros((height, width), np.uint8)
+        bg_model = np.zeros((1, 65), np.float64)
+        fg_model = np.zeros((1, 65), np.float64)
+        margin_x, margin_y = max(1, width // 20), max(1, height // 20)
+        rect = (margin_x, margin_y, max(1, width - 2 * margin_x), max(1, height - 2 * margin_y))
+        try:
+            cv2.grabCut(bgr, mask, rect, bg_model, fg_model, 7, cv2.GC_INIT_WITH_RECT)
+            binary = np.where((mask == cv2.GC_FGD) | (mask == cv2.GC_PR_FGD), 255, 0).astype(np.uint8)
+        except cv2.error:
+            gray = cv2.cvtColor(bgr, cv2.COLOR_BGR2GRAY)
+            _, binary = cv2.threshold(gray, 0, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)
+        return cv2.GaussianBlur(binary, (5, 5), 0)
+
+    @staticmethod
+    def _score_mask(alpha: np.ndarray) -> Tuple[float, bool]:
+        foreground = alpha >= 96
+        area = int(foreground.sum())
+        total = foreground.size
+        occupancy = area / max(total, 1)
+        border = np.concatenate((foreground[0], foreground[-1], foreground[:, 0], foreground[:, -1]))
+        border_ratio = float(border.mean())
+        valid = 0.0025 <= occupancy <= 0.92 and border_ratio < 0.62
+        occupancy_score = min(1.0, occupancy / 0.04) if occupancy < 0.04 else min(1.0, (0.92 - occupancy) / 0.20)
+        quality = float(np.clip(0.78 + 0.14 * occupancy_score + 0.08 * (1 - border_ratio), 0, 1))
+        return quality, valid
+
+    @staticmethod
+    def _composite_studio_scene(foreground_rgba: np.ndarray) -> Image.Image:
+        alpha = foreground_rgba[:, :, 3]
+        points = cv2.findNonZero((alpha > 18).astype(np.uint8))
+        if points is None:
+            raise ValueError("No foreground product was detected in the photo.")
+        x, y, width, height = cv2.boundingRect(points)
+        pad = max(8, int(max(width, height) * 0.035))
+        x0, y0 = max(0, x - pad), max(0, y - pad)
+        x1 = min(foreground_rgba.shape[1], x + width + pad)
+        y1 = min(foreground_rgba.shape[0], y + height + pad)
+        product = Image.fromarray(foreground_rgba[y0:y1, x0:x1], mode="RGBA")
+
+        canvas_size = 1200
+        target = int(canvas_size * 0.76)
+        scale = min(target / product.width, target / product.height, 2.25)
+        product = product.resize(
+            (max(1, int(product.width * scale)), max(1, int(product.height * scale))),
+            Image.Resampling.LANCZOS,
+        )
+
+        yy, xx = np.mgrid[0:canvas_size, 0:canvas_size]
+        radial = np.sqrt(((xx - canvas_size / 2) / canvas_size) ** 2 + ((yy - canvas_size * 0.46) / canvas_size) ** 2)
+        tone = np.clip(253 - radial * 14 + (yy / canvas_size) * 3, 238, 253).astype(np.uint8)
+        backdrop = np.dstack((tone, tone, np.minimum(255, tone + 2), np.full_like(tone, 255)))
+        canvas = Image.fromarray(backdrop, mode="RGBA")
+
+        position = ((canvas_size - product.width) // 2, (canvas_size - product.height) // 2 - 18)
+        alpha_channel = product.getchannel("A")
+        shadow = Image.new("RGBA", product.size, (20, 27, 38, 0))
+        shadow.putalpha(alpha_channel.point(lambda value: int(value * 0.24)))
+        shadow = shadow.filter(ImageFilter.GaussianBlur(max(10, int(canvas_size * 0.014))))
+        canvas.alpha_composite(shadow, (position[0] + 14, position[1] + 24))
+        canvas.alpha_composite(product, position)
+
+        final = ImageEnhance.Sharpness(canvas.convert("RGB")).enhance(1.08)
+        return ImageEnhance.Contrast(final).enhance(1.015)
+
+    @staticmethod
+    def _extract_dominant_palette(img_bgr: np.ndarray, alpha: np.ndarray) -> List[str]:
+        pixels = img_bgr[alpha >= 128]
+        if len(pixels) < 16:
+            pixels = img_bgr.reshape(-1, 3)
+        if len(pixels) > 12000:
+            step = max(1, len(pixels) // 12000)
+            pixels = pixels[::step]
+        criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 20, 0.5)
+        _, _, centers = cv2.kmeans(pixels.astype(np.float32), 3, None, criteria, 5, cv2.KMEANS_PP_CENTERS)
+        return [f"#{int(r):02X}{int(g):02X}{int(b):02X}" for b, g, r in centers]
+
+    @staticmethod
+    def _classify_visual_features(img_bgr: np.ndarray) -> List[str]:
         gray = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2GRAY)
-        edges = cv2.Canny(gray, 100, 200)
-        edge_density = np.sum(edges > 0) / (gray.shape[0] * gray.shape[1])
-
+        edge_density = float(np.mean(cv2.Canny(gray, 80, 180) > 0))
         features = ["Handcrafted Artisan Product"]
-        if edge_density > 0.08:
-            features.append("Intricate Weave / Carving Detail")
-        else:
-            features.append("Smooth Ceramic / Polished Surface")
+        features.append("Intricate Weave / Carving Detail" if edge_density > 0.075 else "Smooth / Polished Surface")
         return features
+
 
 image_service = ComputerVisionStudioService()

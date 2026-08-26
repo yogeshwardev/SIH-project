@@ -1,4 +1,6 @@
 import os
+import threading
+from contextlib import asynccontextmanager
 from pathlib import Path
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -12,14 +14,22 @@ from backend.app.api.pricing import router as pricing_router
 from backend.app.api.dashboard import router as dashboard_router
 from backend.app.api.export import router as export_router
 from backend.app.api.admin import router as admin_router, inquiries_router
+from backend.app.services.image_service import image_service
 
 # Initialize Database tables
 Base.metadata.create_all(bind=engine)
 
+@asynccontextmanager
+async def lifespan(_app: FastAPI):
+    if settings.IMAGE_MODEL_PRELOAD:
+        threading.Thread(target=image_service.warmup, name="image-model-warmup", daemon=True).start()
+    yield
+
 app = FastAPI(
     title=settings.PROJECT_NAME,
     version=settings.VERSION,
-    description="CraftLink AI — From Handmade to Market-Ready in Minutes. (SIH26090)"
+    description="CraftLink AI — From Handmade to Market-Ready in Minutes. (SIH26090)",
+    lifespan=lifespan,
 )
 
 # CORS Configuration

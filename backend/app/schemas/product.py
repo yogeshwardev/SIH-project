@@ -10,6 +10,8 @@ class ImageEnhanceResponse(BaseModel):
     dominant_colors: List[str]
     processing_time_seconds: float
     confidence_score: float
+    segmentation_engine: Optional[str] = None
+    mask_quality_score: Optional[float] = None
 
 # --- Speech Transcription Schemas ---
 class SpeechTranscribeResponse(BaseModel):

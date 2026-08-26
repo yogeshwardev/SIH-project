@@ -32,6 +32,8 @@ class Settings(BaseSettings):
     # Image enhancement config
     MAX_IMAGE_SIZE_MB: int = 15
     MAX_AUDIO_SIZE_MB: int = 25
+    IMAGE_SEGMENTATION_MODEL: str = "birefnet-general-lite"
+    IMAGE_MODEL_PRELOAD: bool = False
     
     # Host & Port
     HOST: str = "0.0.0.0"

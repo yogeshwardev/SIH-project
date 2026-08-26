@@ -1,31 +1,157 @@
-item_id,product_name,category,craft_type,material,region,production_hours,material_cost,labor_cost,packaging_cost,total_cost,market_min_price,market_max_price,suggested_market_price,data_source
-REF001,Handwoven Banarasi Katan Silk Saree,Handloom & Textiles,Banarasi Silk Weaving,Pure Silk & Gold Zari,Varanasi UP,48,2200,4800,250,7250,8500,12500,9850,Prototype Reference Dataset (Artisan Guild Records)
-REF002,Chanderi Silk Cotton Saree with Zari Border,Handloom & Textiles,Chanderi Weaving,Silk Cotton Blend,Chanderi MP,32,1100,2800,180,4080,4800,6800,5499,Prototype Reference Dataset (Artisan Guild Records)
-REF003,Madhubani Tree of Life Painting (18x24 in),Traditional Paintings,Madhubani Painting,Handmade Paper & Natural Dyes,Madhubani Bihar,24,350,2600,200,3150,3800,5600,4450,Prototype Reference Dataset (Craft Council Surveys)
-REF004,Dhokra Tribal Musician Brass Figurine,Metal Craft & Bell Metal,Dhokra Bell Metal Casting,Brass & Bronze,Bastar CG / Odisha,18,480,1950,150,2580,3100,4500,3690,Prototype Reference Dataset (Tribal Co-op Archives)
-REF005,Handcrafted Jaipur Blue Pottery Floral Vase,Pottery & Ceramics,Jaipur Blue Pottery,Quartz Powder & Glass,Jaipur Rajasthan,14,320,1350,220,1890,2250,3400,2750,Prototype Reference Dataset (Craft Cluster Data)
-REF006,Gorakhpur Terracotta Elephant Figurine,Pottery & Ceramics,Gorakhpur Terracotta,Natural Terracotta Clay,Gorakhpur UP,10,180,950,160,1290,1500,2400,1850,Prototype Reference Dataset (MSME Cluster Study)
-REF007,Channapatna Wooden Stacking Ring Toy,Woodcraft & Carving,Channapatna Wooden Toys,Ivory Wood & Vegetable Lacquer,Ramanagara Karnataka,6,160,650,90,900,1100,1650,1350,Prototype Reference Dataset (Toy Artisans Association)
-REF008,Warli Village Life Canvas Art (12x12 in),Traditional Paintings,Warli Tribal Art,Canvas & Natural Rice Pigments,Palghar Maharashtra,8,220,800,120,1140,1400,2200,1750,Prototype Reference Dataset (Tribal Artisan Study)
-REF009,Handwoven Assam Cane & Bamboo Storage Basket,Cane & Bamboo,Assam Bamboo Craft,Treated Natural Bamboo,Barpeta Assam,12,210,1150,140,1500,1800,2800,2250,Prototype Reference Dataset (Cane & Bamboo Tech Centre)
-REF010,Kashmir Hand-Embroidered Pashmina Shawl,Handloom & Textiles,Pashmina Craft,Pure Pashmina Cashmere Wool,Srinagar J&K,60,3500,8500,350,12350,15000,22000,17800,Prototype Reference Dataset (Kashmir Craft Syndicate)
-REF011,Bidriware Silver Inlay Floral Coaster Set,Metal Craft & Bell Metal,Bidriware Inlay Craft,Zinc-Copper Alloy & Pure Silver,Bidar Karnataka,16,650,2100,180,2930,3600,5200,4200,Prototype Reference Dataset (State Handicrafts Archive)
-REF012,Traditional Hand-Stitched Kolhapuri Leather Chappals,Traditional Leathercraft,Kolhapuri Leathercraft,Veg-Tanned Buffalo Leather,Kolhapur Maharashtra,14,480,1450,130,2060,2500,3800,2990,Prototype Reference Dataset (Artisan Cluster Benchmark)
-REF013,Raghurajpur Pattachitra Palm Leaf Scroll,Traditional Paintings,Raghurajpur Pattachitra,Dried Palm Leaf & Natural Ink,Puri Odisha,20,290,2400,150,2840,3500,5000,4100,Prototype Reference Dataset (Heritage Village Records)
-REF014,Punjab Phulkari Hand Embroidered Dupatta,Handloom & Textiles,Punjab Phulkari Embroidery,Khaddar Cotton & Pat Silk,Patiala Punjab,28,750,2900,160,3810,4600,6900,5400,Prototype Reference Dataset (Women Artisan SHG Data)
-REF015,Tarakasi Pure Silver Filigree Peacock Brooch,Handmade Jewellery,Tarakasi Silver Filigree,92.5 Sterling Silver,Cuttack Odisha,12,1200,1850,180,3230,4000,5800,4750,Prototype Reference Dataset (Silver Filigree Guild)
-REF016,Sanganeri Hand Block Printed Pure Cotton Bedspread,Handloom & Textiles,Sanganeri Hand Block Print,100% Cotton & Veg Dyes,Sanganer Rajasthan,16,680,1650,190,2520,3100,4500,3600,Prototype Reference Dataset (Textile Cluster Benchmarks)
-REF017,Kutch Mirror Work Embroidered Wall Hanging,Handloom & Textiles,Kutch Mirror Work Embroidery,Cotton Fabric & Convex Mirrors,Bhuj Gujarat,22,540,2400,180,3120,3800,5500,4400,Prototype Reference Dataset (Kutch Craft Collective)
-REF018,Saharanpur Hand-Carved Sheesham Wood Tray,Woodcraft & Carving,Saharanpur Wood Carving,Seasoned Sheesham Wood,Saharanpur UP,10,380,1150,160,1690,2100,3200,2550,Prototype Reference Dataset (Woodcraft Guild Survey)
-REF019,Thanjavur Traditional 22k Gold Foil Painting (Ganesha),Traditional Paintings,Thanjavur Gold Leaf Painting,Teak Board 22K Gold & Stones,Thanjavur TN,36,2100,5200,350,7650,9500,14500,11800,Prototype Reference Dataset (Traditional Arts Heritage)
-REF020,Bankura Terracotta Horse (15 inches),Pottery & Ceramics,Bankura Dokra & Terracotta,Fired Terracotta Clay,Bankura WB,12,240,1200,200,1640,2000,3100,2450,Prototype Reference Dataset (Rural Craft Board)
-REF021,Organic Hand-Spun Khadi Cotton Kurta Fabric,Handloom & Textiles,Handloom & Textiles,Organic Desi Cotton,Wardha Maharashtra,18,500,1600,120,2220,2700,4000,3200,Prototype Reference Dataset (Khadi & Village Industries)
-REF022,Dokra Cast Brass Oil Lamp (Diya),Metal Craft & Bell Metal,Dhokra Bell Metal Casting,Recycled Brass & Clay Core,Mayurbhanj Odisha,14,360,1500,140,2000,2400,3600,2850,Prototype Reference Dataset (Tribal Artisan Hub)
-REF023,Hand-painted Terracotta Kulhar Chai Cups (Set of 6),Pottery & Ceramics,Gorakhpur Terracotta,Eco Clay & Mineral Wash,Khurja UP,6,120,550,110,780,950,1500,1200,Prototype Reference Dataset (Pottery Cluster Reference)
-REF024,Assam Natural Cane Table Lamp with Shade,Cane & Bamboo,Assam Bamboo Craft,Bamboo & Handmade Paper,Guwahati Assam,15,310,1450,180,1940,2400,3600,2900,Prototype Reference Dataset (North East Craft Board)
-REF025,Hand-carved Sandalwood Fragrant Bookmark,Woodcraft & Carving,Woodcraft & Carving,Sandalwood & Tassel,Mysuru Karnataka,5,190,520,70,780,980,1500,1190,Prototype Reference Dataset (Mysore Craft Council)
-REF026,Terracotta Hand-Painted Choker Necklace Set,Handmade Jewellery,Handmade Jewellery,Terracotta Clay & Cotton Cord,Kolkata WB,8,140,780,110,1030,1300,2100,1650,Prototype Reference Dataset (Artisan Collective Registry)
-REF027,Pichwai Cow Motif Silk Painting (15x20 in),Traditional Paintings,Traditional Paintings,Pure Silk & Natural Stone Pigments,Nathdwara Rajasthan,26,620,2900,220,3740,4600,6800,5300,Prototype Reference Dataset (Temple Craft Archives)
-REF028,Handcrafted Marble Inlay Floral Coasters,Stone & Marble Inlay,Stone & Marble Inlay,Makrana White Marble & Semi-Precious Stones,Agra UP,18,750,2200,210,3160,3900,5800,4600,Prototype Reference Dataset (Agra Stone Artisans)
-REF029,Handwoven Sambalpuri Ikat Cotton Saree,Handloom & Textiles,Handloom & Textiles,Pure Mercerized Cotton,Bargarh Odisha,36,950,3600,220,4770,5800,8500,6800,Prototype Reference Dataset (Weavers Service Centre)
-REF030,Traditional Bell Metal Utensil Bowl (Kansa),Metal Craft & Bell Metal,Metal Craft & Bell Metal,Bronze Copper-Tin Alloy (78:22),Sarthebari Assam,16,880,1750,160,2790,3400,4900,3950,Prototype Reference Dataset (Bell Metal Heritage Trust)
+category,craft_type,material,production_time_days,material_cost,labor_cost,packaging_cost,total_production_cost,market_reference_price
+Handloom & Textiles,Banarasi Silk Weaving,Pure Katan Silk & Zari,6,2354.61,5593.03,270.75,8218.39,10865.93
+Handloom & Textiles,Banarasi Silk Weaving,Pure Katan Silk & Zari,6,2171.04,4307.64,279.14,6757.820000000001,9463.46
+Handloom & Textiles,Banarasi Silk Weaving,Pure Katan Silk & Zari,5,2057.29,5620.67,277.03,7954.99,10517.67
+Handloom & Textiles,Banarasi Silk Weaving,Pure Katan Silk & Zari,6,2194.06,4662.11,257.8,7113.97,9458.09
+Handloom & Textiles,Kanchipuram Silk Saree,Mulberry Silk & Gold Zari,8,3405.28,5162.35,291.91,8859.54,12169.7
+Handloom & Textiles,Kanchipuram Silk Saree,Mulberry Silk & Gold Zari,9,3599.4,5263.45,308.57,9171.42,12598.1
+Handloom & Textiles,Kanchipuram Silk Saree,Mulberry Silk & Gold Zari,10,3400.45,5214.48,274.88,8889.81,12838.29
+Handloom & Textiles,Kanchipuram Silk Saree,Mulberry Silk & Gold Zari,9,3625.41,5439.75,277.33,9342.49,12833.09
+Handloom & Textiles,Chanderi Saree Weaving,Silk Cotton & Zari,4,1071.26,2262.82,163.55,3497.63,4630.84
+Handloom & Textiles,Chanderi Saree Weaving,Silk Cotton & Zari,3,1298.26,2141.73,185.4,3625.39,4754.43
+Handloom & Textiles,Chanderi Saree Weaving,Silk Cotton & Zari,4,1427.23,2447.59,204.28,4079.1000000000004,5635.86
+Handloom & Textiles,Chanderi Saree Weaving,Silk Cotton & Zari,2,1407.19,1994.41,170.82,3572.4200000000005,4770.27
+Handloom & Textiles,Pashmina Shawl Weaving,Changthangi Cashmere Wool,13,4437.17,7691.24,442.87,12571.28,18418.39
+Handloom & Textiles,Pashmina Shawl Weaving,Changthangi Cashmere Wool,12,4679.75,7378.22,440.22,12498.19,18311.3
+Handloom & Textiles,Pashmina Shawl Weaving,Changthangi Cashmere Wool,16,5041.29,7516.92,360.55,12918.759999999998,18927.49
+Handloom & Textiles,Pashmina Shawl Weaving,Changthangi Cashmere Wool,13,4973.19,8891.05,367.4,14231.639999999998,20851.01
+Handloom & Textiles,Kalamkari Hand Painting,Organic Cotton & Natural Dyes,2,748.86,1493.79,117.93,2360.58,3146.34
+Handloom & Textiles,Kalamkari Hand Painting,Organic Cotton & Natural Dyes,2,626.48,1538.43,127.13,2292.04,3117.81
+Handloom & Textiles,Kalamkari Hand Painting,Organic Cotton & Natural Dyes,2,579.71,1531.56,130.82,2242.09,3163.73
+Handloom & Textiles,Kalamkari Hand Painting,Organic Cotton & Natural Dyes,2,664.84,1451.55,120.83,2237.22,2938.28
+Handloom & Textiles,Bandhani Tie & Dye,Georgette Silk,3,731.85,1713.48,146.79,2592.12,3717.84
+Handloom & Textiles,Bandhani Tie & Dye,Georgette Silk,3,796.66,1604.98,163.33,2564.97,3316.73
+Handloom & Textiles,Bandhani Tie & Dye,Georgette Silk,3,808.7,1485.39,169.86,2463.9500000000003,3419.17
+Handloom & Textiles,Bandhani Tie & Dye,Georgette Silk,4,981.76,1793.76,142.0,2917.52,4001.93
+Handloom & Textiles,Phulkari Embroidery Dupatta,Chiffon & Silk Floss,3,1075.97,2412.54,156.72,3645.23,4807.14
+Handloom & Textiles,Phulkari Embroidery Dupatta,Chiffon & Silk Floss,3,949.51,2363.35,178.43,3491.2899999999995,4771.99
+Handloom & Textiles,Phulkari Embroidery Dupatta,Chiffon & Silk Floss,4,946.29,1987.93,148.79,3083.01,4440.44
+Handloom & Textiles,Phulkari Embroidery Dupatta,Chiffon & Silk Floss,4,914.96,2174.84,172.12,3261.92,4714.14
+Handloom & Textiles,Patola Double Ikat Saree,Pure Natural Silk,23,7714.57,13377.49,512.16,21604.219999999998,30348.79
+Handloom & Textiles,Patola Double Ikat Saree,Pure Natural Silk,21,5608.92,14880.17,512.83,21001.920000000002,29502.7
+Handloom & Textiles,Patola Double Ikat Saree,Pure Natural Silk,26,7591.3,13326.16,468.11,21385.57,30956.91
+Handloom & Textiles,Patola Double Ikat Saree,Pure Natural Silk,23,6075.68,15142.97,545.2,21763.850000000002,30573.03
+Handloom & Textiles,Sambalpuri Ikat Cotton Saree,Mercerized Cotton,3,734.04,1978.93,148.17,2861.1400000000003,3706.18
+Handloom & Textiles,Sambalpuri Ikat Cotton Saree,Mercerized Cotton,2,856.77,1806.03,132.53,2795.3300000000004,3858.82
+Handloom & Textiles,Sambalpuri Ikat Cotton Saree,Mercerized Cotton,3,815.36,1637.21,143.92,2596.4900000000002,3608.29
+Handloom & Textiles,Sambalpuri Ikat Cotton Saree,Mercerized Cotton,4,683.27,2011.47,139.54,2834.2799999999997,3694.14
+Handloom & Textiles,Pochampally Ikat Silk Saree,Natural Silk,6,1744.87,3290.55,226.23,5261.65,6965.64
+Handloom & Textiles,Pochampally Ikat Silk Saree,Natural Silk,5,1945.79,4050.6,207.76,6204.15,8196.39
+Handloom & Textiles,Pochampally Ikat Silk Saree,Natural Silk,5,1588.65,4136.99,225.02,5950.66,7959.81
+Handloom & Textiles,Pochampally Ikat Silk Saree,Natural Silk,6,1750.0,3952.03,224.86,5926.89,8372.2
+Handloom & Textiles,Bhagalpuri Tussar Silk Dupatta,Wild Tussar Silk,2,752.3,1086.29,103.44,1942.03,2686.01
+Handloom & Textiles,Bhagalpuri Tussar Silk Dupatta,Wild Tussar Silk,2,597.25,1092.53,117.25,1807.03,2362.4
+Handloom & Textiles,Bhagalpuri Tussar Silk Dupatta,Wild Tussar Silk,2,729.44,1305.08,116.93,2151.45,3014.33
+Handloom & Textiles,Bhagalpuri Tussar Silk Dupatta,Wild Tussar Silk,2,653.13,1173.14,119.53,1945.8,2771.54
+Handloom & Textiles,Kantha Stitch Embroidered Stole,Tussar Silk,4,864.13,1995.94,120.04,2980.11,3948.9
+Handloom & Textiles,Kantha Stitch Embroidered Stole,Tussar Silk,5,748.32,2226.62,129.78,3104.7200000000003,4307.16
+Handloom & Textiles,Kantha Stitch Embroidered Stole,Tussar Silk,4,902.55,1958.5,135.75,2996.8,3935.37
+Handloom & Textiles,Kantha Stitch Embroidered Stole,Tussar Silk,4,882.29,1832.04,117.79,2832.12,3710.39
+Pottery & Ceramics,Jaipur Blue Pottery,Quartz Stone Powder & Glaze,3,530.62,1457.72,225.74,2214.08,2855.0
+Pottery & Ceramics,Jaipur Blue Pottery,Quartz Stone Powder & Glaze,4,528.71,1260.57,228.33,2017.61,2875.12
+Pottery & Ceramics,Jaipur Blue Pottery,Quartz Stone Powder & Glaze,3,428.88,1244.41,222.56,1895.85,2481.31
+Pottery & Ceramics,Jaipur Blue Pottery,Quartz Stone Powder & Glaze,3,470.2,1451.06,214.8,2136.06,2769.44
+Pottery & Ceramics,Gorakhpur Terracotta Craft,Natural Clay & River Soil,1,191.75,729.75,84.15,1005.65,1437.23
+Pottery & Ceramics,Gorakhpur Terracotta Craft,Natural Clay & River Soil,1,199.67,675.24,96.81,971.72,1292.3
+Pottery & Ceramics,Gorakhpur Terracotta Craft,Natural Clay & River Soil,1,203.99,696.28,100.51,1000.78,1367.99
+Pottery & Ceramics,Gorakhpur Terracotta Craft,Natural Clay & River Soil,1,184.6,694.08,95.62,974.3000000000001,1378.91
+Pottery & Ceramics,Khurja Ceramic Studio Tableware,Stoneware Ceramic,2,406.53,834.19,149.08,1389.8,1915.57
+Pottery & Ceramics,Khurja Ceramic Studio Tableware,Stoneware Ceramic,2,301.9,866.73,155.35,1323.98,1827.68
+Pottery & Ceramics,Khurja Ceramic Studio Tableware,Stoneware Ceramic,2,301.24,757.52,165.85,1224.61,1593.95
+Pottery & Ceramics,Khurja Ceramic Studio Tableware,Stoneware Ceramic,2,361.47,944.35,143.09,1448.91,1878.22
+Pottery & Ceramics,Nizamabad Black Pottery,Silver Engraved Clay,2,251.75,810.74,124.22,1186.71,1665.47
+Pottery & Ceramics,Nizamabad Black Pottery,Silver Engraved Clay,2,345.55,807.21,117.69,1270.45,1684.67
+Pottery & Ceramics,Nizamabad Black Pottery,Silver Engraved Clay,2,291.06,704.76,108.76,1104.58,1570.84
+Pottery & Ceramics,Nizamabad Black Pottery,Silver Engraved Clay,2,317.14,782.09,113.2,1212.43,1603.49
+Pottery & Ceramics,Kutch Mud & Mirror Clay Art,Clay & Convex Mirrors,3,541.96,1532.13,191.71,2265.8,3268.02
+Pottery & Ceramics,Kutch Mud & Mirror Clay Art,Clay & Convex Mirrors,3,576.3,1464.83,189.53,2230.66,2949.19
+Pottery & Ceramics,Kutch Mud & Mirror Clay Art,Clay & Convex Mirrors,3,506.79,1550.3,162.65,2219.7400000000002,2858.63
+Pottery & Ceramics,Kutch Mud & Mirror Clay Art,Clay & Convex Mirrors,3,449.41,1591.29,193.66,2234.36,2897.14
+Metal Craft & Bell Metal,Dhokra Bell Metal Casting,Brass & Bell Metal Alloy,4,490.59,1992.98,141.5,2625.07,3754.46
+Metal Craft & Bell Metal,Dhokra Bell Metal Casting,Brass & Bell Metal Alloy,4,511.46,2087.53,136.7,2735.69,3912.67
+Metal Craft & Bell Metal,Dhokra Bell Metal Casting,Brass & Bell Metal Alloy,3,492.53,2217.05,159.7,2869.2799999999997,4103.74
+Metal Craft & Bell Metal,Dhokra Bell Metal Casting,Brass & Bell Metal Alloy,5,515.93,1731.51,156.97,2404.41,3438.87
+Metal Craft & Bell Metal,Moradabad Brass Etched Lamp,Engraved Pure Brass,3,640.81,1931.38,182.62,2754.81,3967.06
+Metal Craft & Bell Metal,Moradabad Brass Etched Lamp,Engraved Pure Brass,3,640.34,2103.04,202.74,2946.12,3864.68
+Metal Craft & Bell Metal,Moradabad Brass Etched Lamp,Engraved Pure Brass,3,575.43,1593.84,166.25,2335.52,3063.7
+Metal Craft & Bell Metal,Moradabad Brass Etched Lamp,Engraved Pure Brass,3,625.07,2040.23,163.05,2828.3500000000004,3755.81
+Metal Craft & Bell Metal,Bidriware Silver Inlay Box,Zinc Copper & Pure Silver,6,846.79,3049.26,232.59,4128.64,5800.58
+Metal Craft & Bell Metal,Bidriware Silver Inlay Box,Zinc Copper & Pure Silver,6,1074.66,2700.91,207.76,3983.33,5645.02
+Metal Craft & Bell Metal,Bidriware Silver Inlay Box,Zinc Copper & Pure Silver,6,1136.84,2810.6,218.46,4165.9,5573.71
+Metal Craft & Bell Metal,Bidriware Silver Inlay Box,Zinc Copper & Pure Silver,6,1116.98,3185.07,221.59,4523.64,6370.52
+Metal Craft & Bell Metal,Thanjavur Art Plate,Brass Copper & Silver Sheet,6,1063.31,3682.45,287.37,5033.13,6716.25
+Metal Craft & Bell Metal,Thanjavur Art Plate,Brass Copper & Silver Sheet,6,1396.12,3189.63,252.76,4838.51,6268.38
+Metal Craft & Bell Metal,Thanjavur Art Plate,Brass Copper & Silver Sheet,5,1154.11,3728.06,318.54,5200.71,7215.53
+Metal Craft & Bell Metal,Thanjavur Art Plate,Brass Copper & Silver Sheet,6,1208.35,3097.48,275.01,4580.84,6449.38
+Metal Craft & Bell Metal,Swamimalai Bronze Figurine,Lost-Wax Bronze (Panchaloha),9,3155.75,7259.76,322.98,10738.49,14243.8
+Metal Craft & Bell Metal,Swamimalai Bronze Figurine,Lost-Wax Bronze (Panchaloha),9,2918.54,6580.98,392.67,9892.19,13121.25
+Metal Craft & Bell Metal,Swamimalai Bronze Figurine,Lost-Wax Bronze (Panchaloha),8,2520.13,7204.95,369.09,10094.17,13389.16
+Metal Craft & Bell Metal,Swamimalai Bronze Figurine,Lost-Wax Bronze (Panchaloha),10,3066.95,5861.89,386.91,9315.75,12356.64
+Woodcraft & Carving,Channapatna Wooden Toy Stacker,Ivory Wood & Organic Lacquer,1,140.75,764.39,89.42,994.56,1491.84
+Woodcraft & Carving,Channapatna Wooden Toy Stacker,Ivory Wood & Organic Lacquer,1,189.05,764.27,97.95,1051.27,1576.9
+Woodcraft & Carving,Channapatna Wooden Toy Stacker,Ivory Wood & Organic Lacquer,1,179.52,680.89,90.54,950.9499999999999,1426.42
+Woodcraft & Carving,Channapatna Wooden Toy Stacker,Ivory Wood & Organic Lacquer,1,163.59,574.21,91.54,829.34,1244.01
+Woodcraft & Carving,Saharanpur Carved Rosewood Tray,Seasoned Sheesham Wood,2,374.28,1182.24,152.11,1708.63,2466.53
+Woodcraft & Carving,Saharanpur Carved Rosewood Tray,Seasoned Sheesham Wood,2,412.11,1062.28,156.4,1630.79,2354.45
+Woodcraft & Carving,Saharanpur Carved Rosewood Tray,Seasoned Sheesham Wood,2,358.79,1288.06,127.51,1774.36,2430.36
+Woodcraft & Carving,Saharanpur Carved Rosewood Tray,Seasoned Sheesham Wood,2,502.97,992.35,145.38,1640.7000000000003,2246.0
+Woodcraft & Carving,Kashmir Walnut Wood Carved Box,Kashmir Walnut Wood,4,909.75,2612.94,202.73,3725.42,5138.6
+Woodcraft & Carving,Kashmir Walnut Wood Carved Box,Kashmir Walnut Wood,5,990.59,2144.72,194.05,3329.36,4765.46
+Woodcraft & Carving,Kashmir Walnut Wood Carved Box,Kashmir Walnut Wood,4,858.06,2558.5,193.87,3610.43,4905.96
+Woodcraft & Carving,Kashmir Walnut Wood Carved Box,Kashmir Walnut Wood,5,827.62,2532.23,183.89,3543.74,5130.12
+Woodcraft & Carving,Kondapalli Painted Toys,Puniki Softwood & Enamel,2,240.76,780.62,97.74,1119.12,1562.74
+Woodcraft & Carving,Kondapalli Painted Toys,Puniki Softwood & Enamel,2,199.52,864.96,110.56,1175.04,1649.02
+Woodcraft & Carving,Kondapalli Painted Toys,Puniki Softwood & Enamel,2,234.23,754.1,113.32,1101.65,1523.78
+Woodcraft & Carving,Kondapalli Painted Toys,Puniki Softwood & Enamel,2,189.03,744.7,110.26,1043.99,1444.02
+Woodcraft & Carving,Bastar Tribal Wood Carving Wall Panel,Teakwood,4,793.46,1938.82,205.65,2937.93,4179.25
+Woodcraft & Carving,Bastar Tribal Wood Carving Wall Panel,Teakwood,2,760.53,1958.67,174.3,2893.5,4129.03
+Woodcraft & Carving,Bastar Tribal Wood Carving Wall Panel,Teakwood,3,850.89,2300.83,206.85,3358.5699999999997,4738.03
+Woodcraft & Carving,Bastar Tribal Wood Carving Wall Panel,Teakwood,3,885.5,2213.04,173.13,3271.67,4259.99
+Cane & Bamboo,Assam Bamboo Woven Storage Basket,Natural Assam Bamboo,2,142.07,509.69,76.57,728.3299999999999,1017.52
+Cane & Bamboo,Assam Bamboo Woven Storage Basket,Natural Assam Bamboo,2,117.04,438.75,85.43,641.22,904.95
+Cane & Bamboo,Assam Bamboo Woven Storage Basket,Natural Assam Bamboo,2,123.85,545.11,83.04,752.0,1074.63
+Cane & Bamboo,Assam Bamboo Woven Storage Basket,Natural Assam Bamboo,2,118.95,441.7,72.58,633.23,884.66
+Cane & Bamboo,Tripura Bamboo Table Lamp,Treated Golden Cane,2,307.0,802.31,112.09,1221.3999999999999,1641.56
+Cane & Bamboo,Tripura Bamboo Table Lamp,Treated Golden Cane,2,295.81,848.02,121.12,1264.9499999999998,1700.09
+Cane & Bamboo,Tripura Bamboo Table Lamp,Treated Golden Cane,2,288.37,947.83,119.9,1356.1000000000001,1934.61
+Cane & Bamboo,Tripura Bamboo Table Lamp,Treated Golden Cane,2,331.05,785.5,135.8,1252.35,1683.16
+Cane & Bamboo,Meghalaya Cane Handbag,Natural Wild Cane,2,343.64,1080.09,133.01,1556.74,2160.25
+Cane & Bamboo,Meghalaya Cane Handbag,Natural Wild Cane,2,317.58,830.54,121.19,1269.31,1689.37
+Cane & Bamboo,Meghalaya Cane Handbag,Natural Wild Cane,2,305.52,986.48,122.91,1414.91,2026.79
+Cane & Bamboo,Meghalaya Cane Handbag,Natural Wild Cane,2,345.4,993.85,122.6,1461.85,1945.63
+Traditional Paintings,Madhubani Mithila Folk Painting,Handmade Paper & Natural Pigments,3,318.19,1541.72,132.2,1992.1100000000001,2811.83
+Traditional Paintings,Madhubani Mithila Folk Painting,Handmade Paper & Natural Pigments,3,353.95,1507.04,138.75,1999.74,2822.6
+Traditional Paintings,Madhubani Mithila Folk Painting,Handmade Paper & Natural Pigments,3,302.32,1791.72,147.98,2242.02,3202.74
+Traditional Paintings,Madhubani Mithila Folk Painting,Handmade Paper & Natural Pigments,3,410.31,1437.32,135.69,1983.32,2799.42
+Traditional Paintings,Pattachitra Scroll Painting,Tussar Cloth & Mineral Pigments,6,777.4,3016.98,218.38,4012.76,5558.09
+Traditional Paintings,Pattachitra Scroll Painting,Tussar Cloth & Mineral Pigments,5,832.25,3260.03,239.11,4331.39,5730.06
+Traditional Paintings,Pattachitra Scroll Painting,Tussar Cloth & Mineral Pigments,6,934.72,3675.4,226.14,4836.26,6342.64
+Traditional Paintings,Pattachitra Scroll Painting,Tussar Cloth & Mineral Pigments,6,855.61,3327.31,211.34,4394.26,5906.49
+Traditional Paintings,Warli Tribal Wall Canvas,Canvas & Rice Flour Pigment,2,214.26,927.79,104.81,1246.86,1665.65
+Traditional Paintings,Warli Tribal Wall Canvas,Canvas & Rice Flour Pigment,2,290.42,1005.17,117.68,1413.27,1928.74
+Traditional Paintings,Warli Tribal Wall Canvas,Canvas & Rice Flour Pigment,2,220.11,989.08,115.14,1324.3300000000002,1792.32
+Traditional Paintings,Warli Tribal Wall Canvas,Canvas & Rice Flour Pigment,2,223.66,916.88,108.98,1249.52,1720.63
+Traditional Paintings,Tanjore Gold Foil Painting,Teak Board 22k Gold Foil & Gems,9,3703.61,9995.61,473.15,14172.37,18385.86
+Traditional Paintings,Tanjore Gold Foil Painting,Teak Board 22k Gold Foil & Gems,9,3433.3,8107.19,423.08,11963.57,15893.2
+Traditional Paintings,Tanjore Gold Foil Painting,Teak Board 22k Gold Foil & Gems,10,3460.59,9766.75,414.03,13641.37,18412.68
+Traditional Paintings,Tanjore Gold Foil Painting,Teak Board 22k Gold Foil & Gems,12,4536.56,7765.7,449.76,12752.02,18198.87
+Traditional Paintings,Pichwai Srinathji Painting,Cotton Cloth & Natural Stone Pigments,8,2044.76,4403.91,282.82,6731.49,9679.84
+Traditional Paintings,Pichwai Srinathji Painting,Cotton Cloth & Natural Stone Pigments,8,1880.76,4836.83,291.0,7008.59,9309.92
+Traditional Paintings,Pichwai Srinathji Painting,Cotton Cloth & Natural Stone Pigments,6,1733.92,4635.1,308.07,6677.09,8869.57
+Traditional Paintings,Pichwai Srinathji Painting,Cotton Cloth & Natural Stone Pigments,6,1914.69,4446.31,313.59,6674.59,9089.42
+Leather Craft,Kolhapuri Handcrafted Leather Chappal,Vegetable Tanned Buffalo Leather,2,497.48,985.1,118.1,1600.6799999999998,2118.55
+Leather Craft,Kolhapuri Handcrafted Leather Chappal,Vegetable Tanned Buffalo Leather,2,574.31,1074.38,132.3,1780.99,2486.0
+Leather Craft,Kolhapuri Handcrafted Leather Chappal,Vegetable Tanned Buffalo Leather,2,535.72,1164.56,122.15,1822.43,2440.79
+Leather Craft,Kolhapuri Handcrafted Leather Chappal,Vegetable Tanned Buffalo Leather,2,564.16,1242.1,136.95,1943.2099999999998,2728.75
+Leather Craft,Santiniketan Embossed Leather Bag,Full Grain Tanned Leather,3,883.81,1588.43,146.66,2618.8999999999996,3607.95
+Leather Craft,Santiniketan Embossed Leather Bag,Full Grain Tanned Leather,3,858.48,1567.28,175.81,2601.57,3402.39
+Leather Craft,Santiniketan Embossed Leather Bag,Full Grain Tanned Leather,3,680.62,1911.43,170.61,2762.6600000000003,3704.73
+Leather Craft,Santiniketan Embossed Leather Bag,Full Grain Tanned Leather,3,867.77,1696.15,176.66,2740.58,3683.56
+Stone & Marble Craft,Agra Marble Inlay Coaster Set,Makrana White Marble & Semi-Precious Stones,3,657.76,1746.74,195.64,2600.14,3430.82
+Stone & Marble Craft,Agra Marble Inlay Coaster Set,Makrana White Marble & Semi-Precious Stones,4,757.15,1791.3,186.46,2734.91,3790.91
+Stone & Marble Craft,Agra Marble Inlay Coaster Set,Makrana White Marble & Semi-Precious Stones,3,579.09,2091.51,190.25,2860.8500000000004,3752.83
+Stone & Marble Craft,Agra Marble Inlay Coaster Set,Makrana White Marble & Semi-Precious Stones,4,733.14,1918.84,186.01,2837.99,4013.09
+Stone & Marble Craft,Odisha Soapstone Carved Temple Figurine,Khondalite Soft Stone,3,496.7,1411.6,153.94,2062.24,2721.01
+Stone & Marble Craft,Odisha Soapstone Carved Temple Figurine,Khondalite Soft Stone,3,577.2,1607.67,179.07,2363.94,3355.88
+Stone & Marble Craft,Odisha Soapstone Carved Temple Figurine,Khondalite Soft Stone,3,488.8,1644.21,149.1,2282.11,3230.42
+Stone & Marble Craft,Odisha Soapstone Carved Temple Figurine,Khondalite Soft Stone,3,496.36,1375.72,172.89,2044.9699999999998,2840.45

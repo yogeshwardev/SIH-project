@@ -55,8 +55,8 @@ flowchart TD
 
 | Module | Model / Technology | Why Chosen & Implementation Details |
 | :--- | :--- | :--- |
-| **Image AI** | **BiRefNet-General-Lite + Adaptive Matte Refinement + Studio Compositor** | Neural foreground extraction handles difficult clutter and thin objects; foreground-aware color correction, mask scoring, GrabCut fallback, and a soft grounding shadow produce a catalog-ready 1200 × 1200 image. |
-| **Speech AI** | **Browser Dictation + Faster Whisper `small` (CPU int8) + Interactive Product Interview** | Live captions provide low latency; recorded WebM/WAV audio falls back to local multilingual Whisper without a cloud key, then feeds a resumable spoken/typed interview. |
+| **Image AI** | **U2NetP → BiRefNet-General-Lite cascade + Intel OpenVINO + Studio Compositor** | A calibrated mask gate returns clear product photos through the low-latency model and escalates cluttered/thin objects to BiRefNet. Component coherence, geometry, and edge certainty are reported separately; foreground-aware color correction and a soft shadow produce a 1200 × 1200 catalog image. |
+| **Speech AI** | **Browser Dictation + Faster Whisper `base` → `small` cascade (CPU int8) + Interactive Product Interview** | Live captions are immediate. Recorded audio uses the fast local model first and invokes the accuracy model only below the word-confidence threshold. Product understanding reaches 99% only after the artisan confirms the extracted facts. |
 | **Product Intelligence** | **Evidence-Gated Entity & Cost Collector** | Retains facts across turns, identifies missing fields, and blocks pricing until identity, material, production time, material cost, labor, and packaging are confirmed. |
 | **Listing GenAI** | **Bilingual Multilingual Engine (EN + HI)** | Generates marketplace titles, summaries, storytelling heritage narratives, bullet specifications, and SEO tags. (Supports Gemini/OpenAI/local fallback). |
 | **Pricing Engine** | **Random Forest + Gradient Boosting Ensemble + Fair-Trade Economics** | Blends confirmed direct costs with craft benchmarks, reports benchmark coverage and similarity confidence, exposes assumptions, and flags unfamiliar products for human review. |
@@ -144,7 +144,14 @@ OPENAI_TRANSCRIPTION_MODEL=gpt-4o-mini-transcribe
 OPENAI_TTS_MODEL=gpt-4o-mini-tts
 OPENAI_TTS_VOICE=coral
 IMAGE_SEGMENTATION_MODEL=birefnet-general-lite
-IMAGE_MODEL_PRELOAD=false
+IMAGE_FAST_SEGMENTATION_MODEL=u2netp
+IMAGE_FAST_ACCEPT_CONFIDENCE=0.95
+IMAGE_MODEL_PRELOAD=true
+IMAGE_ENABLE_OPENVINO=true
+LOCAL_WHISPER_FAST_MODEL=base
+LOCAL_WHISPER_MODEL=small
+LOCAL_WHISPER_FAST_ACCEPT_CONFIDENCE=0.84
+VOICE_MODEL_PRELOAD=true
 
 HOST=0.0.0.0
 PORT=8000
@@ -169,6 +176,7 @@ PORT=8000
 
 - **Prototype Pricing Dataset**: ML pricing is trained on 30 benchmark craft cluster records. In production, expansion to 10,000+ cluster transaction records is planned.
 - **Connectivity**: Local fallback algorithms provide full offline capability; cloud LLMs offer richer regional dialects when internet is present.
+- **Confidence Semantics**: Acoustic word probability and image-mask quality are measured values and are never forced to 95%. The 99% product-understanding badge means the artisan explicitly confirmed the extracted identity and cost facts; it is not a claim that every audio token was recognized with 99% probability.
 - **Physical Verification**: AI assists in metadata extraction, but final GI tagging certification remains governed by authorized craft councils.
 
 ---

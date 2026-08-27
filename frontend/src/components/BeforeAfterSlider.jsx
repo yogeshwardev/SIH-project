@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useRef, useCallback } from 'react';
 import { Sparkles, Eye, Download, MoveHorizontal } from 'lucide-react';
 
 export default function BeforeAfterSlider({
@@ -6,225 +6,372 @@ export default function BeforeAfterSlider({
   enhancedUrl,
   title = 'AI Studio Enhancement',
 }) {
-  const [pos, setPos]           = useState(50);   // 0–100 %
-  const [dragging, setDragging] = useState(false);
+  const [pos, setPos] = useState(50); // 0–100 percentage
+  const [isDragging, setIsDragging] = useState(false);
   const containerRef = useRef(null);
 
-  /* ── Core position calculation ── */
-  const calcPos = useCallback((clientX) => {
-    const el = containerRef.current;
-    if (!el) return;
-    const rect = el.getBoundingClientRect();
-    const pct  = Math.min(100, Math.max(0, ((clientX - rect.left) / rect.width) * 100));
+  // Position calculation helper
+  const updatePosition = useCallback((clientX) => {
+    if (!containerRef.current) return;
+    const rect = containerRef.current.getBoundingClientRect();
+    const x = clientX - rect.left;
+    const pct = Math.min(100, Math.max(0, (x / rect.width) * 100));
     setPos(pct);
   }, []);
 
-  /* ── Mouse events ── */
-  const onMouseDown = useCallback((e) => {
-    e.preventDefault();
-    setDragging(true);
-    calcPos(e.clientX);
-  }, [calcPos]);
+  // Pointer event handlers with pointer capture (supports Mouse, Touch, Stylus, Trackpad)
+  const handlePointerDown = (e) => {
+    // Only handle primary button / primary touch
+    if (e.button !== undefined && e.button !== 0) return;
+    setIsDragging(true);
+    try {
+      e.currentTarget.setPointerCapture(e.pointerId);
+    } catch (_) {}
+    updatePosition(e.clientX);
+  };
 
-  /* ── Touch events ── */
-  const onTouchStart = useCallback((e) => {
-    setDragging(true);
-    calcPos(e.touches[0].clientX);
-  }, [calcPos]);
+  const handlePointerMove = (e) => {
+    if (!isDragging) return;
+    updatePosition(e.clientX);
+  };
 
-  /* ── Global move / up listeners (added when dragging) ── */
-  useEffect(() => {
-    if (!dragging) return;
+  const handlePointerUp = (e) => {
+    setIsDragging(false);
+    try {
+      e.currentTarget.releasePointerCapture(e.pointerId);
+    } catch (_) {}
+  };
 
-    const onMove = (e) => {
-      const clientX = e.touches ? e.touches[0].clientX : e.clientX;
-      calcPos(clientX);
-    };
-    const onStop = () => setDragging(false);
-
-    window.addEventListener('mousemove', onMove);
-    window.addEventListener('mouseup',   onStop);
-    window.addEventListener('touchmove', onMove, { passive: true });
-    window.addEventListener('touchend',  onStop);
-
-    return () => {
-      window.removeEventListener('mousemove', onMove);
-      window.removeEventListener('mouseup',   onStop);
-      window.removeEventListener('touchmove', onMove);
-      window.removeEventListener('touchend',  onStop);
-    };
-  }, [dragging, calcPos]);
+  const handleRangeChange = (e) => {
+    const val = parseFloat(e.target.value);
+    if (!isNaN(val)) {
+      setPos(val);
+    }
+  };
 
   const showBoth = !!originalUrl && !!enhancedUrl;
-  const imgSrc   = enhancedUrl || originalUrl;
+  const imgSrc = enhancedUrl || originalUrl;
 
   return (
-    <div style={{
-      background: '#fff',
-      border: '1px solid #D5D9D9',
-      borderRadius: '12px',
-      overflow: 'hidden',
-      fontFamily: "'Inter', sans-serif",
-    }}>
-      {/* Header */}
-      <div style={{ padding: '12px 14px', borderBottom: '1px solid #EAEDED', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+    <div
+      style={{
+        background: '#ffffff',
+        border: '1px solid #D5D9D9',
+        borderRadius: '12px',
+        overflow: 'hidden',
+        fontFamily: "'Inter', sans-serif",
+        boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
+      }}
+    >
+      {/* ── Header ── */}
+      <div
+        style={{
+          padding: '12px 16px',
+          borderBottom: '1px solid #EAEDED',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+        }}
+      >
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <div style={{ width: '28px', height: '28px', borderRadius: '8px', background: '#EAF7EE', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div
+            style={{
+              width: '28px',
+              height: '28px',
+              borderRadius: '8px',
+              background: '#EAF7EE',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
             <Sparkles style={{ width: '14px', height: '14px', color: '#1D7A3B' }} />
           </div>
-          <span style={{ fontSize: '13px', fontWeight: 700, color: '#0F1111' }}>AI Studio Enhancement</span>
+          <span style={{ fontSize: '14px', fontWeight: 700, color: '#0F1111' }}>
+            {title}
+          </span>
         </div>
         {showBoth && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '11px', color: '#8D9096' }}>
-            <MoveHorizontal style={{ width: '13px', height: '13px' }} />
-            Drag to compare
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              fontSize: '12px',
+              color: '#565959',
+              fontWeight: 600,
+            }}
+          >
+            <MoveHorizontal style={{ width: '14px', height: '14px', color: '#FF9900' }} />
+            <span>Drag slider to compare</span>
           </div>
         )}
       </div>
 
-      {/* Slider container */}
+      {/* ── Slider Viewport ── */}
       <div
         ref={containerRef}
-        onMouseDown={onMouseDown}
-        onTouchStart={onTouchStart}
+        onPointerDown={handlePointerDown}
+        onPointerMove={handlePointerMove}
+        onPointerUp={handlePointerUp}
+        onPointerCancel={handlePointerUp}
         style={{
           position: 'relative',
           width: '100%',
-          height: '340px',
+          height: '380px',
           overflow: 'hidden',
-          background: '#1a1a1a',
-          cursor: dragging ? 'ew-resize' : showBoth ? 'ew-resize' : 'default',
+          background: '#18181b',
+          cursor: showBoth ? 'ew-resize' : 'default',
           userSelect: 'none',
-          /* Prevent native image drag from interrupting our drag */
-          WebkitUserDrag: 'none',
+          WebkitUserSelect: 'none',
+          touchAction: 'none', // Crucial to prevent mobile scroll canceling drag
         }}
       >
-        {/* ── AFTER / enhanced image (full width, always visible underneath) ── */}
+        {/* 1. Base Layer: AI Enhanced Image (Full Width) */}
         <img
           src={imgSrc}
-          alt="AI Enhanced"
+          alt="AI Enhanced Product"
           draggable="false"
           style={{
-            position: 'absolute', inset: 0,
-            width: '100%', height: '100%',
+            position: 'absolute',
+            inset: 0,
+            width: '100%',
+            height: '100%',
             objectFit: 'contain',
             pointerEvents: 'none',
+            userSelect: 'none',
+            WebkitUserDrag: 'none',
           }}
-          onError={e => { e.target.src = 'https://placehold.co/400x340/1a1a1a/555?text=Enhanced'; }}
+          onError={(e) => {
+            e.target.src = 'https://placehold.co/400x380/18181b/ffffff?text=AI+Enhanced+Image';
+          }}
         />
 
-        {/* AFTER badge */}
-        <div style={{
-          position: 'absolute', top: '10px', right: '10px', zIndex: 15,
-          background: 'rgba(29,122,59,0.92)',
-          color: '#fff', fontSize: '10px', fontWeight: 800,
-          padding: '3px 8px', borderRadius: '4px',
-          display: 'flex', alignItems: 'center', gap: '4px',
-          backdropFilter: 'blur(4px)',
-        }}>
-          <Sparkles style={{ width: '10px', height: '10px' }} />
-          AI ENHANCED
+        {/* AI Enhanced Badge (Top Right) */}
+        <div
+          style={{
+            position: 'absolute',
+            top: '12px',
+            right: '12px',
+            zIndex: 10,
+            background: 'rgba(22, 101, 52, 0.92)',
+            color: '#ffffff',
+            fontSize: '11px',
+            fontWeight: 800,
+            padding: '4px 10px',
+            borderRadius: '6px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '5px',
+            boxShadow: '0 2px 6px rgba(0,0,0,0.3)',
+            backdropFilter: 'blur(4px)',
+            pointerEvents: 'none',
+          }}
+        >
+          <Sparkles style={{ width: '12px', height: '12px' }} />
+          <span>AI ENHANCED</span>
         </div>
 
-        {/* ── BEFORE / original image — clipped to left side ── */}
+        {/* 2. Top Layer: Original Image (Clipped dynamically by polygon) */}
         {showBoth && (
           <div
             style={{
-              position: 'absolute', inset: 0,
+              position: 'absolute',
+              inset: 0,
+              width: '100%',
+              height: '100%',
               overflow: 'hidden',
-              /* The clip: only show the left `pos`% of the container */
-              clipPath: `inset(0 ${100 - pos}% 0 0)`,
+              clipPath: `polygon(0 0, ${pos}% 0, ${pos}% 100%, 0 100%)`,
+              WebkitClipPath: `polygon(0 0, ${pos}% 0, ${pos}% 100%, 0 100%)`,
               pointerEvents: 'none',
+              userSelect: 'none',
             }}
           >
             <img
               src={originalUrl}
-              alt="Original Photo"
+              alt="Raw Artisan Product"
               draggable="false"
               style={{
-                position: 'absolute', inset: 0,
-                width: '100%', height: '100%',
+                position: 'absolute',
+                inset: 0,
+                width: '100%',
+                height: '100%',
                 objectFit: 'contain',
+                pointerEvents: 'none',
+                userSelect: 'none',
+                WebkitUserDrag: 'none',
               }}
-              onError={e => { e.target.src = 'https://placehold.co/400x340/2a2a2a/888?text=Original'; }}
+              onError={(e) => {
+                e.target.src = 'https://placehold.co/400x380/27272a/ffffff?text=Original+Raw+Photo';
+              }}
             />
 
-            {/* BEFORE badge */}
-            <div style={{
-              position: 'absolute', top: '10px', left: '10px', zIndex: 15,
-              background: 'rgba(0,0,0,0.80)',
-              color: '#fff', fontSize: '10px', fontWeight: 800,
-              padding: '3px 8px', borderRadius: '4px',
-              display: 'flex', alignItems: 'center', gap: '4px',
-              backdropFilter: 'blur(4px)',
-            }}>
-              <Eye style={{ width: '10px', height: '10px' }} />
-              ORIGINAL
+            {/* Original Badge (Top Left) */}
+            <div
+              style={{
+                position: 'absolute',
+                top: '12px',
+                left: '12px',
+                zIndex: 10,
+                background: 'rgba(24, 24, 27, 0.90)',
+                color: '#ffffff',
+                fontSize: '11px',
+                fontWeight: 800,
+                padding: '4px 10px',
+                borderRadius: '6px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '5px',
+                boxShadow: '0 2px 6px rgba(0,0,0,0.3)',
+                backdropFilter: 'blur(4px)',
+                pointerEvents: 'none',
+              }}
+            >
+              <Eye style={{ width: '12px', height: '12px' }} />
+              <span>ORIGINAL</span>
             </div>
           </div>
         )}
 
-        {/* ── Divider line + drag handle ── */}
+        {/* 3. Divider Line & Interactive Handle Visual */}
         {showBoth && (
+          <>
+            {/* Vertical Divider Line */}
+            <div
+              style={{
+                position: 'absolute',
+                top: 0,
+                bottom: 0,
+                left: `${pos}%`,
+                width: '2px',
+                background: '#ffffff',
+                boxShadow: '0 0 10px rgba(0,0,0,0.7)',
+                transform: 'translateX(-50%)',
+                zIndex: 20,
+                pointerEvents: 'none',
+              }}
+            />
+
+            {/* Circular Handle */}
+            <div
+              style={{
+                position: 'absolute',
+                top: '50%',
+                left: `${pos}%`,
+                transform: 'translate(-50%, -50%)',
+                width: '42px',
+                height: '42px',
+                borderRadius: '50%',
+                background: '#ffffff',
+                border: '3px solid #FF9900',
+                boxShadow: '0 4px 14px rgba(0,0,0,0.4)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                zIndex: 21,
+                pointerEvents: 'none',
+                transformOrigin: 'center center',
+                scale: isDragging ? '1.15' : '1',
+                transition: isDragging ? 'none' : 'scale 0.15s ease',
+              }}
+            >
+              <MoveHorizontal style={{ width: '18px', height: '18px', color: '#FF9900' }} />
+            </div>
+          </>
+        )}
+
+        {/* 4. Native Range Input Overlay for Universal Compatibility & Accessibility */}
+        {showBoth && (
+          <input
+            type="range"
+            min="0"
+            max="100"
+            step="0.1"
+            value={pos}
+            onChange={handleRangeChange}
+            onInput={handleRangeChange}
+            aria-label="Before and after comparison slider"
+            style={{
+              position: 'absolute',
+              inset: 0,
+              width: '100%',
+              height: '100%',
+              opacity: 0,
+              cursor: 'ew-resize',
+              zIndex: 30,
+              margin: 0,
+              padding: 0,
+              touchAction: 'none',
+              WebkitAppearance: 'none',
+              appearance: 'none',
+            }}
+          />
+        )}
+
+        {/* Single Image Notice */}
+        {!showBoth && (
           <div
             style={{
-              position: 'absolute', top: 0, bottom: 0, zIndex: 20,
-              left: `${pos}%`,
+              position: 'absolute',
+              bottom: '12px',
+              left: '50%',
               transform: 'translateX(-50%)',
-              pointerEvents: 'none',
+              zIndex: 15,
+              background: 'rgba(0,0,0,0.75)',
+              color: '#ffffff',
+              fontSize: '12px',
+              fontWeight: 600,
+              padding: '6px 14px',
+              borderRadius: '6px',
+              whiteSpace: 'nowrap',
+              backdropFilter: 'blur(4px)',
             }}
           >
-            {/* Vertical line */}
-            <div style={{
-              position: 'absolute', top: 0, bottom: 0, left: '50%',
-              width: '2px', background: '#fff',
-              boxShadow: '0 0 8px rgba(0,0,0,0.6)',
-              transform: 'translateX(-50%)',
-            }} />
-
-            {/* Circular handle */}
-            <div style={{
-              position: 'absolute', top: '50%', left: '50%',
-              transform: 'translate(-50%, -50%)',
-              width: '36px', height: '36px', borderRadius: '50%',
-              background: '#fff',
-              boxShadow: '0 2px 12px rgba(0,0,0,0.4)',
-              border: '2px solid #FF9900',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              transition: dragging ? 'none' : 'transform 0.1s ease',
-              /* Slightly scale up when dragging for feedback */
-              scale: dragging ? '1.12' : '1',
-            }}>
-              <MoveHorizontal style={{ width: '16px', height: '16px', color: '#FF9900' }} />
-            </div>
-          </div>
-        )}
-
-        {/* Only one image — just show it without slider UI */}
-        {!showBoth && (
-          <div style={{ position: 'absolute', bottom: '10px', left: '50%', transform: 'translateX(-50%)', zIndex: 15,
-            background: 'rgba(0,0,0,0.7)', color: '#fff', fontSize: '11px', fontWeight: 600,
-            padding: '4px 10px', borderRadius: '6px', whiteSpace: 'nowrap', backdropFilter: 'blur(4px)' }}>
-            Upload an original photo to see the comparison
+            Upload a photo to see the live AI studio comparison
           </div>
         )}
       </div>
 
-      {/* Footer */}
-      <div style={{ padding: '10px 14px', borderTop: '1px solid #EAEDED', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11px', color: '#8D9096' }}>
-          <span style={{ width: '7px', height: '7px', borderRadius: '50%', background: '#1D7A3B', display: 'inline-block', animation: 'pulse 2s infinite' }} />
-          Background Isolated · Studio Lighting · Shadow Applied
+      {/* ── Footer ── */}
+      <div
+        style={{
+          padding: '12px 16px',
+          borderTop: '1px solid #EAEDED',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          background: '#FAFAFA',
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', color: '#565959' }}>
+          <span
+            style={{
+              width: '8px',
+              height: '8px',
+              borderRadius: '50%',
+              background: '#1D7A3B',
+              display: 'inline-block',
+            }}
+          />
+          <span>Background Isolated · Studio Lighting · Shadow Applied</span>
         </div>
         {enhancedUrl && (
           <a
             href={enhancedUrl}
             target="_blank"
             rel="noreferrer"
-            style={{ fontSize: '11px', fontWeight: 700, color: '#007185', display: 'flex', alignItems: 'center', gap: '4px', textDecoration: 'none' }}
+            style={{
+              fontSize: '12px',
+              fontWeight: 700,
+              color: '#007185',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '4px',
+              textDecoration: 'none',
+            }}
           >
-            <Download style={{ width: '13px', height: '13px' }} />
-            Download HD
+            <Download style={{ width: '14px', height: '14px' }} />
+            <span>Download HD</span>
           </a>
         )}
       </div>

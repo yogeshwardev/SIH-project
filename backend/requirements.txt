@@ -16,3 +16,5 @@ pytest>=8.0.2
 httpx>=0.27.0
 rembg[cpu]==2.0.81
 faster-whisper>=1.1,<2
+onnxruntime-openvino==1.24.1; platform_system == "Windows"
+openvino==2025.4.1; platform_system == "Windows"

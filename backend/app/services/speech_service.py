@@ -226,7 +226,9 @@ class SpeechService:
         if not transcript:
             raise RuntimeError("No speech was detected in the recording.")
         detected = self._language_name(language_code, transcript)
-        return transcript, detected, 0.95, settings.OPENAI_TRANSCRIPTION_MODEL, {"provider_confidence": 0.95}
+        # The JSON transcription response does not expose a calibrated aggregate
+        # probability. Do not invent one; seller confirmation is tracked separately.
+        return transcript, detected, 0.0, settings.OPENAI_TRANSCRIPTION_MODEL, {"provider_confidence_available": 0.0}
 
     def synthesize_speech(self, text: str, language: str = "hi-IN") -> bytes:
         if not settings.OPENAI_API_KEY or settings.AI_PROVIDER.lower() != "openai":

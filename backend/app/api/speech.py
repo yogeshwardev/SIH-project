@@ -101,9 +101,13 @@ async def speech_capabilities():
         "cloud_transcription": cloud_enabled,
         "local_transcription": speech_service.local_transcription_available(),
         "local_transcription_model": settings.LOCAL_WHISPER_MODEL if speech_service.local_transcription_available() else None,
+        "local_fast_model": settings.LOCAL_WHISPER_FAST_MODEL if speech_service.local_transcription_available() else None,
+        "local_model_strategy": "fast-first-confidence-fallback",
+        "local_fast_accept_confidence": settings.LOCAL_WHISPER_FAST_ACCEPT_CONFIDENCE,
         "cloud_voiceover": cloud_enabled,
         "browser_dictation_fallback": True,
         "browser_voiceover_fallback": True,
         "guided_product_interview": True,
         "evidence_gated_pricing": True,
+        "human_verified_understanding_confidence": 0.99,
     }

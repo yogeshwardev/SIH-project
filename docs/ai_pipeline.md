@@ -9,8 +9,10 @@ CraftLink AI integrates five foundational AI/ML modules designed to run reliably
 ### Pipeline Flow
 ```
 Raw Photograph 
-  → Resolution Validation (< 1600px Lanczos Resampling)
-  → BiRefNet-General-Lite Neural Foreground Segmentation
+  → Resolution Validation (< 2400px Lanczos Resampling)
+  → U2NetP Low-Latency Segmentation
+  → Calibrated Quality Gate (accept ≥ 0.95; otherwise escalate)
+  → BiRefNet-General-Lite Accurate Segmentation (Intel OpenVINO on Windows)
   → Mask Refinement (bilateral smoothing, adaptive morphology, component cleanup)
   → Foreground-Aware LAB Exposure and Color Correction
   → Masked Dominant-Palette Extraction
@@ -19,9 +21,10 @@ Raw Photograph
 ```
 
 ### Key Technical Details
-- **Neural Background Removal**: BiRefNet-General-Lite produces the primary alpha matte. The service then refines thin and elongated crafts separately so handles, pens, reeds, jewelry, and narrow edges survive cleanup. GrabCut remains an automatic offline fallback if the neural runtime is unavailable.
+- **Neural Background Removal**: U2NetP handles clear product photos first. Images with clutter, uncertain edges, or fragmented masks automatically escalate to BiRefNet-General-Lite. The service refines thin and elongated crafts separately so handles, pens, reeds, jewelry, and narrow edges survive cleanup. GrabCut remains an automatic offline fallback if the neural runtime is unavailable.
+- **CPU Acceleration**: Both segmentation sessions are preloaded in the background. Windows/Intel installations use the OpenVINO ONNX Runtime provider when available, with automatic standard-CPU fallback.
 - **Shadow Lifting & Texture Preservation**: Exposure and local contrast correction run only inside the foreground mask, preventing a white wall or paper background from skewing product color. This preserves weave, carving, paint, and metal detail without contaminating the object boundary.
-- **Quality Guardrail**: Each matte receives a geometric quality score. Implausible neural masks fall back safely, while accepted masks are cropped, centered, and composited on a neutral gradient with a synthetic soft ground shadow.
+- **Quality Guardrail**: Confidence is calibrated from component coherence, geometry, and edge certainty—not hard-coded. The fast mask must be valid and score at least 0.95; otherwise it is rejected and the accurate tier runs.
 
 ---
 
@@ -31,12 +34,14 @@ Raw Photograph
 - **Supported Formats**: WAV, MP3, M4A, WebM (HTML5 `MediaRecorder` direct browser microphone recording), OGG.
 - **Language Detection**: Identifies whether the artisan is speaking in Hindi, English, Bengali, Tamil, Telugu, Marathi, or Gujarati.
 - **Phonetic Entity Matching**: Tailored for Indian craft vocabulary (e.g., *Zari*, *Katan Silk*, *Lost-Wax*, *Terracotta*, *Channapatna*, *Dokra*, *Pattachitra*).
-- **Resilient Recognition**: Browser live captions are the fast path, cloud transcription is used when configured, and Faster Whisper `small` with CPU int8 quantization is the local recorded-audio fallback. Voice-activity and confidence checks reject silent or unclear recordings instead of generating product claims.
+- **Resilient Recognition**: Browser live captions are the immediate path and cloud transcription is used when configured. Local recorded audio runs Faster Whisper `base` with CPU int8 first; results below the calibrated mean-word threshold or with too many uncertain words escalate to `small`. Voice-activity checks reject silent or unclear recordings instead of generating product claims.
+- **Latency Reporting**: The API reports processing time, audio duration, real-time factor, selected engine, mean/median word probability, low-confidence word ratio, and whether the accuracy fallback ran.
 
 ### Guided Product Interview
 - Each voice or typed response is processed as an independent, resumable turn; the client sends only the current user's confirmed state, preventing cross-artisan conversation leakage.
 - The interview selects the next missing high-value fact and asks it aloud in Hindi or English.
 - Pricing remains locked until product identity, material, production time, raw-material cost, fair labor, and packaging cost are explicitly evidenced.
+- Once all required facts exist, the AI reads them back for a final human confirmation. Only that confirmation produces the 0.99 product-understanding score; raw acoustic confidence remains separate and honest.
 - A visible readiness meter and conversation history allow the artisan to understand and correct the AI before the listing is generated.
 
 ---

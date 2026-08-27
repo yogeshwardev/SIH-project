@@ -45,6 +45,7 @@ class Settings(BaseSettings):
     IMAGE_FAST_PATH_ENABLED: bool = True
     IMAGE_FAST_ACCEPT_CONFIDENCE: float = 0.95
     IMAGE_MODEL_PRELOAD: bool = True
+    IMAGE_ENABLE_OPENVINO: bool = True
     
     # Host & Port
     HOST: str = "0.0.0.0"

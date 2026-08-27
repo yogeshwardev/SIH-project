@@ -16,6 +16,7 @@ from backend.app.models.product import Product
 from backend.app.models.order_inquiry import OrderInquiry
 from backend.app.services.image_service import image_service
 from backend.app.services.speech_service import speech_service
+from backend.app.services.speech_service import SpeechService
 from backend.app.services.product_intelligence import product_intelligence_service
 from backend.app.services.listing_service import listing_service
 from backend.app.services.pricing_service import pricing_service
@@ -115,8 +116,46 @@ def test_speech_capabilities_are_explicit():
     assert "cloud_transcription" in response.json()
     assert response.json()["local_transcription"] is True
     assert response.json()["local_transcription_model"] == "small"
+    assert response.json()["local_fast_model"] == "base"
+    assert response.json()["local_model_strategy"] == "fast-first-confidence-fallback"
+    assert response.json()["human_verified_understanding_confidence"] == 0.99
     assert response.json()["guided_product_interview"] is True
     assert response.json()["evidence_gated_pricing"] is True
+
+def test_local_speech_uses_fast_model_then_accuracy_fallback(monkeypatch, tmp_path):
+    recording = tmp_path / "voice.wav"
+    recording.write_bytes(b"valid-audio-placeholder")
+    service = SpeechService()
+    created = []
+    candidates = iter([
+        {
+            "transcript": "uncertain product",
+            "confidence": 0.70,
+            "median_word_probability": 0.72,
+            "language_probability": 0.98,
+            "low_confidence_word_ratio": 0.40,
+            "detected_code": "en",
+        },
+        {
+            "transcript": "blue pottery vase material cost 1200 rupees",
+            "confidence": 0.93,
+            "median_word_probability": 0.96,
+            "language_probability": 0.99,
+            "low_confidence_word_ratio": 0.0,
+            "detected_code": "en",
+        },
+    ])
+
+    monkeypatch.setattr(service, "_create_whisper_model", lambda name: created.append(name) or object())
+    monkeypatch.setattr(service, "_decode_local_candidate", lambda model, path, language: next(candidates))
+    transcript, language, confidence, engine, details = service._transcribe_with_local_whisper(recording, "en")
+
+    assert created == ["base", "small"]
+    assert "material cost" in transcript
+    assert language == "English"
+    assert confidence == 0.93
+    assert engine == "faster-whisper-small-int8"
+    assert details["fallback_triggered"] == 1.0
 
 def test_guided_product_interview_blocks_unverified_pricing():
     first = client.post("/api/speech/product-interview", json={

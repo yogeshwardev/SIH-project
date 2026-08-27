@@ -883,7 +883,7 @@ function AiListingStudio({ onProductCreated, onNavigateToAdmin }) {
     setLoading(true); setError(null);
     try {
       setLoadMsg('Enhancing image with AI Computer Vision...');
-      setImgData({ original_image_url: preset.rawImage, enhanced_image_url: preset.enhancedImage, detected_objects: [preset.category], dominant_colors: [], confidence_score: 0.98 });
+      setImgData({ original_image_url: preset.rawImage, enhanced_image_url: preset.enhancedImage, detected_objects: [preset.category], dominant_colors: [], segmentation_engine: 'Pre-generated sample (no live confidence)' });
       setLoadMsg('Transcribing artisan voice...');
       setTxt(preset.voiceText);
       setDetLang(preset.language);
@@ -1194,7 +1194,7 @@ function AiListingStudio({ onProductCreated, onNavigateToAdmin }) {
                       <div className="text-[10px] font-semibold uppercase tracking-wider text-violet-500">Evidence-gated interview</div>
                     </div>
                     <span className="rounded-full bg-white px-2.5 py-1 text-[11px] font-black text-violet-700 shadow-sm">
-                      {Math.round((interview?.confidence_score || 0) * 100)}% AI confidence
+                      {Math.round((interview?.confidence_score || 0) * 100)}% understanding confidence
                     </span>
                   </div>
                   <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-violet-100">

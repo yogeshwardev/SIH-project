@@ -80,8 +80,7 @@ export default function ArtisanStudioPage({ onProductCreated, activePreset, onNa
         enhanced_image_url: preset.enhancedImage,
         detected_objects: [preset.category, preset.craft],
         dominant_colors: ['#C2410C', '#D97706', '#1E293B'],
-        processing_time_seconds: 0.8,
-        confidence_score: 0.98
+        segmentation_engine: 'Pre-generated sample (no live confidence)'
       });
 
       setLoadingMessage('2/5 Transcribing artisan speech with language detection...');

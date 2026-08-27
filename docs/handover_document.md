@@ -4,7 +4,7 @@
 **Identity**: Commercial-grade Direct Artisan E-Commerce Marketplace & Enterprise Operating System  
 **Government Context**: Ministry of Social Justice and Empowerment (SIH Problem Statement SIH26090)  
 **Git Repository**: `https://github.com/yogeshwardev/SIH-project.git` (Branch: `main`)  
-**Handover Timestamp**: August 26, 2026
+**Handover Timestamp**: August 27, 2026
 
 ---
 
@@ -23,8 +23,8 @@ graph TD
 
     subgraph Backend ["FastAPI Backend (Port 8000)"]
         APIRouter["FastAPI Router (/api)"]
-        CVService["📸 Computer Vision Studio Service"]
-        SpeechService["🎙️ Whisper / Acoustic Transcriber"]
+        CVService["📸 U2NetP → BiRefNet / OpenVINO Studio"]
+        SpeechService["🎙️ Whisper base → small Transcriber"]
         NLPService["🧠 Zero-Hallucination Entity Extractor"]
         ListingService["🌐 Bilingual Generative Copywriter"]
         MLPricing["📊 Ensemble ML Pricing Model (R² = 0.9824)"]
@@ -70,8 +70,8 @@ d:/sih/
 │   │   │   ├── artisan.py          # Pydantic schemas for sellers
 │   │   │   └── product.py          # Pydantic schemas for listings, pricing, orders
 │   │   ├── services/
-│   │   │   ├── image_service.py    # BiRefNet neural segmentation, matte refinement & studio compositor
-│   │   │   ├── speech_service.py   # Multi-language acoustic speech transcriber
+│   │   │   ├── image_service.py    # Quality-gated U2NetP/BiRefNet segmentation & studio compositor
+│   │   │   ├── speech_service.py   # Fast-first multilingual Whisper cascade
 │   │   │   ├── product_intelligence.py # Zero-hallucination taxonomy parser
 │   │   │   ├── listing_service.py  # Bilingual English & Hindi catalog copywriter
 │   │   │   └── pricing_service.py  # Fair-trade cost economics calculator
@@ -113,7 +113,7 @@ d:/sih/
 │   └── vite.config.js              # Vite server configuration with proxy to port 8000
 │
 ├── tests/
-│   ├── test_backend.py             # Pytest test suite (8 tests)
+│   ├── test_backend.py             # Pytest suite (14 tests, including AI cascades)
 │   └── verify_acceptance.py        # 15-Point automated end-to-end acceptance suite
 └── README.md
 ```
@@ -130,15 +130,15 @@ d:/sih/
 ### Portal 2: 🏢 Artisan Seller Central (`http://localhost:5173` $\rightarrow$ Seller Central)
 - **Seller Dashboard**: Active catalog valuation, total settled payouts (₹48,950), pending orders, and 0% intermediary fee guarantee.
 - **AI Listing Studio**: 
-  1. *Photo Studio*: Upload raw photo $\rightarrow$ BiRefNet AI isolates the craft, performs foreground-aware lighting correction, validates the mask, and adds a grounding soft shadow.
-  2. *Interactive Voice Interview*: Speak in Hindi/English $\rightarrow$ transcription, spoken follow-up questions, resumable answer history, and a visible evidence-readiness meter.
-  3. *Evidence-Gated Extraction*: The AI retains confirmed product facts and prevents pricing until essential production and cost inputs have been supplied.
+  1. *Photo Studio*: Upload raw photo $\rightarrow$ U2NetP handles clear objects, a calibrated quality gate escalates difficult images to OpenVINO-accelerated BiRefNet, and the compositor performs foreground-aware lighting correction with a grounding shadow.
+  2. *Interactive Voice Interview*: Speak in Hindi/English $\rightarrow$ immediate browser captions or the Faster Whisper `base` → `small` local cascade, spoken follow-up questions, resumable answer history, and a visible evidence-readiness meter.
+  3. *Evidence-Gated Extraction*: The AI retains confirmed product facts, reads them back for artisan confirmation, and prevents pricing until essential production and cost inputs have been supplied and verified.
   4. *Multilingual Copywriting*: Generated English and Hindi titles, rich descriptions, bullet specifications, and SEO tags with **"🔊 Listen AI Voiceover"** playback.
   5. *Algorithmic Pricing*: Direct raw materials + artisan labor days + packaging overhead + Ensemble ML reference price recommendation.
   6. *Submit for Verification*: Submits craft to the Admin Approval Queue as `Pending Approval`.
 
 ### Portal 3: 🛡️ Admin Operations & Governance (`http://localhost:5173` $\rightarrow$ Admin Operations)
-- **Pending Approvals Queue**: Inspect submitted crafts, view Raw vs Studio image, listen to artisan voice transcript, inspect AI confidence (98.5%), and click **`Authorize & Publish to Store`** or **`Reject with Feedback`**.
+- **Pending Approvals Queue**: Inspect submitted crafts, view Raw vs Studio image, listen to the artisan transcript, inspect calibrated mask/acoustic confidence and the separate human-verified understanding score, then click **`Authorize & Publish to Store`** or **`Reject with Feedback`**.
 - **Live Marketplace Catalog**: Manage published listings, stock units, and pricing.
 - **Customer Orders & Inquiries**: Real-time table of incoming retail purchases with status management (`New`, `Contacted`, `Dispatched`, `Completed`).
 - **Impact & Financial Analytics**: Total catalog valuation, average artisan surplus (+34.7%), and **1-Click CSV & JSON downloads**.
@@ -149,10 +149,10 @@ d:/sih/
 
 | Subsystem | Model / Algorithm | Performance & Metric |
 | :--- | :--- | :--- |
-| **Computer Vision Studio** | BiRefNet-General-Lite + adaptive matte refinement + foreground-aware LAB correction + Gaussian shadow compositor | Neural segmentation with mask-quality reporting and 1200 × 1200 catalog output; GrabCut safety fallback |
-| **Interactive Voice Product Expert** | Web Speech API + local Faster Whisper `small` CPU/int8 fallback + optional cloud transcription + stateless interview policy | Multilingual spoken/typed turns, silence rejection, targeted follow-ups, resumable state, and evidence-gated pricing |
+| **Computer Vision Studio** | U2NetP fast tier + calibrated gate + OpenVINO-accelerated BiRefNet-General-Lite + adaptive matte refinement | Measured mask confidence with per-signal breakdown, 1200 × 1200 catalog output, background preload, and GrabCut safety fallback |
+| **Interactive Voice Product Expert** | Web Speech API + local Faster Whisper `base` → `small` CPU/int8 cascade + optional cloud transcription + stateless interview policy | Low-latency multilingual turns, word-level confidence, uncertainty escalation, silence rejection, human confirmation, and evidence-gated pricing |
 | **AI Voiceover (TTS)** | Multilingual Neural `SpeechSynthesis` Engine | Native Hindi (`hi-IN`) and Indian English (`en-IN`) text-to-speech with natural cadence |
-| **Product Intelligence (NLP)** | Rule-based regex parser + 50+ craft taxonomies with confidence tagging | 100% precision, strict zero-hallucination compliance |
+| **Product Intelligence (NLP)** | Evidence-gated parser + craft taxonomy + explicit seller confirmation | Missing facts remain unverified; complete product/cost understanding receives 99% only after human confirmation |
 | **Algorithmic Pricing Engine** | **Voting Ensemble**: Random Forest Regressor + Gradient Boosting Regressor + fair-trade cost floor | Suggested range plus benchmark sample count, similarity confidence, assumptions, and low-coverage human-review flag |
 
 ---

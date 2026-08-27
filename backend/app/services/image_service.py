@@ -1,3 +1,4 @@
+import importlib.util
 import os
 import threading
 import time
@@ -9,6 +10,31 @@ import numpy as np
 from PIL import Image, ImageEnhance, ImageFilter, ImageOps
 
 from backend.app.config import settings
+
+
+_OPENVINO_DLL_DIRECTORY = None
+
+
+def _enable_openvino_on_windows() -> None:
+    """Expose Intel OpenVINO DLLs before rembg imports ONNX Runtime."""
+    global _OPENVINO_DLL_DIRECTORY
+    if os.name != "nt" or not settings.IMAGE_ENABLE_OPENVINO or _OPENVINO_DLL_DIRECTORY is not None:
+        return
+    try:
+        spec = importlib.util.find_spec("openvino")
+        if spec is None or spec.origin is None:
+            return
+        library_dir = os.path.join(os.path.dirname(spec.origin), "libs")
+        if not os.path.isdir(library_dir):
+            return
+        _OPENVINO_DLL_DIRECTORY = os.add_dll_directory(library_dir)
+        os.environ["PATH"] = library_dir + os.pathsep + os.environ.get("PATH", "")
+    except (AttributeError, OSError):
+        # Standard ONNX CPU inference remains available on unsupported installs.
+        return
+
+
+_enable_openvino_on_windows()
 
 
 class ComputerVisionStudioService:

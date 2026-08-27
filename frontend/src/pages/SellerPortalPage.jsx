@@ -54,6 +54,8 @@ const questionUiCopyFor = (language) => {
     placeholder: 'మీ భాషలో టైప్ చేయండి…',
     save: 'సేవ్ చేసి తర్వాత',
     back: 'ఫోటోకు తిరిగి వెళ్లండి',
+    listenQuestion: 'ప్రశ్నను వినండి',
+    stopQuestion: 'వాయిస్ ఆపండి',
   };
   if (code === 'hi-IN') return {
     heading: 'एक आसान सवाल',
@@ -68,6 +70,8 @@ const questionUiCopyFor = (language) => {
     placeholder: 'अपनी भाषा में लिखें…',
     save: 'सहेजें और आगे जाएँ',
     back: 'फोटो पर वापस जाएँ',
+    listenQuestion: 'सवाल सुनें',
+    stopQuestion: 'आवाज़ रोकें',
   };
   return {
     heading: 'One simple question',
@@ -82,6 +86,8 @@ const questionUiCopyFor = (language) => {
     placeholder: 'Type in your own language…',
     save: 'Save & Next',
     back: 'Back to Photo',
+    listenQuestion: 'Listen to question',
+    stopQuestion: 'Stop voice',
   };
 };
 
@@ -975,6 +981,7 @@ function AiListingStudio({ onProductCreated, onNavigateToAdmin }) {
 
   const beginInterview = async () => {
     if (!imgData) return;
+    voiceAssistant.prepareSpeech();
     setLoading(true); setError(null);
     setLoadMsg('Preparing your first simple question…');
     try {
@@ -992,7 +999,12 @@ function AiListingStudio({ onProductCreated, onNavigateToAdmin }) {
       setCosts({ ...result.cost_inputs, production_time: result.attributes.production_time || '' });
       setInterviewTurns([{ role: 'assistant', text: result.assistant_message }]);
       setStep(2);
-      voiceAssistant.speak(result.assistant_message, speechCodeForLanguage(detLang));
+      setSpeaking(true);
+      voiceAssistant.speak(
+        result.assistant_message,
+        speechCodeForLanguage(detLang),
+        () => setSpeaking(false),
+      );
     } catch (e) { setError(e.message); }
     finally { setLoading(false); setLoadMsg(''); }
   };
@@ -1019,6 +1031,7 @@ function AiListingStudio({ onProductCreated, onNavigateToAdmin }) {
     const text = String(answerOverride || pendingAnswer?.text || typedAnswer || '').trim();
     const lang = languageOverride || pendingAnswer?.language || detLang || 'Hindi';
     if (!text) return;
+    voiceAssistant.prepareSpeech();
     setLoading(true); setError(null);
     setLoadMsg('Saving your answer and preparing the next step…');
     try {
@@ -1060,7 +1073,12 @@ function AiListingStudio({ onProductCreated, onNavigateToAdmin }) {
         setPricing(pr);
         setStep(3);
       } else {
-        voiceAssistant.speak(result.assistant_message, speechCodeForLanguage(lang));
+        setSpeaking(true);
+        voiceAssistant.speak(
+          result.assistant_message,
+          speechCodeForLanguage(lang),
+          () => setSpeaking(false),
+        );
       }
     } catch (e) { setError(e.message); }
     finally { setLoading(false); setLoadMsg(''); }
@@ -1331,6 +1349,25 @@ function AiListingStudio({ onProductCreated, onNavigateToAdmin }) {
                   <div className="mt-3 rounded-xl border border-white/80 bg-white/90 p-3 text-[13px] font-semibold leading-relaxed text-slate-800">
                     {interview?.assistant_message || 'Tell us about your product in your own words.'}
                   </div>
+                  <button
+                    onClick={() => {
+                      if (speaking) {
+                        voiceAssistant.stopSpeaking();
+                        setSpeaking(false);
+                      } else {
+                        setSpeaking(true);
+                        voiceAssistant.speak(
+                          interview?.assistant_message,
+                          speechCodeForLanguage(detLang),
+                          () => setSpeaking(false),
+                        );
+                      }
+                    }}
+                    className="mt-3 flex w-full items-center justify-center gap-2 rounded-xl border border-violet-300 bg-white px-4 py-2.5 text-[13px] font-black text-violet-800 hover:bg-violet-50"
+                  >
+                    {speaking ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
+                    {speaking ? questionUi.stopQuestion : questionUi.listenQuestion}
+                  </button>
                   {interview?.status === 'needs_confirmation' && (
                     <button
                       onClick={() => submitInterviewAnswer(confirmationAnswerForLanguage(detLang), detLang)}

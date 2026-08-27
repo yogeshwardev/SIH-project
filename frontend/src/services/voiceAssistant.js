@@ -8,6 +8,7 @@ class VoiceAssistant {
     this.recognition = null;
     this.audio = null;
     this.audioUrl = null;
+    this.speechToken = 0;
     this.isListening = false;
     this.shouldListen = false;
     this.finalTranscript = '';
@@ -88,13 +89,28 @@ class VoiceAssistant {
     this.isListening = false;
   }
 
-  async speak(text, lang = 'hi-IN', onEnd = null) {
+  prepareSpeech() {
+    // Resume while the user gesture is still active. This avoids browsers
+    // blocking a prompt that is spoken only after an API request finishes.
+    try { this.synth?.resume(); } catch (_) { /* unsupported browser */ }
+  }
+
+  async speak(text, lang = 'hi-IN', onEnd = null, options = {}) {
     const cleanText = String(text || '').replace(/[*_#•]/g, ' ').trim().slice(0, 4096);
     if (!cleanText) {
       onEnd?.();
       return false;
     }
     this.stopSpeaking();
+    const speechToken = this.speechToken;
+    this.prepareSpeech();
+
+    // Questions should begin immediately and work offline. Neural server voice
+    // remains available when a caller explicitly asks for it.
+    if (!options.preferNeural && this._speakInBrowser(cleanText, lang, onEnd, speechToken)) {
+      return true;
+    }
+
     try {
       const response = await fetch('/api/speech/synthesize', {
         method: 'POST',
@@ -105,20 +121,25 @@ class VoiceAssistant {
         const blob = await response.blob();
         this.audioUrl = URL.createObjectURL(blob);
         this.audio = new Audio(this.audioUrl);
-        this.audio.onended = () => this._finishSpeech(onEnd);
-        this.audio.onerror = () => this._finishSpeech(onEnd);
+        this.audio.onended = () => this._finishSpeech(onEnd, speechToken);
+        this.audio.onerror = () => this._finishSpeech(onEnd, speechToken);
         await this.audio.play();
         return true;
       }
     } catch (_) {
       // Browser speech keeps voiceover available offline.
     }
-    return this._speakInBrowser(cleanText, lang, onEnd);
+    if (options.preferNeural) {
+      const browserStarted = this._speakInBrowser(cleanText, lang, onEnd, speechToken);
+      if (!browserStarted && speechToken === this.speechToken) onEnd?.();
+      return browserStarted;
+    }
+    if (speechToken === this.speechToken) onEnd?.();
+    return false;
   }
 
-  _speakInBrowser(text, lang, onEnd) {
+  _speakInBrowser(text, lang, onEnd, speechToken = this.speechToken) {
     if (!this.synth || typeof SpeechSynthesisUtterance === 'undefined') {
-      onEnd?.();
       return false;
     }
     const requested = String(lang || 'en-IN').toLowerCase();
@@ -141,14 +162,15 @@ class VoiceAssistant {
     utterance.voice = voices.find((voice) => voice.lang.toLowerCase() === locale.toLowerCase())
       || voices.find((voice) => voice.lang.toLowerCase().startsWith(locale.slice(0, 2).toLowerCase()))
       || null;
-    utterance.onend = () => this._finishSpeech(onEnd);
-    utterance.onerror = () => this._finishSpeech(onEnd);
+    utterance.onend = () => this._finishSpeech(onEnd, speechToken);
+    utterance.onerror = () => this._finishSpeech(onEnd, speechToken);
     this.synth.resume();
     this.synth.speak(utterance);
     return true;
   }
 
-  _finishSpeech(onEnd) {
+  _finishSpeech(onEnd, speechToken = this.speechToken) {
+    if (speechToken !== this.speechToken) return;
     if (this.audioUrl) URL.revokeObjectURL(this.audioUrl);
     this.audioUrl = null;
     this.audio = null;
@@ -156,6 +178,7 @@ class VoiceAssistant {
   }
 
   stopSpeaking() {
+    this.speechToken += 1;
     if (this.audio) {
       this.audio.pause();
       this.audio.currentTime = 0;

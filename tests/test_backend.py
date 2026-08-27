@@ -68,7 +68,11 @@ def test_image_enhancement_endpoint_returns_renderable_urls(monkeypatch):
         cv_center = (width // 2, height // 2)
         import cv2
         cv2.ellipse(alpha, cv_center, (70, 70), 0, 0, 360, 255, -1)
-        return alpha, "test-segmentation", 0.99
+        return alpha, "test-segmentation", 0.99, {
+            "geometry": 0.99,
+            "component_coherence": 1.0,
+            "edge_certainty": 0.98,
+        }
 
     monkeypatch.setattr(image_service, "_segment_product", test_segment)
 
@@ -128,13 +132,27 @@ def test_guided_product_interview_reaches_pricing_readiness():
     })
     assert response.status_code == 200
     data = response.json()
-    assert data["status"] == "ready_for_pricing"
+    assert data["status"] == "needs_confirmation"
     assert data["cost_inputs"] == {
         "material_cost": 1200.0,
         "labor_cost": 2500.0,
         "packaging_cost": 150.0,
     }
     assert data["readiness_score"] >= 0.66
+
+    confirmed = client.post("/api/speech/product-interview", json={
+        "utterance": "Yes, these details and costs are correct.",
+        "conversation_transcript": "Product details and costs supplied.",
+        "language": "English",
+        "known_attributes": data["attributes"],
+        "cost_inputs": data["cost_inputs"],
+        "last_question_key": "confirmation",
+    })
+    assert confirmed.status_code == 200
+    confirmed_data = confirmed.json()
+    assert confirmed_data["status"] == "ready_for_pricing"
+    assert confirmed_data["human_confirmed"] is True
+    assert confirmed_data["confidence_score"] == 0.99
 
 def test_nlp_product_information_extraction():
     transcript = "यह शुद्ध बनारसी कतान सिल्क साड़ी है जिसे हथकरघे पर 6 दिन में बुना गया है। इसकी लंबाई 6.5 मीटर है।"

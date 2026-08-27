@@ -1,28 +1,26 @@
 import React, { useState } from 'react';
-import { Heart, ShoppingCart, Check, Eye, Truck } from 'lucide-react';
+import { Heart, ShoppingCart, Check } from 'lucide-react';
 
-/* Star rendering */
 function Stars({ rating }) {
   const full = Math.floor(rating);
   const half = rating - full >= 0.5;
   return (
-    <div className="flex items-center gap-0.5 text-amber-400" style={{ fontSize: '13px', lineHeight: 1 }}>
+    <div style={{ display: 'flex', gap: '1px', color: '#FFA41C', fontSize: '13px', lineHeight: 1 }}>
       {Array.from({ length: 5 }, (_, i) => (
-        <span key={i}>
-          {i < full ? '★' : i === full && half ? '⯨' : '☆'}
-        </span>
+        <span key={i}>{i < full ? '★' : i === full && half ? '⯨' : '☆'}</span>
       ))}
     </div>
   );
 }
 
 export default function ProductCardCommercial({ product, onAddToCart, onQuickView, onBuyNow }) {
-  const [wishlisted,  setWishlisted]  = useState(false);
-  const [justAdded,   setJustAdded]   = useState(false);
+  const [wishlisted, setWishlisted] = useState(false);
+  const [justAdded,  setJustAdded]  = useState(false);
+  const [hovered,    setHovered]    = useState(false);
 
   const price    = product.price || product.suggested_price || 2499;
-  const mrp      = product.mrp  || Math.round(price * 1.45);
-  const discount = product.discount_pct || Math.round(((mrp - price) / mrp) * 100);
+  const mrp      = product.mrp || Math.round(price * 1.45);
+  const discount = Math.round(((mrp - price) / mrp) * 100);
   const rating   = product.rating || 4.7;
   const reviews  = product.review_count || 230;
   const savings  = mrp - price;
@@ -31,7 +29,7 @@ export default function ProductCardCommercial({ product, onAddToCart, onQuickVie
     e.stopPropagation();
     onAddToCart(product);
     setJustAdded(true);
-    setTimeout(() => setJustAdded(false), 2200);
+    setTimeout(() => setJustAdded(false), 2000);
   };
 
   const handleBuy = (e) => {
@@ -39,162 +37,138 @@ export default function ProductCardCommercial({ product, onAddToCart, onQuickVie
     onBuyNow(product);
   };
 
-  const handleWish = (e) => {
-    e.stopPropagation();
-    setWishlisted(w => !w);
-  };
-
   return (
     <div
-      className="product-card-hover group cursor-pointer select-none"
+      className="product-card-hover"
       onClick={() => onQuickView(product)}
-      style={{ fontFamily: "'Inter', sans-serif", borderRadius: '12px' }}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      style={{ cursor: 'pointer', fontFamily: "'Inter', sans-serif" }}
     >
-      {/* ── IMAGE BLOCK ──────────────────────────── */}
-      <div className="relative bg-[#FAFAFA] rounded-t-xl overflow-hidden" style={{ paddingTop: '100%' }}>
-        
-        {/* Image */}
-        <div className="absolute inset-0 flex items-center justify-center p-3 img-zoom-container">
+      {/* ── IMAGE ─────────────────────── */}
+      <div style={{ position: 'relative', background: '#FAFAFA', paddingTop: '100%', overflow: 'hidden' }}>
+        <div
+          className="img-zoom-container"
+          style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '12px' }}
+        >
           <img
             src={product.enhanced_image || product.original_image}
             alt={product.product_name}
-            className="w-full h-full object-contain"
+            style={{ width: '100%', height: '100%', objectFit: 'contain' }}
             loading="lazy"
             onError={e => {
-              e.target.src = `https://placehold.co/400x400/F8F9FA/CBD5E1?text=${encodeURIComponent((product.product_name || '').slice(0, 10))}`;
+              e.target.src = `https://placehold.co/300x300/F7F8F8/9EA2A2?text=${encodeURIComponent((product.product_name || '').slice(0, 8))}`;
             }}
           />
         </div>
 
-        {/* Discount badge — top left */}
-        {discount > 0 && (
-          <div
-            className="absolute top-2.5 left-2.5 text-white font-black text-[11px] px-1.5 py-0.5 rounded-md"
-            style={{ background: 'linear-gradient(135deg, #EF4444, #DC2626)' }}
-          >
+        {/* Discount badge — flat red, not gradient */}
+        {discount > 5 && (
+          <div style={{
+            position: 'absolute', top: '8px', left: '8px',
+            background: '#CC0C39', color: '#fff',
+            fontSize: '11px', fontWeight: 800,
+            padding: '2px 6px', borderRadius: '3px',
+          }}>
             -{discount}%
           </div>
         )}
 
-        {/* Wishlist — top right */}
-        <button
-          onClick={handleWish}
-          className="absolute top-2.5 right-2.5 w-8 h-8 rounded-full flex items-center justify-center transition-all opacity-0 group-hover:opacity-100"
-          style={{ background: 'rgba(255,255,255,0.92)', boxShadow: '0 2px 8px rgba(0,0,0,0.12)', backdropFilter: 'blur(4px)' }}
-        >
-          <Heart
-            className="w-4 h-4 transition-colors"
-            style={{ color: wishlisted ? '#EF4444' : '#9CA3AF', fill: wishlisted ? '#EF4444' : 'none' }}
-          />
-        </button>
-
-        {/* Quick view pill on hover */}
-        <div
-          className="absolute inset-x-3 bottom-2 opacity-0 group-hover:opacity-100 transition-all translate-y-1 group-hover:translate-y-0"
-          style={{ transitionDuration: '0.2s' }}
-        >
-          <div
-            className="flex items-center justify-center gap-1.5 text-[11px] font-semibold py-1.5 rounded-lg"
-            style={{ background: 'rgba(255,255,255,0.9)', backdropFilter: 'blur(6px)', color: '#374151', boxShadow: '0 2px 12px rgba(0,0,0,0.12)' }}
+        {/* Wishlist — only visible on hover */}
+        {hovered && (
+          <button
+            onClick={e => { e.stopPropagation(); setWishlisted(w => !w); }}
+            style={{
+              position: 'absolute', top: '8px', right: '8px',
+              width: '30px', height: '30px', borderRadius: '50%',
+              background: 'rgba(255,255,255,0.95)',
+              border: '1px solid #D5D9D9',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              boxShadow: '0 1px 4px rgba(0,0,0,0.12)',
+              cursor: 'pointer',
+            }}
           >
-            <Eye className="w-3.5 h-3.5" />
-            Quick View
-          </div>
-        </div>
+            <Heart
+              style={{ width: 14, height: 14, color: wishlisted ? '#CC0C39' : '#8D9096', fill: wishlisted ? '#CC0C39' : 'none' }}
+            />
+          </button>
+        )}
       </div>
 
-      {/* ── CONTENT ──────────────────────────────── */}
-      <div
-        className="p-3 flex flex-col flex-1 border-t border-gray-100"
-        style={{ background: 'white', borderRadius: '0 0 12px 12px' }}
-      >
-        {/* Brand */}
-        <div
-          className="text-[11px] font-semibold truncate mb-0.5"
-          style={{ color: '#007185' }}
-        >
+      {/* ── CONTENT ───────────────────── */}
+      <div style={{ background: '#fff', padding: '12px', borderTop: '1px solid #EAEDED', display: 'flex', flexDirection: 'column', flex: 1 }}>
+
+        {/* Seller name */}
+        <div style={{ fontSize: '11px', fontWeight: 600, color: '#007185', marginBottom: '3px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
           {product.brand_or_guild || 'Verified Artisan'}
         </div>
 
-        {/* Product Name */}
-        <h3 className="text-[13px] font-medium text-gray-900 leading-snug line-clamp-2 mb-2"
-          style={{ letterSpacing: '-0.01em' }}>
+        {/* Product title */}
+        <h3 style={{
+          fontSize: '13px', fontWeight: 500, color: '#0F1111', lineHeight: '1.4',
+          overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical',
+          marginBottom: '6px',
+        }}>
           {product.title || product.product_name}
         </h3>
 
-        {/* Stars + Review count */}
-        <div className="flex items-center gap-1.5 mb-1.5">
+        {/* Stars */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '5px', marginBottom: '4px' }}>
           <Stars rating={rating} />
-          <span className="text-[11px] font-semibold" style={{ color: '#007185' }}>
-            ({reviews.toLocaleString()})
-          </span>
-        </div>
-
-        {/* Delivery + Prime */}
-        <div className="flex items-center gap-1.5 mb-2">
-          {product.is_prime && (
-            <span className="prime-badge text-[9px] px-1.5 py-0.5 rounded-sm">prime</span>
-          )}
-          <span className="text-[10px] text-gray-500 flex items-center gap-0.5 truncate">
-            <Truck className="w-3 h-3 inline flex-shrink-0" />
-            {product.delivery_days || 'FREE delivery by Friday'}
-          </span>
+          <span style={{ fontSize: '11px', color: '#007185', fontWeight: 600 }}>({reviews.toLocaleString()})</span>
         </div>
 
         {/* Badge */}
         {product.badge && (
-          <div className="mb-1.5">
-            <span
-              className="inline-block text-[10px] font-black px-1.5 py-0.5 rounded text-white"
-              style={{
-                background:
-                  product.badge === 'Best Seller' ? '#E87722' :
-                  product.badge === "Amazon's Choice" ? '#131921' :
-                  product.badge === 'GI Certified' ? '#15803D' :
-                  product.badge === 'Luxury Pick' ? '#7C3AED' :
-                  '#CC0C39'
-              }}
-            >
-              {product.badge === 'Best Seller' ? '🏆 ' : ''}{product.badge}
+          <div style={{ marginBottom: '6px' }}>
+            <span style={{
+              display: 'inline-block',
+              fontSize: '10px', fontWeight: 800,
+              padding: '2px 6px', borderRadius: '3px', color: '#fff',
+              background:
+                product.badge === 'Best Seller'      ? '#E87722' :
+                product.badge === "Amazon's Choice"  ? '#131921' :
+                product.badge === 'GI Certified'     ? '#1D7A3B' :
+                '#CC0C39',
+            }}>
+              {product.badge === 'Best Seller' ? '#1 ' : ''}{product.badge}
             </span>
           </div>
         )}
 
-        {/* Spacer */}
-        <div className="flex-1" />
+        {/* Prime / Delivery */}
+        <div style={{ fontSize: '11px', color: '#565959', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '5px' }}>
+          {product.is_prime && (
+            <span className="prime-badge">prime</span>
+          )}
+          <span>FREE delivery by {product.delivery_days || 'Friday'}</span>
+        </div>
 
-        {/* Price block */}
-        <div className="mb-3">
-          <div className="flex items-baseline gap-1.5">
-            <span className="text-[11px] text-gray-700 font-semibold">₹</span>
-            <span className="text-[21px] font-black text-gray-900 leading-none" style={{ letterSpacing: '-0.03em' }}>
+        <div style={{ flex: 1 }} />
+
+        {/* Price */}
+        <div style={{ marginBottom: '10px' }}>
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px' }}>
+            <span style={{ fontSize: '11px', fontWeight: 600, color: '#0F1111' }}>₹</span>
+            <span style={{ fontSize: '22px', fontWeight: 800, color: '#0F1111', lineHeight: 1, letterSpacing: '-0.03em' }}>
               {price.toLocaleString('en-IN')}
             </span>
           </div>
-          <div className="text-[11px] text-gray-400 mt-0.5 flex items-center gap-1.5">
-            <span>M.R.P.</span>
-            <span className="line-through">₹{mrp.toLocaleString('en-IN')}</span>
-            <span className="text-green-700 font-bold">Save ₹{savings.toLocaleString('en-IN')}</span>
+          <div style={{ fontSize: '11px', color: '#565959', marginTop: '2px' }}>
+            M.R.P.: <span style={{ textDecoration: 'line-through' }}>₹{mrp.toLocaleString('en-IN')}</span>
+            {' '}<span style={{ color: '#CC0C39', fontWeight: 700 }}>Save ₹{savings.toLocaleString('en-IN')}</span>
           </div>
         </div>
 
-        {/* Action Buttons */}
-        <div className="grid grid-cols-2 gap-1.5">
-          <button
-            onClick={handleCart}
-            className="btn-amazon-cart flex items-center justify-center gap-1"
-            style={{ height: '34px', fontSize: '12px' }}
-          >
+        {/* Buttons */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px' }}>
+          <button className="btn-amazon-cart" onClick={handleCart}>
             {justAdded
-              ? <><Check className="w-3.5 h-3.5 flex-shrink-0" /><span>Added!</span></>
-              : <><ShoppingCart className="w-3.5 h-3.5 flex-shrink-0" /><span>Add to Cart</span></>
+              ? <><Check style={{ width: 13, height: 13 }} /> Added!</>
+              : <><ShoppingCart style={{ width: 13, height: 13 }} /> Add to Cart</>
             }
           </button>
-          <button
-            onClick={handleBuy}
-            className="btn-amazon-buy flex items-center justify-center"
-            style={{ height: '34px', fontSize: '12px' }}
-          >
+          <button className="btn-amazon-buy" onClick={handleBuy}>
             Buy Now
           </button>
         </div>

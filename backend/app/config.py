@@ -31,12 +31,18 @@ class Settings(BaseSettings):
     LOCAL_WHISPER_MODEL: str = "small"
     LOCAL_WHISPER_DEVICE: str = "cpu"
     LOCAL_WHISPER_COMPUTE_TYPE: str = "int8"
+    LOCAL_WHISPER_BEAM_SIZE: int = 3
+    LOCAL_WHISPER_CPU_THREADS: int = 8
+    VOICE_MODEL_PRELOAD: bool = True
     
     # Image enhancement config
     MAX_IMAGE_SIZE_MB: int = 15
     MAX_AUDIO_SIZE_MB: int = 25
     IMAGE_SEGMENTATION_MODEL: str = "birefnet-general-lite"
-    IMAGE_MODEL_PRELOAD: bool = False
+    IMAGE_FAST_SEGMENTATION_MODEL: str = "u2netp"
+    IMAGE_FAST_PATH_ENABLED: bool = True
+    IMAGE_FAST_ACCEPT_CONFIDENCE: float = 0.95
+    IMAGE_MODEL_PRELOAD: bool = True
     
     # Host & Port
     HOST: str = "0.0.0.0"

@@ -12,6 +12,8 @@ class ImageEnhanceResponse(BaseModel):
     confidence_score: float
     segmentation_engine: Optional[str] = None
     mask_quality_score: Optional[float] = None
+    confidence_breakdown: Dict[str, float] = Field(default_factory=dict)
+    latency_breakdown: Dict[str, float] = Field(default_factory=dict)
 
 # --- Speech Transcription Schemas ---
 class SpeechTranscribeResponse(BaseModel):
@@ -19,6 +21,10 @@ class SpeechTranscribeResponse(BaseModel):
     detected_language: str
     confidence: float
     audio_duration_seconds: Optional[float] = 0.0
+    processing_time_seconds: Optional[float] = 0.0
+    realtime_factor: Optional[float] = 0.0
+    engine: Optional[str] = None
+    confidence_details: Dict[str, float] = Field(default_factory=dict)
 
 class SpeechSynthesizeRequest(BaseModel):
     text: str = Field(..., min_length=1, max_length=4096)
@@ -39,6 +45,8 @@ class ProductInterviewResponse(BaseModel):
     next_question_key: Optional[str] = None
     missing_fields: List[str] = Field(default_factory=list)
     readiness_score: float
+    confidence_score: float
+    human_confirmed: bool = False
     attributes: Dict[str, Any] = Field(default_factory=dict)
     cost_inputs: Dict[str, Any] = Field(default_factory=dict)
     evidence: Dict[str, str] = Field(default_factory=dict)

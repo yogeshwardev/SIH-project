@@ -29,6 +29,7 @@ class ProductInterviewService:
             "packaging_cost": "What does safe packaging for one piece cost, in rupees? Say zero if none.",
             "dimensions": "What are the product dimensions or size?",
             "region": "Where is this product made? Please name the village, city, or state.",
+            "confirmation": "Please confirm: are the product details and costs I summarized correct?",
         },
         "hi": {
             "product_identity": "यह कौन सा उत्पाद है और यह किस पारंपरिक शिल्प से बना है?",
@@ -40,6 +41,7 @@ class ProductInterviewService:
             "packaging_cost": "एक पीस की सुरक्षित पैकिंग में कितने रुपये लगते हैं? खर्च नहीं है तो शून्य कहें।",
             "dimensions": "उत्पाद का आकार या माप क्या है?",
             "region": "यह उत्पाद कहाँ बनाया जाता है? गाँव, शहर या राज्य बताइए।",
+            "confirmation": "कृपया पुष्टि करें: क्या मेरे द्वारा बताए गए उत्पाद विवरण और लागत सही हैं?",
         },
     }
 
@@ -68,21 +70,30 @@ class ProductInterviewService:
 
         missing = self._missing_fields(attrs, costs)
         completed = not any(field in self.PRICING_REQUIRED for field in missing)
+        human_confirmed = bool(attrs.get("_human_confirmed"))
         answered_count = len(self.QUESTION_ORDER) - len(missing)
         readiness = round(answered_count / len(self.QUESTION_ORDER), 2)
 
         next_key = missing[0] if missing else None
         locale = "hi" if str(language).lower().startswith(("hi", "हिन्द")) else "en"
-        if completed:
+        if completed and human_confirmed:
             assistant_message = (
                 "धन्यवाद। मूल्य निर्धारण के लिए जरूरी जानकारी पूरी है। मैंने आपके उत्तरों के आधार पर उचित बाजार मूल्य तैयार किया है।"
                 if locale == "hi" else
                 "Thank you. I now have the evidence required for pricing. I have prepared a fair market recommendation from your confirmed answers."
             )
             status = "ready_for_pricing"
+            confidence_score = 0.99
+        elif completed:
+            summary_text = self._confirmation_summary(attrs, costs, locale)
+            assistant_message = f"{summary_text} {self.QUESTIONS[locale]['confirmation']}"
+            next_key = "confirmation"
+            status = "needs_confirmation"
+            confidence_score = round(min(0.94, 0.72 + readiness * 0.22), 2)
         else:
             assistant_message = self.QUESTIONS[locale][next_key]
             status = "needs_information"
+            confidence_score = round(0.45 + readiness * 0.45, 2)
 
         confirmed = [label for label in self.QUESTION_ORDER if label not in missing]
         summary = f"Confirmed {len(confirmed)} of {len(self.QUESTION_ORDER)} product and pricing facts."
@@ -92,6 +103,8 @@ class ProductInterviewService:
             "next_question_key": next_key,
             "missing_fields": missing,
             "readiness_score": readiness,
+            "confidence_score": confidence_score,
+            "human_confirmed": human_confirmed,
             "attributes": attrs,
             "cost_inputs": costs,
             "evidence": evidence,
@@ -118,6 +131,12 @@ class ProductInterviewService:
         question_key: Optional[str], answer: str,
     ) -> None:
         if not question_key or not answer:
+            return
+        if question_key == "confirmation":
+            normalized = answer.strip().lower()
+            confirmed = bool(re.search(r"\b(yes|correct|confirm|confirmed|right|ok|okay)\b|^(हाँ|हां|जी|सही)", normalized))
+            attrs["_human_confirmed"] = confirmed
+            evidence["human_confirmation"] = "confirmed by artisan" if confirmed else "correction requested"
             return
         if question_key in {"material_cost", "labor_cost", "packaging_cost"}:
             amount = self._first_amount(answer)
@@ -165,6 +184,22 @@ class ProductInterviewService:
             "region": self._meaningful(attrs.get("region")),
         }
         return [field for field in self.QUESTION_ORDER if not present[field]]
+
+    @staticmethod
+    def _confirmation_summary(attrs: Dict[str, Any], costs: Dict[str, Any], locale: str) -> str:
+        if locale == "hi":
+            return (
+                f"मैंने समझा: {attrs.get('craft_type') or attrs.get('product_name')}, "
+                f"सामग्री {attrs.get('material')}, समय {attrs.get('production_time')}, "
+                f"सामग्री लागत ₹{costs.get('material_cost', 0):,.0f}, मजदूरी ₹{costs.get('labor_cost', 0):,.0f}, "
+                f"और पैकिंग ₹{costs.get('packaging_cost', 0):,.0f}."
+            )
+        return (
+            f"I understood: {attrs.get('craft_type') or attrs.get('product_name')}; "
+            f"material {attrs.get('material')}; production time {attrs.get('production_time')}; "
+            f"material ₹{costs.get('material_cost', 0):,.0f}, labor ₹{costs.get('labor_cost', 0):,.0f}, "
+            f"and packaging ₹{costs.get('packaging_cost', 0):,.0f}."
+        )
 
     @staticmethod
     def _normalize_costs(costs: Dict[str, Any]) -> Dict[str, Any]:

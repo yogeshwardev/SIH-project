@@ -17,14 +17,17 @@ class ComputerVisionStudioService:
     def __init__(self):
         self.upload_dir = settings.UPLOAD_DIR
         self._segmentation_session = None
+        self._fast_segmentation_session = None
         self._session_lock = threading.Lock()
         os.makedirs(self.upload_dir, exist_ok=True)
 
     def enhance_product_image(self, input_image_path: str) -> Dict[str, Any]:
         start_time = time.time()
         source = self._load_and_normalize(input_image_path)
+        loaded_at = time.time()
         source_rgb = np.asarray(source)
-        alpha, engine, mask_quality = self._segment_product(source)
+        alpha, engine, mask_quality, confidence_breakdown = self._segment_product(source)
+        segmented_at = time.time()
         enhanced_rgb = self._enhance_product_color(source_rgb, alpha)
         foreground = np.dstack((enhanced_rgb, alpha)).astype(np.uint8)
         studio_canvas = self._composite_studio_scene(foreground)
@@ -32,6 +35,7 @@ class ComputerVisionStudioService:
         output_filename = f"{uuid.uuid4().hex[:8]}_studio_enhanced.png"
         output_filepath = self.upload_dir / output_filename
         studio_canvas.save(output_filepath, format="PNG", optimize=True)
+        completed_at = time.time()
 
         enhanced_bgr = cv2.cvtColor(enhanced_rgb, cv2.COLOR_RGB2BGR)
         return {
@@ -40,18 +44,26 @@ class ComputerVisionStudioService:
             "detected_objects": self._classify_visual_features(enhanced_bgr),
             "dominant_colors": self._extract_dominant_palette(enhanced_bgr, alpha),
             "processing_time_seconds": round(time.time() - start_time, 2),
-            "confidence_score": round(0.91 + (mask_quality * 0.08), 3),
+            "confidence_score": round(mask_quality, 3),
             "segmentation_engine": engine,
             "mask_quality_score": round(mask_quality, 3),
+            "confidence_breakdown": confidence_breakdown,
+            "latency_breakdown": {
+                "decode_seconds": round(loaded_at - start_time, 3),
+                "segmentation_seconds": round(segmented_at - loaded_at, 3),
+                "render_seconds": round(completed_at - segmented_at, 3),
+            },
         }
 
-    def warmup(self) -> None:
+    def warmup(self, include_primary: bool = True) -> None:
         """Load model weights outside the first artisan request."""
         try:
             from rembg import new_session
 
             with self._session_lock:
-                if self._segmentation_session is None:
+                if settings.IMAGE_FAST_PATH_ENABLED and self._fast_segmentation_session is None:
+                    self._fast_segmentation_session = new_session(settings.IMAGE_FAST_SEGMENTATION_MODEL)
+                if include_primary and self._segmentation_session is None:
                     self._segmentation_session = new_session(settings.IMAGE_SEGMENTATION_MODEL)
         except Exception:
             # A later request can retry; GrabCut remains available meanwhile.
@@ -92,9 +104,24 @@ class ComputerVisionStudioService:
             result[foreground] = np.clip(result[foreground] * exposure, 0, 255)
         return result.astype(np.uint8)
 
-    def _segment_product(self, source: Image.Image) -> Tuple[np.ndarray, str, float]:
+    def _segment_product(self, source: Image.Image) -> Tuple[np.ndarray, str, float, Dict[str, float]]:
         try:
             from rembg import new_session, remove
+
+            if settings.IMAGE_FAST_PATH_ENABLED:
+                with self._session_lock:
+                    if self._fast_segmentation_session is None:
+                        self._fast_segmentation_session = new_session(settings.IMAGE_FAST_SEGMENTATION_MODEL)
+                fast_mask = remove(
+                    source,
+                    session=self._fast_segmentation_session,
+                    only_mask=True,
+                    post_process_mask=False,
+                )
+                fast_refined = self._refine_neural_mask(np.asarray(fast_mask.convert("L"), dtype=np.uint8))
+                fast_quality, fast_valid, fast_details = self._score_mask(fast_refined)
+                if fast_valid and fast_quality >= settings.IMAGE_FAST_ACCEPT_CONFIDENCE:
+                    return fast_refined, f"{settings.IMAGE_FAST_SEGMENTATION_MODEL}-fast", fast_quality, fast_details
 
             with self._session_lock:
                 if self._segmentation_session is None:
@@ -107,16 +134,16 @@ class ComputerVisionStudioService:
             )
             raw_mask = np.asarray(mask_image.convert("L"), dtype=np.uint8)
             refined = self._refine_neural_mask(raw_mask)
-            quality, valid = self._score_mask(refined)
+            quality, valid, details = self._score_mask(refined)
             if valid:
-                return refined, settings.IMAGE_SEGMENTATION_MODEL, quality
+                return refined, settings.IMAGE_SEGMENTATION_MODEL, quality, details
         except Exception:
             # The app remains useful offline or before model weights finish downloading.
             pass
 
         fallback = self._grabcut_fallback(np.asarray(source))
-        quality, _ = self._score_mask(fallback)
-        return fallback, "grabcut-fallback", min(quality, 0.72)
+        quality, _, details = self._score_mask(fallback)
+        return fallback, "grabcut-fallback", min(quality, 0.72), details
 
     @staticmethod
     def _refine_neural_mask(raw_mask: np.ndarray) -> np.ndarray:
@@ -169,17 +196,35 @@ class ComputerVisionStudioService:
         return cv2.GaussianBlur(binary, (5, 5), 0)
 
     @staticmethod
-    def _score_mask(alpha: np.ndarray) -> Tuple[float, bool]:
+    def _score_mask(alpha: np.ndarray) -> Tuple[float, bool, Dict[str, float]]:
         foreground = alpha >= 96
         area = int(foreground.sum())
         total = foreground.size
         occupancy = area / max(total, 1)
         border = np.concatenate((foreground[0], foreground[-1], foreground[:, 0], foreground[:, -1]))
         border_ratio = float(border.mean())
-        valid = 0.0025 <= occupancy <= 0.92 and border_ratio < 0.62
+        component_count, _, stats, _ = cv2.connectedComponentsWithStats(foreground.astype(np.uint8), 8)
+        areas = stats[1:, cv2.CC_STAT_AREA] if component_count > 1 else np.array([], dtype=np.int32)
+        largest_share = float(areas.max() / max(areas.sum(), 1)) if len(areas) else 0.0
+        active = alpha > 10
+        soft = (alpha > 10) & (alpha < 245)
+        edge_certainty = 1.0 - float(soft.sum() / max(active.sum(), 1))
+        valid = (
+            0.0025 <= occupancy <= 0.92
+            and border_ratio < 0.62
+            and largest_share >= 0.70
+        )
         occupancy_score = min(1.0, occupancy / 0.04) if occupancy < 0.04 else min(1.0, (0.92 - occupancy) / 0.20)
-        quality = float(np.clip(0.78 + 0.14 * occupancy_score + 0.08 * (1 - border_ratio), 0, 1))
-        return quality, valid
+        geometry_score = float(np.clip(0.82 * occupancy_score + 0.18 * (1 - border_ratio), 0, 1))
+        # Coherent foreground structure is the strongest signal: cluttered masks can
+        # otherwise look geometrically plausible while retaining text/background.
+        quality = float(np.clip(0.20 * geometry_score + 0.60 * largest_share + 0.20 * edge_certainty, 0, 1))
+        details = {
+            "geometry": round(geometry_score, 3),
+            "component_coherence": round(largest_share, 3),
+            "edge_certainty": round(edge_certainty, 3),
+        }
+        return quality, valid, details
 
     @staticmethod
     def _composite_studio_scene(foreground_rgba: np.ndarray) -> Image.Image:

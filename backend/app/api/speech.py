@@ -55,7 +55,11 @@ async def transcribe_speech(
             transcript=result["transcript"],
             detected_language=result["detected_language"],
             confidence=result["confidence"],
-            audio_duration_seconds=result["audio_duration_seconds"]
+            audio_duration_seconds=result["audio_duration_seconds"],
+            processing_time_seconds=result["processing_time_seconds"],
+            realtime_factor=result["realtime_factor"],
+            engine=result["engine"],
+            confidence_details=result.get("confidence_details", {}),
         )
     except Exception as e:
         raise HTTPException(

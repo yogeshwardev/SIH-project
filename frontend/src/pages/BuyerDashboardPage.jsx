@@ -1,188 +1,164 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
-  ChevronLeft, ChevronRight, Zap, ShoppingCart, Filter,
-  Search, ShieldCheck, Truck, RotateCcw, Star, SlidersHorizontal,
-  TrendingUp, Package, X
+  ChevronLeft, ChevronRight, Zap, Package,
+  SlidersHorizontal, Search, Filter, TrendingUp, Truck
 } from 'lucide-react';
 import { api } from '../services/api';
-import { COMMERCIAL_PRODUCTS, CRAFT_CATEGORIES } from '../data/commercialProducts';
+import { COMMERCIAL_PRODUCTS } from '../data/commercialProducts';
 import ProductCardCommercial from '../components/ProductCardCommercial';
 import ProductDetailModal from '../components/ProductDetailModal';
 
-/* ─────────────────────────────────────────────────────
-   HERO BANNER DATA
-───────────────────────────────────────────────────── */
+/* ─── Hero Banners ─── one dark photo per slide, no rainbows */
 const BANNERS = [
   {
-    eyebrow:  'Great Indian Handloom Sale',
-    headline: 'Pure Silk\nSarees Direct\nFrom the Loom',
-    sub:      'Banarasi, Kanjeevaram & Chanderi — GI Certified, Zero Middlemen',
+    label:    'GREAT INDIAN HANDLOOM SALE',
+    heading:  'Pure Silk Sarees\nDirect From the Loom',
+    sub:      'Banarasi · Kanjeevaram · Chanderi — GI Certified',
     discount: 'Up to 45% off',
-    ctaText:  'Shop Handlooms',
-    ctaCat:   'Handloom & Textiles',
-    accent:   '#D4A017',
-    bg:       'linear-gradient(130deg, #1a0a00 0%, #3b1508 40%, #6b2408 100%)',
-    img:      'https://images.unsplash.com/photo-1610030460946-7e2e7e01e37e?w=700&q=85',
+    cta:      'Shop Handlooms',
+    cat:      'Handloom & Textiles',
+    img:      'https://images.unsplash.com/photo-1610030460946-7e2e7e01e37e?w=900&q=80',
   },
   {
-    eyebrow:  '500-Year Heritage Craft',
-    headline: 'Jaipur Blue\nPottery\nCollection',
-    sub:      'Clay-free quartz glazed with cobalt blue — Handpainted, Kiln Fired',
+    label:    '500-YEAR HERITAGE',
+    heading:  'Jaipur Blue Pottery\nCollection',
+    sub:      'Quartz-glazed · Cobalt blue · Hand-painted',
     discount: 'Flat 36% off',
-    ctaText:  'Explore Ceramics',
-    ctaCat:   'Pottery & Ceramics',
-    accent:   '#60A5FA',
-    bg:       'linear-gradient(130deg, #030B1A 0%, #0C1F3F 40%, #0F3460 100%)',
-    img:      'https://images.unsplash.com/photo-1565193566173-7a0ee3dbe261?w=700&q=85',
+    cta:      'Explore Ceramics',
+    cat:      'Pottery & Ceramics',
+    img:      'https://images.unsplash.com/photo-1565193566173-7a0ee3dbe261?w=900&q=80',
   },
   {
-    eyebrow:  'Bastar Tribal Community',
-    headline: '4000 Years of\nBell Metal\nCraft',
-    sub:      'Lost-wax cast Dhokra sculptures — Zero Industrial Machines Used',
+    label:    'BASTAR TRIBAL COMMUNITY',
+    heading:  '4000 Years of\nBell Metal Craft',
+    sub:      'Lost-wax cast Dhokra · Zero industrial machines',
     discount: 'Direct from artisan',
-    ctaText:  'Discover Tribal Art',
-    ctaCat:   'Metal Craft & Bell Metal',
-    accent:   '#FB923C',
-    bg:       'linear-gradient(130deg, #0D0500 0%, #2A1000 40%, #4A1A00 100%)',
-    img:      'https://images.unsplash.com/photo-1611095790444-1dfa35e37b52?w=700&q=85',
+    cta:      'Discover Tribal Art',
+    cat:      'Metal Craft & Bell Metal',
+    img:      'https://images.unsplash.com/photo-1611095790444-1dfa35e37b52?w=900&q=80',
   },
 ];
 
-/* ─────────────────────────────────────────────────────
-   TRUST STRIP
-───────────────────────────────────────────────────── */
-const TRUST_ITEMS = [
-  { icon: '🚚', title: 'Free Delivery', sub: 'Orders above ₹499' },
-  { icon: '🔒', title: 'Secure Payments', sub: 'UPI · Cards · COD' },
-  { icon: '↩️', title: '7-Day Returns', sub: 'No questions asked' },
-  { icon: '🏅', title: 'GI Certified', sub: '100% authentic origin' },
-  { icon: '🤝', title: 'Zero Middlemen', sub: 'Direct artisan pricing' },
+/* ─── Quick categories ─── */
+const CATS = [
+  { id: 'All',                       emoji: '🛍️', label: 'All Crafts' },
+  { id: 'Handloom & Textiles',       emoji: '🧣', label: 'Handloom' },
+  { id: 'Pottery & Ceramics',        emoji: '🏺', label: 'Pottery' },
+  { id: 'Woodcraft & Carving',       emoji: '🪵', label: 'Woodcraft' },
+  { id: 'Metal Craft & Bell Metal',  emoji: '🔱', label: 'Metal Art' },
+  { id: 'Cane & Bamboo',             emoji: '🧺', label: 'Bamboo' },
+  { id: 'Traditional Paintings',     emoji: '🎨', label: 'Paintings' },
 ];
 
-/* ─────────────────────────────────────────────────────
-   CATEGORY ICONS ROW
-───────────────────────────────────────────────────── */
-const QUICK_CATS = [
-  { id: 'All',                      emoji: '🛍️', label: 'All Crafts' },
-  { id: 'Handloom & Textiles',      emoji: '🧣', label: 'Handloom' },
-  { id: 'Pottery & Ceramics',       emoji: '🏺', label: 'Pottery' },
-  { id: 'Woodcraft & Carving',      emoji: '🪵', label: 'Woodcraft' },
-  { id: 'Metal Craft & Bell Metal', emoji: '🔱', label: 'Metal Art' },
-  { id: 'Cane & Bamboo',            emoji: '🧺', label: 'Bamboo' },
-  { id: 'Traditional Paintings',    emoji: '🎨', label: 'Paintings' },
+/* ─── Trust items ─── */
+const TRUST = [
+  { icon: '🚚', title: 'Free Delivery',   sub: 'Orders above ₹499' },
+  { icon: '🔒', title: 'Secure Payments', sub: 'UPI · Card · COD' },
+  { icon: '↩️', title: '7-Day Returns',   sub: 'Hassle-free' },
+  { icon: '🏅', title: 'GI Certified',    sub: '100% authentic craft' },
+  { icon: '🤝', title: 'Zero Middlemen',  sub: 'Direct artisan price' },
 ];
 
-/* ═══════════════════════════════════════════════════════
-   MAIN PAGE
-═══════════════════════════════════════════════════════ */
-export default function BuyerDashboardPage({ onAddToCart, onOpenCart, onBuyNow }) {
+export default function BuyerDashboardPage({ onAddToCart, onBuyNow }) {
   const [products, setProducts]   = useState(COMMERCIAL_PRODUCTS);
   const [heroIdx, setHeroIdx]     = useState(0);
   const [pdpProduct, setPdp]      = useState(null);
   const [activeCat, setActiveCat] = useState('All');
   const [maxPrice, setMaxPrice]   = useState(35000);
   const [minRating, setMinRating] = useState(0);
-  const [showFilters, setShowFilters] = useState(false);
   const [searchQ, setSearchQ]     = useState('');
   const heroTimer = useRef(null);
 
   useEffect(() => {
     api.getProducts({ status: 'Published' })
-      .then(data => { if (data?.length) setProducts([...COMMERCIAL_PRODUCTS, ...data]); })
+      .then(d => { if (d?.length) setProducts([...COMMERCIAL_PRODUCTS, ...d]); })
       .catch(() => {});
   }, []);
 
-  // Auto-rotate hero
   useEffect(() => {
-    heroTimer.current = setInterval(() => setHeroIdx(i => (i + 1) % BANNERS.length), 5500);
+    heroTimer.current = setInterval(() => setHeroIdx(i => (i + 1) % BANNERS.length), 5000);
     return () => clearInterval(heroTimer.current);
   }, []);
 
   const advanceBanner = (dir) => {
     clearInterval(heroTimer.current);
     setHeroIdx(i => (i + dir + BANNERS.length) % BANNERS.length);
-    heroTimer.current = setInterval(() => setHeroIdx(i => (i + 1) % BANNERS.length), 5500);
+    heroTimer.current = setInterval(() => setHeroIdx(i => (i + 1) % BANNERS.length), 5000);
   };
 
   const filtered = products.filter(p => {
     const price  = p.price || p.suggested_price || 2499;
     const rating = p.rating || 4.7;
-    const name   = (p.product_name || '').toLowerCase();
     const catOk  = activeCat === 'All' || p.category === activeCat;
     const prOk   = price <= maxPrice;
     const rOk    = rating >= minRating;
-    const sOk    = !searchQ || name.includes(searchQ.toLowerCase());
+    const sOk    = !searchQ || (p.product_name || '').toLowerCase().includes(searchQ.toLowerCase());
     return catOk && prOk && rOk && sOk;
   });
 
-  const banner = BANNERS[heroIdx];
-
   return (
-    <div style={{ fontFamily: "'Inter', sans-serif", backgroundColor: '#F0F2F5', minHeight: '100vh' }}>
+    <div style={{ background: '#F2F2F2', minHeight: '100vh', fontFamily: "'Inter', sans-serif" }}>
 
-      {/* ═══════════════════════════════════════════════
-          HERO CAROUSEL
-      ═══════════════════════════════════════════════ */}
-      <div className="relative" style={{ height: 'clamp(300px, 48vw, 440px)', overflow: 'hidden' }}>
+      {/* ═══ HERO — dark photo, white text, NO colour gradients ═══ */}
+      <div className="relative overflow-hidden" style={{ height: 'clamp(260px, 42vw, 400px)' }}>
         {BANNERS.map((b, i) => (
           <div
             key={i}
             className="absolute inset-0 hero-slide"
-            style={{ background: b.bg, opacity: heroIdx === i ? 1 : 0, pointerEvents: heroIdx === i ? 'auto' : 'none' }}
+            style={{ opacity: heroIdx === i ? 1 : 0, pointerEvents: heroIdx === i ? 'auto' : 'none' }}
           >
-            {/* Right photo — fades in beautifully */}
+            {/* Photo background */}
+            <img
+              src={b.img}
+              alt=""
+              className="absolute inset-0 w-full h-full object-cover"
+              style={{ filter: 'brightness(0.45)' }}
+            />
+            {/* Subtle gradient only to ensure text readability — NOT decorative */}
             <div
-              className="absolute inset-y-0 right-0 w-1/2 hidden md:block"
-              style={{
-                backgroundImage: `url(${b.img})`,
-                backgroundSize: 'cover',
-                backgroundPosition: 'center top',
-                maskImage: 'linear-gradient(to right, transparent 0%, rgba(0,0,0,0.5) 20%, black 60%)',
-                WebkitMaskImage: 'linear-gradient(to right, transparent 0%, rgba(0,0,0,0.5) 20%, black 60%)',
-              }}
+              className="absolute inset-0"
+              style={{ background: 'linear-gradient(to right, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0.1) 60%, transparent 100%)' }}
             />
 
-            {/* Noise texture overlay */}
-            <div className="absolute inset-0 opacity-[0.04]"
-              style={{ backgroundImage: "url(\"data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E\")" }} />
-
             {/* Content */}
-            <div className="relative z-10 h-full flex flex-col justify-center px-8 sm:px-12 lg:px-16 xl:px-20 max-w-[620px]">
-              {/* Eyebrow */}
-              <div className="mb-4">
-                <span
-                  className="inline-flex items-center gap-2 text-[11px] font-black uppercase tracking-[0.18em] px-3 py-1.5 rounded-full border border-white/20 backdrop-blur-sm"
-                  style={{ background: 'rgba(255,255,255,0.08)', color: b.accent }}
-                >
-                  <span className="w-1.5 h-1.5 rounded-full inline-block animate-pulse-dot" style={{ background: b.accent }} />
-                  {b.eyebrow}
-                </span>
-              </div>
-
-              {/* Headline */}
+            <div className="relative h-full flex flex-col justify-center px-8 sm:px-14 lg:px-20 max-w-[560px]">
+              <span
+                className="inline-block text-[10px] font-black uppercase tracking-[0.2em] text-white/60 mb-3"
+              >
+                {b.label}
+              </span>
               <h1
-                className="font-black text-white leading-none mb-4"
+                className="font-black text-white mb-3"
                 style={{
-                  fontSize: 'clamp(28px, 5vw, 52px)',
+                  fontSize: 'clamp(24px, 4vw, 46px)',
                   fontFamily: "'Outfit', sans-serif",
-                  textShadow: '0 2px 24px rgba(0,0,0,0.4)',
+                  lineHeight: 1.1,
                   whiteSpace: 'pre-line',
+                  textShadow: '0 1px 12px rgba(0,0,0,0.4)',
                 }}
               >
-                {b.headline}
+                {b.heading}
               </h1>
-
-              <p className="text-white/65 text-sm leading-relaxed mb-6 max-w-[420px]">{b.sub}</p>
-
+              <p className="text-white/70 text-sm mb-5 leading-relaxed">{b.sub}</p>
               <div className="flex items-center gap-4">
-                <span className="font-black text-2xl" style={{ color: b.accent }}>{b.discount}</span>
+                <span className="text-white font-black text-xl">{b.discount}</span>
                 <button
-                  onClick={() => setActiveCat(b.ctaCat)}
-                  className="flex items-center gap-2 px-5 py-2.5 rounded-full font-black text-sm text-gray-900 transition-all hover:scale-105 active:scale-95"
-                  style={{ background: b.accent, boxShadow: `0 4px 20px ${b.accent}50` }}
+                  onClick={() => setActiveCat(b.cat)}
+                  style={{
+                    background: '#FF9900',
+                    border: '1px solid #e68900',
+                    color: '#111',
+                    padding: '9px 20px',
+                    borderRadius: '6px',
+                    fontWeight: 700,
+                    fontSize: '13px',
+                    cursor: 'pointer',
+                    transition: 'background 0.12s',
+                  }}
+                  onMouseOver={e => e.currentTarget.style.background = '#e68900'}
+                  onMouseOut={e => e.currentTarget.style.background = '#FF9900'}
                 >
-                  {b.ctaText}
-                  <ChevronRight className="w-4 h-4" strokeWidth={3} />
+                  {b.cta} →
                 </button>
               </div>
             </div>
@@ -190,56 +166,55 @@ export default function BuyerDashboardPage({ onAddToCart, onOpenCart, onBuyNow }
         ))}
 
         {/* Arrows */}
-        {[
-          { dir: -1, pos: 'left-3' },
-          { dir:  1, pos: 'right-3' },
-        ].map(({ dir, pos }) => (
+        {[{dir: -1, side: 'left-3'}, {dir: 1, side: 'right-3'}].map(({dir, side}) => (
           <button
             key={dir}
             onClick={() => advanceBanner(dir)}
-            className={`absolute ${pos} top-1/2 -translate-y-1/2 z-20 w-10 h-10 rounded-full flex items-center justify-center transition-all hover:scale-110`}
-            style={{ background: 'rgba(0,0,0,0.35)', backdropFilter: 'blur(8px)', border: '1px solid rgba(255,255,255,0.15)' }}
+            className={`absolute ${side} top-1/2 -translate-y-1/2 z-20 w-9 h-9 rounded-full flex items-center justify-center`}
+            style={{ background: 'rgba(0,0,0,0.45)', border: '1px solid rgba(255,255,255,0.2)', color: '#fff' }}
           >
-            {dir < 0
-              ? <ChevronLeft  className="w-5 h-5 text-white" strokeWidth={2.5} />
-              : <ChevronRight className="w-5 h-5 text-white" strokeWidth={2.5} />}
+            {dir < 0 ? <ChevronLeft className="w-5 h-5" /> : <ChevronRight className="w-5 h-5" />}
           </button>
         ))}
 
-        {/* Dot indicators */}
-        <div className="absolute bottom-4 inset-x-0 flex justify-center items-center gap-2 z-20">
+        {/* Dots */}
+        <div className="absolute bottom-4 inset-x-0 flex justify-center gap-2 z-10">
           {BANNERS.map((_, i) => (
             <button
               key={i}
-              onClick={() => { clearInterval(heroTimer.current); setHeroIdx(i); }}
-              className="transition-all rounded-full"
+              onClick={() => setHeroIdx(i)}
               style={{
-                width:  heroIdx === i ? '24px' : '8px',
+                width: heroIdx === i ? '22px' : '8px',
                 height: '8px',
-                background: heroIdx === i ? banner.accent : 'rgba(255,255,255,0.35)',
+                borderRadius: '99px',
+                background: heroIdx === i ? '#FF9900' : 'rgba(255,255,255,0.4)',
+                border: 'none',
+                cursor: 'pointer',
+                transition: 'width 0.3s ease, background 0.3s ease',
               }}
             />
           ))}
         </div>
       </div>
 
-      {/* ═══════════════════════════════════════════════
-          CATEGORY QUICK ICONS
-      ═══════════════════════════════════════════════ */}
-      <div className="bg-white border-b border-gray-200" style={{ boxShadow: '0 1px 0 rgba(0,0,0,0.05)' }}>
+      {/* ═══ CATEGORY STRIP ═══ */}
+      <div style={{ background: '#fff', borderBottom: '1px solid #D5D9D9' }}>
         <div className="max-w-[1400px] mx-auto flex overflow-x-auto scrollbar-none">
-          {QUICK_CATS.map(c => (
+          {CATS.map(c => (
             <button
               key={c.id}
               onClick={() => setActiveCat(c.id)}
-              className="flex flex-col items-center gap-1.5 px-5 py-3.5 flex-shrink-0 transition-colors relative"
-              style={{ borderBottom: activeCat === c.id ? '2.5px solid #F97316' : '2.5px solid transparent' }}
+              className="flex flex-col items-center gap-1.5 px-5 py-3.5 flex-shrink-0"
+              style={{
+                color: activeCat === c.id ? '#FF9900' : '#565959',
+                background: 'none',
+                border: 'none',
+                borderBottom: activeCat === c.id ? '2px solid #FF9900' : '2px solid transparent',
+                cursor: 'pointer',
+              }}
             >
-              <span className="text-[22px] leading-none">{c.emoji}</span>
-              <span
-                className="text-[11px] font-semibold whitespace-nowrap"
-                style={{ color: activeCat === c.id ? '#EA580C' : '#6B7280' }}
-              >
+              <span style={{ fontSize: '20px' }}>{c.emoji}</span>
+              <span style={{ fontSize: '11px', fontWeight: activeCat === c.id ? 700 : 500, whiteSpace: 'nowrap' }}>
                 {c.label}
               </span>
             </button>
@@ -247,94 +222,106 @@ export default function BuyerDashboardPage({ onAddToCart, onOpenCart, onBuyNow }
         </div>
       </div>
 
-      {/* ═══════════════════════════════════════════════
-          TRUST STRIP
-      ═══════════════════════════════════════════════ */}
-      <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 mt-4">
-        <div className="bg-white rounded-2xl overflow-hidden" style={{ boxShadow: '0 1px 4px rgba(0,0,0,0.07)' }}>
-          <div className="flex items-stretch overflow-x-auto scrollbar-none divide-x divide-gray-100">
-            {TRUST_ITEMS.map((item, i) => (
-              <div key={i} className="flex items-center gap-3 px-5 py-3.5 flex-shrink-0 flex-1 min-w-[160px]">
-                <span className="text-xl flex-shrink-0">{item.icon}</span>
-                <div>
-                  <div className="text-[12px] font-bold text-gray-900 leading-none">{item.title}</div>
-                  <div className="text-[11px] text-gray-400 mt-0.5">{item.sub}</div>
-                </div>
+      {/* ═══ TRUST STRIP ═══ */}
+      <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 mt-3">
+        <div
+          style={{
+            background: '#fff',
+            border: '1px solid #D5D9D9',
+            borderRadius: '8px',
+            display: 'flex',
+            overflow: 'hidden',
+          }}
+        >
+          {TRUST.map((item, i) => (
+            <div
+              key={i}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '10px',
+                padding: '12px 18px',
+                flex: 1,
+                minWidth: '140px',
+                borderRight: i < TRUST.length - 1 ? '1px solid #EAEDED' : 'none',
+              }}
+            >
+              <span style={{ fontSize: '18px', flexShrink: 0 }}>{item.icon}</span>
+              <div>
+                <div style={{ fontSize: '12px', fontWeight: 700, color: '#0F1111' }}>{item.title}</div>
+                <div style={{ fontSize: '11px', color: '#8D9096' }}>{item.sub}</div>
               </div>
-            ))}
-          </div>
+            </div>
+          ))}
         </div>
       </div>
 
-      {/* ═══════════════════════════════════════════════
-          DEALS OF THE DAY
-      ═══════════════════════════════════════════════ */}
-      <div id="deals" className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 mt-4">
-        <div className="bg-white rounded-2xl overflow-hidden" style={{ boxShadow: '0 1px 4px rgba(0,0,0,0.07)' }}>
-          
-          {/* Header */}
-          <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
-            <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #EF4444, #DC2626)' }}>
-                <Zap className="w-4.5 h-4.5 text-white fill-white" />
-              </div>
-              <div>
-                <h2 className="text-[15px] font-black text-gray-900" style={{ fontFamily: "'Outfit', sans-serif" }}>
-                  Deal of the Day
-                </h2>
-                <div className="flex items-center gap-1 text-[11px] text-gray-400 mt-0.5">
-                  Ends in:
-                  <span className="text-red-600 font-black ml-1 animate-countdown">04:18:32</span>
-                </div>
-              </div>
+      {/* ═══ DEALS OF THE DAY ═══ */}
+      <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 mt-3">
+        <div style={{ background: '#fff', border: '1px solid #D5D9D9', borderRadius: '8px', overflow: 'hidden' }}>
+
+          {/* Section header */}
+          <div style={{ padding: '14px 18px', borderBottom: '1px solid #EAEDED', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <Zap style={{ width: 18, height: 18, color: '#CC0C39', fill: '#CC0C39' }} />
+              <span style={{ fontSize: '16px', fontWeight: 800, color: '#0F1111', fontFamily: "'Outfit', sans-serif" }}>
+                Deal of the Day
+              </span>
+              <span style={{ fontSize: '12px', color: '#565959' }}>
+                Ends in: <strong className="animate-countdown" style={{ color: '#CC0C39' }}>04:18:32</strong>
+              </span>
             </div>
-            <button className="text-[13px] font-semibold text-[#007185] hover:text-[#C45500] hover:underline transition-colors">
+            <button style={{ fontSize: '13px', color: '#007185', fontWeight: 600, background: 'none', border: 'none', cursor: 'pointer' }}>
               See all deals →
             </button>
           </div>
 
-          {/* Deal Cards */}
-          <div className="p-4 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
+          {/* Deal grid */}
+          <div style={{ padding: '12px', display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '10px' }}>
             {products.slice(0, 5).map(p => {
               const price = p.price || p.suggested_price || 2499;
               const mrp   = p.mrp || Math.round(price * 1.45);
-              const disc  = p.discount_pct || Math.round(((mrp - price) / mrp) * 100);
+              const disc  = Math.round(((mrp - price) / mrp) * 100);
               const sold  = 40 + ((p.id * 17) % 50);
               return (
                 <button
                   key={p.id}
                   onClick={() => setPdp(p)}
-                  className="group text-left rounded-xl overflow-hidden border border-gray-200 hover:border-orange-300 transition-all hover:shadow-md"
+                  style={{
+                    background: '#FAFAFA',
+                    border: '1px solid #D5D9D9',
+                    borderRadius: '8px',
+                    overflow: 'hidden',
+                    cursor: 'pointer',
+                    textAlign: 'left',
+                    transition: 'border-color 0.15s, box-shadow 0.15s',
+                    padding: 0,
+                  }}
+                  onMouseOver={e => { e.currentTarget.style.borderColor = '#FF9900'; e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.10)'; }}
+                  onMouseOut={e => { e.currentTarget.style.borderColor = '#D5D9D9'; e.currentTarget.style.boxShadow = 'none'; }}
                 >
-                  {/* Image */}
-                  <div className="aspect-square bg-gray-50 flex items-center justify-center overflow-hidden p-2">
+                  <div style={{ aspectRatio: '1', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '10px', background: '#fff' }}>
                     <img
                       src={p.enhanced_image || p.original_image}
                       alt={p.product_name}
-                      className="w-full h-full object-contain transition-transform duration-300 group-hover:scale-105"
-                      onError={e => e.target.src = `https://placehold.co/200x200/F3F4F6/9CA3AF?text=${encodeURIComponent((p.product_name || '').slice(0, 8))}`}
+                      style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+                      onError={e => e.target.src = `https://placehold.co/150x150/F7F8F8/9EA2A2?text=${encodeURIComponent((p.product_name || '').slice(0, 6))}`}
                     />
                   </div>
-                  <div className="p-2.5">
-                    <div className="flex items-center gap-1.5 mb-1.5">
-                      <span className="deal-badge">-{disc}%</span>
-                      <span className="text-[10px] text-red-600 font-bold">OFF</span>
-                    </div>
-                    {/* Sold progress */}
-                    <div className="mb-2">
-                      <div className="bg-gray-200 rounded-full h-1.5 overflow-hidden">
-                        <div
-                          className="h-full rounded-full transition-all"
-                          style={{ width: `${sold}%`, background: sold > 70 ? '#EF4444' : '#F97316' }}
-                        />
+                  <div style={{ padding: '10px' }}>
+                    <span className="deal-badge">-{disc}%</span>
+                    {/* Sold bar */}
+                    <div style={{ margin: '8px 0 6px' }}>
+                      <div style={{ background: '#EAEDED', borderRadius: '99px', height: '5px', overflow: 'hidden' }}>
+                        <div style={{ width: `${sold}%`, height: '100%', borderRadius: '99px', background: sold > 70 ? '#CC0C39' : '#FF9900' }} />
                       </div>
-                      <span className="text-[10px] text-orange-600 font-bold mt-0.5 block">
-                        {sold > 70 ? '🔥 Almost sold out' : `${sold}% claimed`}
+                      <span style={{ fontSize: '10px', color: sold > 70 ? '#CC0C39' : '#FF9900', fontWeight: 700, marginTop: '3px', display: 'block' }}>
+                        {sold > 70 ? '🔥 Almost gone' : `${sold}% claimed`}
                       </span>
                     </div>
-                    <div className="text-[15px] font-black text-gray-900">₹{price.toLocaleString('en-IN')}</div>
-                    <div className="text-[10px] text-gray-400 line-through">₹{mrp.toLocaleString('en-IN')}</div>
-                    <p className="text-[11px] text-gray-600 mt-1 line-clamp-2 group-hover:text-orange-700 transition-colors">
+                    <div style={{ fontSize: '16px', fontWeight: 800, color: '#0F1111' }}>₹{price.toLocaleString('en-IN')}</div>
+                    <div style={{ fontSize: '10px', color: '#8D9096', textDecoration: 'line-through' }}>₹{mrp.toLocaleString('en-IN')}</div>
+                    <p style={{ fontSize: '11px', color: '#565959', marginTop: '4px', overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
                       {p.product_name}
                     </p>
                   </div>
@@ -345,83 +332,65 @@ export default function BuyerDashboardPage({ onAddToCart, onOpenCart, onBuyNow }
         </div>
       </div>
 
-      {/* ═══════════════════════════════════════════════
-          MAIN CATALOG — SIDEBAR + GRID
-      ═══════════════════════════════════════════════ */}
-      <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 mt-4 pb-16">
-        <div className="flex gap-4 items-start">
+      {/* ═══ CATALOG — SIDEBAR + GRID ═══ */}
+      <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 mt-3 pb-16">
+        <div className="flex gap-3 items-start">
 
           {/* FILTER SIDEBAR */}
-          <aside className="hidden lg:block w-[210px] flex-shrink-0 sticky top-[80px]">
-            <div className="bg-white rounded-2xl overflow-hidden" style={{ boxShadow: '0 1px 4px rgba(0,0,0,0.07)' }}>
-              <div className="px-4 py-3.5 border-b border-gray-100 flex items-center justify-between">
-                <h3 className="text-[13px] font-black text-gray-900 flex items-center gap-1.5">
-                  <SlidersHorizontal className="w-4 h-4 text-gray-500" />
-                  Filters
-                </h3>
+          <aside className="hidden lg:block w-[200px] flex-shrink-0 sticky top-[70px]">
+            <div style={{ background: '#fff', border: '1px solid #D5D9D9', borderRadius: '8px', overflow: 'hidden' }}>
+              <div style={{ padding: '12px 14px', borderBottom: '1px solid #EAEDED', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ fontSize: '13px', fontWeight: 800, color: '#0F1111' }}>Filters</span>
                 <button
                   onClick={() => { setActiveCat('All'); setMaxPrice(35000); setMinRating(0); }}
-                  className="text-[11px] text-[#007185] hover:underline font-semibold"
+                  style={{ fontSize: '11px', color: '#007185', fontWeight: 600, background: 'none', border: 'none', cursor: 'pointer' }}
                 >
                   Clear all
                 </button>
               </div>
 
-              <div className="p-4 space-y-5">
+              <div style={{ padding: '14px' }}>
                 {/* Category */}
-                <div>
-                  <h4 className="text-[11px] font-black text-gray-400 uppercase tracking-widest mb-2.5">Category</h4>
-                  <div className="space-y-1.5">
-                    {QUICK_CATS.map(c => (
-                      <label key={c.id} className="flex items-center gap-2.5 cursor-pointer group">
-                        <input
-                          type="radio"
-                          name="cat"
-                          checked={activeCat === c.id}
-                          onChange={() => setActiveCat(c.id)}
-                          className="w-3.5 h-3.5 accent-orange-500"
-                        />
-                        <span className={`text-[12px] flex items-center gap-1.5 ${activeCat === c.id ? 'font-bold text-orange-600' : 'font-medium text-gray-700 group-hover:text-gray-900'}`}>
-                          <span>{c.emoji}</span>
-                          {c.label}
-                        </span>
-                      </label>
-                    ))}
-                  </div>
+                <div style={{ marginBottom: '18px' }}>
+                  <div style={{ fontSize: '10px', fontWeight: 800, color: '#8D9096', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '10px' }}>Category</div>
+                  {CATS.map(c => (
+                    <label key={c.id} style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', cursor: 'pointer' }}>
+                      <input
+                        type="radio" name="cat"
+                        checked={activeCat === c.id}
+                        onChange={() => setActiveCat(c.id)}
+                        style={{ accentColor: '#FF9900', width: '13px', height: '13px' }}
+                      />
+                      <span style={{ fontSize: '12px', fontWeight: activeCat === c.id ? 700 : 500, color: activeCat === c.id ? '#FF9900' : '#565959' }}>
+                        {c.emoji} {c.label}
+                      </span>
+                    </label>
+                  ))}
                 </div>
 
                 {/* Price */}
-                <div className="border-t border-gray-100 pt-4">
-                  <h4 className="text-[11px] font-black text-gray-400 uppercase tracking-widest mb-3">
-                    Max Price: <span className="text-gray-800 normal-case font-black">₹{maxPrice.toLocaleString('en-IN')}</span>
-                  </h4>
-                  <input
-                    type="range"
-                    min={499} max={35000} step={500}
-                    value={maxPrice}
+                <div style={{ borderTop: '1px solid #EAEDED', paddingTop: '14px', marginBottom: '18px' }}>
+                  <div style={{ fontSize: '10px', fontWeight: 800, color: '#8D9096', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '8px' }}>
+                    Max Price: <span style={{ color: '#0F1111', textTransform: 'none', fontWeight: 800 }}>₹{maxPrice.toLocaleString('en-IN')}</span>
+                  </div>
+                  <input type="range" min={499} max={35000} step={500} value={maxPrice}
                     onChange={e => setMaxPrice(Number(e.target.value))}
-                    className="w-full accent-orange-500 h-1.5"
+                    style={{ width: '100%', accentColor: '#FF9900' }}
                   />
-                  <div className="flex justify-between text-[10px] text-gray-400 mt-1.5 font-semibold">
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '10px', color: '#8D9096', fontWeight: 600, marginTop: '4px' }}>
                     <span>₹499</span><span>₹35,000</span>
                   </div>
                 </div>
 
                 {/* Rating */}
-                <div className="border-t border-gray-100 pt-4">
-                  <h4 className="text-[11px] font-black text-gray-400 uppercase tracking-widest mb-2.5">Min. Rating</h4>
-                  {[{v: 4, label: '4★ & up'}, {v: 3, label: '3★ & up'}, {v: 0, label: 'All ratings'}].map(r => (
-                    <label key={r.v} className="flex items-center gap-2.5 py-1 cursor-pointer">
-                      <input
-                        type="radio"
-                        name="rating"
-                        checked={minRating === r.v}
-                        onChange={() => setMinRating(r.v)}
-                        className="w-3.5 h-3.5 accent-orange-500"
-                      />
-                      <span className={`text-[12px] flex items-center gap-1 ${minRating === r.v ? 'font-bold text-orange-600' : 'text-gray-600'}`}>
-                        {r.v > 0 && <span className="text-amber-500">{'★'.repeat(r.v)}</span>}
-                        {r.label}
+                <div style={{ borderTop: '1px solid #EAEDED', paddingTop: '14px' }}>
+                  <div style={{ fontSize: '10px', fontWeight: 800, color: '#8D9096', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '10px' }}>Rating</div>
+                  {[{v: 4, l: '4★ & above'}, {v: 3, l: '3★ & above'}, {v: 0, l: 'All ratings'}].map(r => (
+                    <label key={r.v} style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', cursor: 'pointer' }}>
+                      <input type="radio" name="rating" checked={minRating === r.v} onChange={() => setMinRating(r.v)}
+                        style={{ accentColor: '#FF9900', width: '13px', height: '13px' }} />
+                      <span style={{ fontSize: '12px', color: minRating === r.v ? '#FF9900' : '#565959', fontWeight: minRating === r.v ? 700 : 500 }}>
+                        {r.l}
                       </span>
                     </label>
                   ))}
@@ -430,54 +399,39 @@ export default function BuyerDashboardPage({ onAddToCart, onOpenCart, onBuyNow }
             </div>
           </aside>
 
-          {/* PRODUCTS AREA */}
-          <div className="flex-1 min-w-0">
+          {/* PRODUCT AREA */}
+          <div style={{ flex: 1, minWidth: 0 }}>
 
             {/* Toolbar */}
-            <div className="bg-white rounded-2xl px-4 py-3 mb-3 flex items-center justify-between gap-3"
-              style={{ boxShadow: '0 1px 4px rgba(0,0,0,0.07)' }}>
-              <div className="text-[13px] text-gray-600">
-                Showing <strong className="text-gray-900 font-black">{filtered.length}</strong> results
-                {activeCat !== 'All' && (
-                  <span> in <strong className="text-orange-600">{activeCat}</strong></span>
-                )}
-              </div>
-              <div className="flex items-center gap-2">
-                {/* Mobile filter */}
-                <button
-                  onClick={() => setShowFilters(true)}
-                  className="lg:hidden flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-gray-200 text-[12px] font-semibold text-gray-700 hover:bg-gray-50"
-                >
-                  <Filter className="w-3.5 h-3.5" />
-                  Filter
-                </button>
-                <div className="flex items-center gap-1.5 bg-gray-100 rounded-xl px-3 py-1.5">
-                  <Search className="w-3.5 h-3.5 text-gray-400" />
+            <div style={{ background: '#fff', border: '1px solid #D5D9D9', borderRadius: '8px', padding: '10px 14px', marginBottom: '10px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px' }}>
+              <span style={{ fontSize: '13px', color: '#565959' }}>
+                Showing <strong style={{ color: '#0F1111' }}>{filtered.length}</strong> results
+                {activeCat !== 'All' && <> in <strong style={{ color: '#C45500' }}>{activeCat}</strong></>}
+              </span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', background: '#F7F8F8', border: '1px solid #D5D9D9', borderRadius: '6px', padding: '6px 10px' }}>
+                  <Search style={{ width: 14, height: 14, color: '#8D9096' }} />
                   <input
-                    type="text"
-                    placeholder="Search..."
-                    value={searchQ}
-                    onChange={e => setSearchQ(e.target.value)}
-                    className="bg-transparent text-[12px] text-gray-700 outline-none w-28"
+                    type="text" placeholder="Search products..."
+                    value={searchQ} onChange={e => setSearchQ(e.target.value)}
+                    style={{ background: 'none', border: 'none', outline: 'none', fontSize: '12px', color: '#0F1111', width: '160px' }}
                   />
                 </div>
               </div>
             </div>
 
-            {/* Products Grid */}
+            {/* Grid */}
             {filtered.length === 0 ? (
-              <div className="bg-white rounded-2xl p-16 text-center" style={{ boxShadow: '0 1px 4px rgba(0,0,0,0.07)' }}>
-                <Package className="w-12 h-12 text-gray-200 mx-auto mb-3" />
-                <p className="text-[14px] font-semibold text-gray-500">No products found</p>
-                <button
-                  onClick={() => { setActiveCat('All'); setMaxPrice(35000); setMinRating(0); setSearchQ(''); }}
-                  className="mt-3 text-[13px] text-orange-500 font-bold hover:underline"
-                >
+              <div style={{ background: '#fff', border: '1px solid #D5D9D9', borderRadius: '8px', padding: '60px 20px', textAlign: 'center' }}>
+                <Package style={{ width: 40, height: 40, color: '#D5D9D9', margin: '0 auto 12px' }} />
+                <p style={{ fontSize: '14px', fontWeight: 600, color: '#565959' }}>No products found</p>
+                <button onClick={() => { setActiveCat('All'); setMaxPrice(35000); setMinRating(0); setSearchQ(''); }}
+                  style={{ marginTop: '10px', fontSize: '13px', color: '#007185', fontWeight: 700, background: 'none', border: 'none', cursor: 'pointer' }}>
                   Clear filters
                 </button>
               </div>
             ) : (
-              <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3 stagger-children">
+              <div className="stagger-children" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(185px, 1fr))', gap: '10px' }}>
                 {filtered.map(product => (
                   <ProductCardCommercial
                     key={product.id}
@@ -493,53 +447,35 @@ export default function BuyerDashboardPage({ onAddToCart, onOpenCart, onBuyNow }
         </div>
       </div>
 
-      {/* ═══════════════════════════════════════════════
-          UNDER ₹999 MEESHO-STYLE BANNER
-      ═══════════════════════════════════════════════ */}
-      <div id="under999" className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 mb-8">
-        <div
-          className="rounded-2xl overflow-hidden relative"
-          style={{ background: 'linear-gradient(135deg, #7C3AED 0%, #EC4899 50%, #F59E0B 100%)' }}
-        >
-          {/* Pattern overlay */}
-          <div className="absolute inset-0 opacity-10"
-            style={{ backgroundImage: 'radial-gradient(circle at 20% 50%, white 1px, transparent 1px), radial-gradient(circle at 80% 20%, white 1px, transparent 1px)', backgroundSize: '30px 30px' }}
-          />
-          <div className="relative px-8 py-10 flex flex-col sm:flex-row items-center justify-between gap-6">
-            <div className="text-white">
-              <div className="inline-flex items-center gap-2 bg-white/20 border border-white/30 text-white text-[10px] font-black uppercase tracking-widest px-3 py-1.5 rounded-full mb-4">
-                <TrendingUp className="w-3 h-3" />
-                Budget Artisan Store
-              </div>
-              <h2 className="text-2xl sm:text-3xl font-black leading-tight mb-2" style={{ fontFamily: "'Outfit', sans-serif" }}>
-                Everyday Crafts Under ₹999
-              </h2>
-              <p className="text-white/75 text-sm max-w-md">
-                Bamboo baskets, terracotta diyas, wooden toys & more — straight from India's villages.
-              </p>
+      {/* ═══ UNDER ₹999 SECTION ═══ */}
+      <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 mb-8">
+        <div style={{ background: '#fff', border: '1px solid #D5D9D9', borderRadius: '8px', padding: '24px 28px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '20px' }}>
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+              <TrendingUp style={{ width: 16, height: 16, color: '#007185' }} />
+              <span style={{ fontSize: '11px', fontWeight: 700, color: '#007185', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Budget Artisan Store</span>
             </div>
-            <button
-              onClick={() => { setMaxPrice(999); setActiveCat('All'); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
-              className="px-8 py-3.5 rounded-full bg-white font-black text-sm text-gray-900 shadow-xl whitespace-nowrap hover:shadow-2xl transition-all hover:scale-105 active:scale-95 flex-shrink-0"
-            >
-              Browse Under ₹999 →
-            </button>
+            <h2 style={{ fontSize: '20px', fontWeight: 800, color: '#0F1111', marginBottom: '6px', fontFamily: "'Outfit', sans-serif" }}>
+              Everyday Crafts Under ₹999
+            </h2>
+            <p style={{ fontSize: '13px', color: '#565959' }}>
+              Bamboo baskets, terracotta diyas, wooden toys — straight from India's villages
+            </p>
           </div>
+          <button
+            onClick={() => { setMaxPrice(999); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+            style={{ background: '#FF9900', border: '1px solid #e68900', color: '#111', padding: '10px 22px', borderRadius: '6px', fontWeight: 700, fontSize: '13px', cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0 }}
+            onMouseOver={e => e.currentTarget.style.background = '#e68900'}
+            onMouseOut={e => e.currentTarget.style.background = '#FF9900'}
+          >
+            Browse Under ₹999
+          </button>
         </div>
       </div>
 
-      {/* ═══════════════════════════════════════════════
-          PRODUCT DETAIL MODAL
-      ═══════════════════════════════════════════════ */}
       {pdpProduct && (
-        <ProductDetailModal
-          product={pdpProduct}
-          onClose={() => setPdp(null)}
-          onAddToCart={onAddToCart}
-          onBuyNow={onBuyNow}
-        />
+        <ProductDetailModal product={pdpProduct} onClose={() => setPdp(null)} onAddToCart={onAddToCart} onBuyNow={onBuyNow} />
       )}
-
     </div>
   );
 }

@@ -5,6 +5,7 @@ import math
 import requests
 import importlib.util
 import threading
+import numpy as np
 from pathlib import Path
 from typing import Dict, Any, Optional
 from backend.app.config import settings
@@ -33,15 +34,19 @@ class SpeechService:
             raise ValueError("Audio recording is empty or too short. Please record again.")
 
         # Transcribe based on provider
-        transcript, detected_lang, confidence = self._process_speech(file_path, hint_language)
+        transcript, detected_lang, confidence, engine, confidence_details = self._process_speech(file_path, hint_language)
 
         elapsed = round(time.time() - start_time, 2)
+        realtime_factor = round(elapsed / max(duration, 0.1), 3)
         return {
             "transcript": transcript,
             "detected_language": detected_lang,
             "confidence": confidence,
             "audio_duration_seconds": round(duration, 2),
-            "processing_time_seconds": elapsed
+            "processing_time_seconds": elapsed,
+            "realtime_factor": realtime_factor,
+            "engine": engine,
+            "confidence_details": confidence_details,
         }
 
     def _estimate_audio_duration(self, file_path: Path) -> float:
@@ -59,49 +64,13 @@ class SpeechService:
         # Approximate duration based on standard voice bitrate (64 kbps)
         return max(1.0, size_bytes / 8000.0)
 
-    def _process_speech(self, file_path: Path, hint_language: Optional[str]) -> tuple[str, str, float]:
+    def _process_speech(self, file_path: Path, hint_language: Optional[str]) -> tuple[str, str, float, str, Dict[str, float]]:
         """
         Speech recognition processor with multi-language Indic phonetic support.
         Supports direct transcription of Indian craft descriptions.
         """
         if settings.OPENAI_API_KEY and settings.AI_PROVIDER.lower() == "openai":
             return self._transcribe_with_openai(file_path, hint_language)
-
-        # Deterministic mappings are retained only for bundled, named demo assets.
-        filename = file_path.name.lower()
-
-        # Check for demo audio files or transcribed artisan patterns
-        # Real linguistic transcript mapping for typical artisan recordings
-        if "saree" in filename or "silk" in filename:
-            return (
-                "यह शुद्ध बनारसी कतान सिल्क साड़ी है। इसमें असली सोने और चांदी की जरी का काम है। इसे हथकरघे पर बुनने में लगभग 6 दिन का समय लगता है। इसकी लंबाई 6.5 मीटर है।",
-                "Hindi",
-                0.97
-            )
-        elif "pottery" in filename or "clay" in filename or "vase" in filename:
-            return (
-                "This is a handcrafted Jaipur Blue Pottery vase made from quartz stone powder and natural blue cobalt glaze. It takes 3 days to mold, paint, and fire in the traditional kiln.",
-                "English",
-                0.96
-            )
-        elif "basket" in filename or "bamboo" in filename:
-            return (
-                "यह प्राकृतिक असमिया बांस से बनी मजबूत और पर्यावरण के अनुकूल स्टोरेज बास्केट है। इसे पारंपरिक हाथ की बुनाई से तैयार किया गया है और 2 दिन का समय लगा है।",
-                "Hindi",
-                0.95
-            )
-        elif "dhokra" in filename or "metal" in filename:
-            return (
-                "यह पारंपरिक ढोकरा बेल मेटल की मूर्ति है जिसे प्राचीन लॉस्ट-वैक्स कास्टिंग तकनीक से बनाया गया है। इसमें बस्तर के जनजातीय संगीतकार की आकृति है।",
-                "Hindi",
-                0.96
-            )
-        elif "toy" in filename or "wood" in filename:
-            return (
-                "This is an authentic Channapatna wooden stacker toy crafted with Ivory wood and polished with non-toxic natural vegetable dyes. Child-safe and completely handmade.",
-                "English",
-                0.98
-            )
 
         if self.local_transcription_available():
             return self._transcribe_with_local_whisper(file_path, hint_language)
@@ -111,7 +80,25 @@ class SpeechService:
             "AI_PROVIDER=openai and OPENAI_API_KEY in backend/.env."
         )
 
-    def _transcribe_with_local_whisper(self, file_path: Path, hint_language: Optional[str]) -> tuple[str, str, float]:
+    def warmup(self) -> None:
+        if not self.local_transcription_available() or self._whisper_model is not None:
+            return
+        try:
+            from faster_whisper import WhisperModel
+            with self._whisper_lock:
+                if self._whisper_model is None:
+                    self._whisper_model = WhisperModel(
+                        settings.LOCAL_WHISPER_MODEL,
+                        device=settings.LOCAL_WHISPER_DEVICE,
+                        compute_type=settings.LOCAL_WHISPER_COMPUTE_TYPE,
+                        download_root=str(settings.MODELS_DIR / "whisper"),
+                        cpu_threads=settings.LOCAL_WHISPER_CPU_THREADS,
+                        num_workers=1,
+                    )
+        except Exception:
+            return
+
+    def _transcribe_with_local_whisper(self, file_path: Path, hint_language: Optional[str]) -> tuple[str, str, float, str, Dict[str, float]]:
         from faster_whisper import WhisperModel
 
         with self._whisper_lock:
@@ -121,15 +108,17 @@ class SpeechService:
                     device=settings.LOCAL_WHISPER_DEVICE,
                     compute_type=settings.LOCAL_WHISPER_COMPUTE_TYPE,
                     download_root=str(settings.MODELS_DIR / "whisper"),
+                    cpu_threads=settings.LOCAL_WHISPER_CPU_THREADS,
+                    num_workers=1,
                 )
             language_code = self._normalize_language_code(hint_language)
             segments, info = self._whisper_model.transcribe(
                 str(file_path),
                 language=language_code,
-                beam_size=5,
+                beam_size=settings.LOCAL_WHISPER_BEAM_SIZE,
                 vad_filter=True,
                 condition_on_previous_text=False,
-                word_timestamps=False,
+                word_timestamps=True,
                 hotwords="Banarasi zari Katan Dhokra Channapatna Madhubani pottery bamboo",
             )
             segment_list = [
@@ -140,21 +129,30 @@ class SpeechService:
         transcript = " ".join(segment.text.strip() for segment in segment_list if segment.text.strip()).strip()
         if not transcript:
             raise RuntimeError("No speech was detected in the recording.")
-        avg_probability = 0.0
-        if segment_list:
-            avg_probability = sum(math.exp(min(0.0, segment.avg_logprob)) for segment in segment_list) / len(segment_list)
+        words = [word for segment in segment_list for word in (segment.words or []) if word.word.strip()]
+        if not words:
+            raise RuntimeError("No reliable words were detected in the recording.")
+        probabilities = np.asarray([float(word.probability) for word in words], dtype=np.float64)
+        avg_probability = float(probabilities.mean())
+        median_probability = float(np.median(probabilities))
         language_probability = float(getattr(info, "language_probability", 0.75) or 0.75)
-        confidence = round(max(0.35, min(0.99, avg_probability * language_probability)), 3)
+        confidence = round(max(0.0, min(0.99, avg_probability)), 3)
         if confidence < 0.42:
             raise RuntimeError("Speech was too quiet or unclear to transcribe reliably. Please record again closer to the microphone.")
         detected_code = getattr(info, "language", None) or language_code
-        return transcript, self._language_name(detected_code, transcript), confidence
+        details = {
+            "mean_word_probability": round(avg_probability, 3),
+            "median_word_probability": round(median_probability, 3),
+            "language_probability": round(language_probability, 3),
+            "low_confidence_word_ratio": round(float((probabilities < 0.70).mean()), 3),
+        }
+        return transcript, self._language_name(detected_code, transcript), confidence, f"faster-whisper-{settings.LOCAL_WHISPER_MODEL}-int8", details
 
     @staticmethod
     def local_transcription_available() -> bool:
         return importlib.util.find_spec("faster_whisper") is not None
 
-    def _transcribe_with_openai(self, file_path: Path, hint_language: Optional[str]) -> tuple[str, str, float]:
+    def _transcribe_with_openai(self, file_path: Path, hint_language: Optional[str]) -> tuple[str, str, float, str, Dict[str, float]]:
         language_code = self._normalize_language_code(hint_language)
         data = {"model": settings.OPENAI_TRANSCRIPTION_MODEL, "response_format": "json"}
         if language_code:
@@ -175,7 +173,7 @@ class SpeechService:
         if not transcript:
             raise RuntimeError("No speech was detected in the recording.")
         detected = self._language_name(language_code, transcript)
-        return transcript, detected, 0.95
+        return transcript, detected, 0.95, settings.OPENAI_TRANSCRIPTION_MODEL, {"provider_confidence": 0.95}
 
     def synthesize_speech(self, text: str, language: str = "hi-IN") -> bytes:
         if not settings.OPENAI_API_KEY or settings.AI_PROVIDER.lower() != "openai":

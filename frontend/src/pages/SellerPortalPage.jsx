@@ -270,35 +270,29 @@ export default function SellerPortalPage({ onNavigateToAdmin, onNavigateToStore 
           {activeTab === 'dashboard' && (
             <div className="space-y-6 animate-fade-in">
 
-              {/* Welcome Banner */}
+              {/* Welcome Banner — flat, professional */}
               <div
-                className="rounded-2xl p-6 text-white relative overflow-hidden"
-                style={{ background: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%)' }}
+                className="rounded-xl p-5"
+                style={{ background: '#fff', border: '1px solid #D5D9D9' }}
               >
-                {/* Decorative circles */}
-                <div className="absolute -right-10 -top-10 w-48 h-48 rounded-full bg-white/5" />
-                <div className="absolute -right-5 top-10 w-32 h-32 rounded-full bg-white/5" />
-
-                <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                   <div>
-                    <div className="flex items-center gap-2 mb-2">
-                      <span className="inline-flex items-center gap-1.5 bg-amber-400/20 border border-amber-400/40 text-amber-300 text-[11px] font-black uppercase tracking-widest px-3 py-1 rounded-full">
-                        <Building2 className="w-3 h-3" />
-                        Verified Artisan Guild · Level 3 Seller
+                    <div className="flex items-center gap-2 mb-1.5">
+                      <span style={{ background: '#EAF7EE', color: '#1D7A3B', border: '1px solid #B7DFC4', fontSize: '10px', fontWeight: 800, padding: '2px 8px', borderRadius: '99px', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+                        ✓ Verified Artisan Guild · Level 3 Seller
                       </span>
                     </div>
-                    <h2 className="text-[22px] font-black leading-tight mb-1" style={{ fontFamily: "'Outfit', sans-serif" }}>
+                    <h2 className="text-[20px] font-black text-gray-900 leading-tight mb-1" style={{ fontFamily: "'Outfit', sans-serif" }}>
                       Good Morning, Varanasi Weavers 👋
                     </h2>
-                    <p className="text-white/70 text-[13px] max-w-lg">
-                      You have <strong className="text-amber-300">{orders.length} new orders</strong> awaiting fulfillment and <strong className="text-orange-300">{pending.length} listings</strong> pending admin review.
+                    <p className="text-[13px] text-gray-500">
+                      You have <strong className="text-gray-900">{orders.length} new orders</strong> awaiting fulfillment and <strong className="text-gray-900">{pending.length} listings</strong> pending admin review.
                     </p>
                   </div>
                   <div className="flex items-center gap-3 flex-shrink-0">
                     <button
                       onClick={() => setActiveTab('addproduct')}
-                      className="flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold text-[13px] text-gray-900 transition-all hover:shadow-lg active:scale-95"
-                      style={{ backgroundColor: '#ffd814' }}
+                      className="btn-primary"
                     >
                       <Sparkles className="w-4 h-4" />
                       AI Listing Studio
@@ -1200,7 +1194,7 @@ function AiListingStudio({ onProductCreated, onNavigateToAdmin }) {
                       <div className="text-[10px] font-semibold uppercase tracking-wider text-violet-500">Evidence-gated interview</div>
                     </div>
                     <span className="rounded-full bg-white px-2.5 py-1 text-[11px] font-black text-violet-700 shadow-sm">
-                      {Math.round((interview?.readiness_score || 0) * 100)}% ready
+                      {Math.round((interview?.confidence_score || 0) * 100)}% AI confidence
                     </span>
                   </div>
                   <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-violet-100">
@@ -1213,6 +1207,14 @@ function AiListingStudio({ onProductCreated, onNavigateToAdmin }) {
                     <div className="mt-2 text-[10px] font-medium text-violet-600">
                       Still verifying: {interview.missing_fields.map(value => value.replaceAll('_', ' ')).join(' • ')}
                     </div>
+                  )}
+                  {interview?.status === 'needs_confirmation' && (
+                    <button
+                      onClick={() => handleVoice(new Blob(), 'confirmation.txt', 'Yes, these details and costs are correct.', detLang)}
+                      className="mt-3 w-full rounded-xl bg-emerald-600 px-4 py-2.5 text-[12px] font-black text-white shadow-sm hover:bg-emerald-700"
+                    >
+                      Confirm details — unlock 99% verified confidence
+                    </button>
                   )}
                 </div>
               </div>
@@ -1286,6 +1288,7 @@ function AiListingStudio({ onProductCreated, onNavigateToAdmin }) {
                   <p className="text-[11px] text-green-700 leading-normal">
                     All extracted attributes originate purely from your confirmed artisan voice and image. No invented claims.
                   </p>
+                  {interview?.human_confirmed && <p className="mt-1 text-[11px] font-black text-green-800">99% human-verified product understanding confidence</p>}
                 </div>
               </div>
             </div>

@@ -15,14 +15,23 @@ from backend.app.api.dashboard import router as dashboard_router
 from backend.app.api.export import router as export_router
 from backend.app.api.admin import router as admin_router, inquiries_router
 from backend.app.services.image_service import image_service
+from backend.app.services.speech_service import speech_service
 
 # Initialize Database tables
 Base.metadata.create_all(bind=engine)
 
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
-    if settings.IMAGE_MODEL_PRELOAD:
-        threading.Thread(target=image_service.warmup, name="image-model-warmup", daemon=True).start()
+    def warmup_models():
+        if settings.IMAGE_MODEL_PRELOAD:
+            image_service.warmup(include_primary=False)
+        if settings.VOICE_MODEL_PRELOAD:
+            speech_service.warmup()
+        if settings.IMAGE_MODEL_PRELOAD:
+            image_service.warmup(include_primary=True)
+
+    if settings.IMAGE_MODEL_PRELOAD or settings.VOICE_MODEL_PRELOAD:
+        threading.Thread(target=warmup_models, name="ai-model-warmup", daemon=True).start()
     yield
 
 app = FastAPI(

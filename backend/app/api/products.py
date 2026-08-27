@@ -77,6 +77,8 @@ async def enhance_image(file: UploadFile = File(...)):
             confidence_score=result["confidence_score"],
             segmentation_engine=result.get("segmentation_engine"),
             mask_quality_score=result.get("mask_quality_score"),
+            confidence_breakdown=result.get("confidence_breakdown", {}),
+            latency_breakdown=result.get("latency_breakdown", {}),
         )
     except HTTPException:
         raise

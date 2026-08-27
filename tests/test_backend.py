@@ -181,6 +181,49 @@ def test_guided_product_interview_blocks_unverified_pricing():
     assert second_data["cost_inputs"]["material_cost"] == 1200.0
     assert second_data["next_question_key"] == "labor_cost"
 
+def test_interview_starts_with_one_friendly_description_question_in_telugu():
+    response = client.post("/api/speech/product-interview", json={
+        "utterance": "",
+        "language": "Telugu",
+        "detected_objects": ["Pottery"],
+    })
+    assert response.status_code == 200
+    data = response.json()
+    assert data["next_question_key"] == "product_description"
+    assert data["question_number"] == 1
+    assert data["total_questions"] == 7
+    assert "మీ ఉత్పత్తి" in data["assistant_message"]
+    assert "technique" not in data["missing_fields"]
+    assert "dimensions" not in data["missing_fields"]
+    assert "region" not in data["missing_fields"]
+
+    answered = client.post("/api/speech/product-interview", json={
+        "utterance": "ఇది చేతితో చేసిన మట్టి దీపం. పండుగలకు మరియు ఇంటి అలంకరణకు ఉపయోగిస్తారు.",
+        "language": "Telugu",
+        "detected_objects": ["Pottery"],
+        "known_attributes": data["attributes"],
+        "cost_inputs": data["cost_inputs"],
+        "last_question_key": "product_description",
+    })
+    assert answered.status_code == 200
+    answered_data = answered.json()
+    assert answered_data["attributes"]["artisan_description"].startswith("ఇది చేతితో")
+    assert answered_data["next_question_key"] == "material"
+    assert "దేనితో" in answered_data["assistant_message"]
+
+    friendly_retry = client.post("/api/speech/product-interview", json={
+        "utterance": "300 రూపాయలు",
+        "language": "Telugu",
+        "detected_objects": ["Pottery"],
+        "known_attributes": answered_data["attributes"],
+        "cost_inputs": answered_data["cost_inputs"],
+        "last_question_key": "material",
+    })
+    assert friendly_retry.status_code == 200
+    retry_data = friendly_retry.json()
+    assert retry_data["next_question_key"] == "material"
+    assert "మరోసారి" in retry_data["assistant_message"]
+
 def test_guided_product_interview_reaches_pricing_readiness():
     response = client.post("/api/speech/product-interview", json={
         "utterance": (
@@ -243,7 +286,8 @@ def test_multilingual_listing_generation():
             "dimensions": "10 inches",
             "weight": "650 grams",
             "production_time": "3 days",
-            "region": "Jaipur, Rajasthan"
+            "region": "Jaipur, Rajasthan",
+            "artisan_description": "I paint every vase by hand for home decoration."
         },
         "artisan_name": "Rameshwar Lal"
     }
@@ -252,6 +296,9 @@ def test_multilingual_listing_generation():
     data = response.json()
     assert "Blue Pottery" in data["title_en"]
     assert "ब्लू पॉटरी" in data["title_hi"]
+    assert "చేతిపని" in data["title_te"]
+    assert "I paint every vase by hand" in data["description_en"]
+    assert "కళాకారుని స్వంత మాటల్లో" in data["description_te"]
     assert len(data["specifications"]) >= 4
     assert len(data["keywords"]) >= 4
 
@@ -294,7 +341,10 @@ def test_product_crud_lifecycle():
         "recommended_max_price": 1600.0,
         "suggested_price": 1299.0,
         "title": "Authentic Handcrafted Terracotta Clay Pot",
+        "title_telugu": "ప్రామాణిక చేతిపని టెర్రకోట కుండ",
         "short_description": "Eco-friendly natural clay pot.",
+        "short_description_telugu": "సహజ మట్టితో చేతితో తయారు చేసిన కుండ.",
+        "description_telugu": "కళాకారుని మాటల్లో తయారీ కథ.",
         "status": "Published"
     }
     create_res = client.post("/api/products/create", json=create_payload)
@@ -303,11 +353,13 @@ def test_product_crud_lifecycle():
     product_id = created["id"]
     assert product_id > 0
     assert created["product_name"] == "Test Handcrafted Terracotta Pot"
+    assert created["title_telugu"].startswith("ప్రామాణిక")
 
     # 2. Get Product by ID
     get_res = client.get(f"/api/products/{product_id}")
     assert get_res.status_code == 200
     assert get_res.json()["suggested_price"] == 1299.0
+    assert get_res.json()["description_telugu"] == "కళాకారుని మాటల్లో తయారీ కథ."
 
     # 3. List and Filter Products
     list_res = client.get(f"/api/products?search=Terracotta")

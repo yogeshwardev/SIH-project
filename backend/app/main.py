@@ -5,6 +5,7 @@ from pathlib import Path
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
+from sqlalchemy import inspect, text
 
 from backend.app.config import settings
 from backend.app.database.database import engine, Base
@@ -19,6 +20,28 @@ from backend.app.services.speech_service import speech_service
 
 # Initialize Database tables
 Base.metadata.create_all(bind=engine)
+
+# This project intentionally uses a lightweight SQLite setup instead of a full
+# migration framework. Keep existing local catalogs forward-compatible when
+# trilingual listing columns are introduced.
+def ensure_catalog_columns() -> None:
+    inspector = inspect(engine)
+    if "products" not in inspector.get_table_names():
+        return
+    existing = {column["name"] for column in inspector.get_columns("products")}
+    additions = {
+        "title_telugu": "VARCHAR",
+        "short_description_telugu": "TEXT",
+        "description_telugu": "TEXT",
+    }
+    with engine.begin() as connection:
+        for column_name, column_type in additions.items():
+            if column_name not in existing:
+                connection.execute(text(
+                    f"ALTER TABLE products ADD COLUMN {column_name} {column_type}"
+                ))
+
+ensure_catalog_columns()
 
 @asynccontextmanager
 async def lifespan(_app: FastAPI):

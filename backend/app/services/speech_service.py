@@ -233,10 +233,13 @@ class SpeechService:
     def synthesize_speech(self, text: str, language: str = "hi-IN") -> bytes:
         if not settings.OPENAI_API_KEY or settings.AI_PROVIDER.lower() != "openai":
             raise RuntimeError("Cloud voiceover is not configured.")
-        instructions = (
-            "Speak warmly and clearly in natural Indian Hindi." if str(language).lower().startswith("hi")
-            else "Speak warmly and clearly in natural Indian English."
-        )
+        language_code = str(language).lower()
+        if language_code.startswith("te"):
+            instructions = "Speak warmly, slowly, and clearly in natural Telugu for a first-time digital user."
+        elif language_code.startswith("hi"):
+            instructions = "Speak warmly, slowly, and clearly in natural Indian Hindi for a first-time digital user."
+        else:
+            instructions = "Speak warmly, slowly, and clearly in natural Indian English for a first-time digital user."
         response = requests.post(
             "https://api.openai.com/v1/audio/speech",
             headers={"Authorization": f"Bearer {settings.OPENAI_API_KEY}", "Content-Type": "application/json"},

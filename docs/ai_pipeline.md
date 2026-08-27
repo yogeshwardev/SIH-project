@@ -39,10 +39,11 @@ Raw Photograph
 
 ### Guided Product Interview
 - Each voice or typed response is processed as an independent, resumable turn; the client sends only the current user's confirmed state, preventing cross-artisan conversation leakage.
-- The interview selects the next missing high-value fact and asks it aloud in Hindi or English.
-- Pricing remains locked until product identity, material, production time, raw-material cost, fair labor, and packaging cost are explicitly evidenced.
+- After the photo is ready, the artisan chooses Hindi, Telugu, or English and taps **Next**. The assistant then asks exactly six friendly questions, one screen at a time: the artisan's own product description, material, production time, material cost, fair labor, and packaging cost.
+- Every answer is shown or typed before the artisan deliberately taps **Save & Next**. Image-derived guesses can enrich the listing but never silently skip an unanswered assisted-flow question.
+- Pricing remains locked until all six answers are explicitly evidenced.
 - Once all required facts exist, the AI reads them back for a final human confirmation. Only that confirmation produces the 0.99 product-understanding score; raw acoustic confidence remains separate and honest.
-- A visible readiness meter and conversation history allow the artisan to understand and correct the AI before the listing is generated.
+- Invalid formats are answered with a friendly localized retry instead of moving forward. A visible progress meter shows the current question without exposing a confusing technical conversation log.
 
 ---
 
@@ -62,7 +63,7 @@ $$\text{Attribute}(x) = \begin{cases} \text{Extracted Value} & \text{if explicit
 
 ## 4. Generative AI: Multilingual Listing Studio
 
-Generates full e-commerce listings in both **English** and **Hindi**:
+Generates full e-commerce listings in **English, Hindi, and Telugu**. The artisan's original product description is preserved verbatim at the start of every full-language description:
 - **Professional Title**: SEO-optimized product title with regional lineage.
 - **Short Summary**: 2-line punchy marketplace listing snippet.
 - **Rich Story Description**: Heritage narrative highlighting the artisan's manual labor, ethical sourcing, and cultural significance.

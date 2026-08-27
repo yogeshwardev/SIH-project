@@ -13,10 +13,16 @@ import {
 } from 'lucide-react';
 import { voiceAssistant } from '../services/voiceAssistant';
 
-export default function VoiceRecorder({ onAudioRecorded, isProcessing, samplePresets = [] }) {
+export default function VoiceRecorder({
+  onAudioRecorded,
+  isProcessing,
+  samplePresets = [],
+  initialLanguage = 'hi-IN',
+  onLanguageChange,
+}) {
   const [isRecording, setIsRecording] = useState(false);
   const [liveTranscript, setLiveTranscript] = useState('');
-  const [selectedLang, setSelectedLang] = useState('hi-IN');
+  const [selectedLang, setSelectedLang] = useState(initialLanguage);
   const [recordingTime, setRecordingTime] = useState(0);
   const [isPlayingVoiceover, setIsPlayingVoiceover] = useState(false);
   const [recorderError, setRecorderError] = useState('');
@@ -28,13 +34,70 @@ export default function VoiceRecorder({ onAudioRecorded, isProcessing, samplePre
   const streamRef = useRef(null);
 
   const languageOptions = [
-    { code: 'hi-IN', label: 'हिन्दी (Hindi)' },
-    { code: 'en-IN', label: 'English (India)' },
-    { code: 'ta-IN', label: 'தமிழ் (Tamil)' },
-    { code: 'te-IN', label: 'తెలుగు (Telugu)' },
-    { code: 'bn-IN', label: 'বাংলা (Bengali)' },
-    { code: 'mr-IN', label: 'मराठी (Marathi)' }
+    { code: 'hi-IN', name: 'Hindi', label: 'हिन्दी (Hindi)' },
+    { code: 'te-IN', name: 'Telugu', label: 'తెలుగు (Telugu)' },
+    { code: 'en-IN', name: 'English', label: 'English (India)' },
+    { code: 'ta-IN', name: 'Tamil', label: 'தமிழ் (Tamil)' },
+    { code: 'bn-IN', name: 'Bengali', label: 'বাংলা (Bengali)' },
+    { code: 'mr-IN', name: 'Marathi', label: 'मराठी (Marathi)' }
   ];
+
+  const primaryLanguage = String(selectedLang || '').split('-')[0].toLowerCase();
+  const copy = primaryLanguage === 'te' ? {
+    title: 'వాయిస్‌తో సమాధానం చెప్పండి',
+    instruction: 'మీ భాషను ఎంచుకుని మైక్ నొక్కి మాట్లాడండి. పూర్తయ్యాక ఎరుపు బటన్ నొక్కండి.',
+    listening: 'వింటున్నాం… నెమ్మదిగా మీ మాటల్లో చెప్పండి',
+    tapMic: 'సమాధానం చెప్పడానికి మైక్ నొక్కండి',
+    recording: 'రికార్డింగ్',
+    finish: 'పూర్తయ్యాక ఎరుపు బటన్ నొక్కండి',
+    answerOnly: 'పైన ఉన్న సులభమైన ప్రశ్నకు సమాధానం చెప్పండి',
+    yourWords: 'మీ మాటలు',
+    stopVoice: 'వాయిస్ ఆపండి',
+    listen: 'విని చూడండి',
+    listeningToYou: 'మీ మాటలు వింటున్నాం…',
+    captionsUnavailable: 'ఈ బ్రౌజర్‌లో వెంటనే మాటలు చూపడం లేదు. మీరు ఆపిన తర్వాత రికార్డింగ్‌ను చదువుతాం.',
+    captionsStopped: 'వెంటనే మాటలు చూపడం ఆగింది. రికార్డ్ చేసిన వాయిస్‌ను ఇంకా చదవవచ్చు.',
+    micFailed: 'మైక్ అనుమతి ఇవ్వండి, తర్వాత మళ్లీ ప్రయత్నించండి.',
+    noRecording: 'వాయిస్ రికార్డ్ కాలేదు. మైక్ అనుమతి ఇచ్చి మళ్లీ ప్రయత్నించండి.',
+  } : primaryLanguage === 'hi' ? {
+    title: 'आवाज़ में जवाब दें',
+    instruction: 'अपनी भाषा चुनें, माइक दबाकर बोलें और पूरा होने पर लाल बटन दबाएँ।',
+    listening: 'सुन रहे हैं… अपने शब्दों में धीरे बोलिए',
+    tapMic: 'जवाब देने के लिए माइक दबाएँ',
+    recording: 'रिकॉर्डिंग',
+    finish: 'पूरा होने पर लाल बटन दबाएँ',
+    answerOnly: 'ऊपर दिए आसान सवाल का जवाब दें',
+    yourWords: 'आपके शब्द',
+    stopVoice: 'आवाज़ रोकें',
+    listen: 'सुनें',
+    listeningToYou: 'आपको सुन रहे हैं…',
+    captionsUnavailable: 'इस ब्राउज़र में तुरंत शब्द नहीं दिखेंगे। रोकने के बाद रिकॉर्डिंग पढ़ी जाएगी।',
+    captionsStopped: 'तुरंत शब्द दिखना रुक गया। रिकॉर्ड की गई आवाज़ अभी भी पढ़ी जा सकती है।',
+    micFailed: 'माइक की अनुमति दें और फिर कोशिश करें।',
+    noRecording: 'आवाज़ रिकॉर्ड नहीं हुई। माइक की अनुमति देकर फिर कोशिश करें।',
+  } : {
+    title: 'Answer by Voice',
+    instruction: 'Choose your language, tap the microphone, speak, then tap the red button.',
+    listening: 'Listening… speak slowly in your own words',
+    tapMic: 'Tap the microphone to answer',
+    recording: 'Recording',
+    finish: 'tap the red button when finished',
+    answerOnly: 'Answer the simple question shown above',
+    yourWords: 'Your words',
+    stopVoice: 'Stop voice',
+    listen: 'Listen',
+    listeningToYou: 'Listening to you…',
+    captionsUnavailable: 'Live captions are unavailable. The recording will be transcribed after you stop.',
+    captionsStopped: 'Live captions stopped. The recorded audio can still be transcribed.',
+    micFailed: 'Allow microphone permission and try again.',
+    noRecording: 'No voice was recorded. Allow microphone permission and try again.',
+  };
+
+  useEffect(() => {
+    if (!isRecording && initialLanguage && initialLanguage !== selectedLang) {
+      setSelectedLang(initialLanguage);
+    }
+  }, [initialLanguage, isRecording, selectedLang]);
 
   useEffect(() => {
     return () => {
@@ -63,9 +126,9 @@ export default function VoiceRecorder({ onAudioRecorded, isProcessing, samplePre
       },
       ({ status, error, fatal }) => {
         if (status === 'unsupported') {
-          setRecorderError('Live captions are unavailable in this browser; the recording will be transcribed after you stop.');
+          setRecorderError(copy.captionsUnavailable);
         } else if (status === 'error' && fatal) {
-          setRecorderError(`Live captions stopped (${error}). The recorded audio can still be transcribed.`);
+          setRecorderError(`${copy.captionsStopped} (${error})`);
         }
       }
     );
@@ -87,7 +150,7 @@ export default function VoiceRecorder({ onAudioRecorded, isProcessing, samplePre
       mediaRecorder.onstop = () => {
         const mimeType = mediaRecorder.mimeType || preferredType || 'audio/webm';
         const blob = new Blob(audioChunksRef.current, { type: mimeType });
-        const langName = languageOptions.find((item) => item.code === selectedLang)?.label.split(' (')[0] || 'Hindi';
+        const langName = languageOptions.find((item) => item.code === selectedLang)?.name || 'Hindi';
         const extension = mimeType.includes('mp4') ? 'm4a' : 'webm';
         window.setTimeout(() => {
           const finalSpokenText = transcriptRef.current.trim();
@@ -102,7 +165,7 @@ export default function VoiceRecorder({ onAudioRecorded, isProcessing, samplePre
     } catch (err) {
       voiceAssistant.stopListening();
       setIsRecording(false);
-      setRecorderError('Microphone access failed. Allow microphone permission in the browser and try again.');
+      setRecorderError(copy.micFailed);
       return;
     }
 
@@ -121,10 +184,10 @@ export default function VoiceRecorder({ onAudioRecorded, isProcessing, samplePre
     } else {
       const finalText = transcriptRef.current.trim();
       if (finalText) {
-        const finalLangName = selectedLang.startsWith('hi') ? 'Hindi' : 'English';
+        const finalLangName = languageOptions.find((item) => item.code === selectedLang)?.name || 'Hindi';
         onAudioRecorded(new Blob(), 'voice.txt', finalText, finalLangName);
       } else {
-        setRecorderError('No recording was captured. Please allow microphone access and try again.');
+        setRecorderError(copy.noRecording);
       }
     }
   };
@@ -166,15 +229,15 @@ export default function VoiceRecorder({ onAudioRecorded, isProcessing, samplePre
           <div>
             <div className="flex items-center gap-2">
               <h3 className="text-base font-extrabold text-slate-900">
-                Live Speech Recognition AI & Voiceover
+                {copy.title}
               </h3>
               <span className="text-[10px] font-bold bg-amber-100 text-amber-900 border border-amber-300 px-2 py-0.5 rounded-full flex items-center gap-1">
                 <Radio className="w-2.5 h-2.5 text-amber-600 animate-pulse" />
-                Live Multilingual Engine
+                Hindi • English • తెలుగు
               </span>
             </div>
             <p className="text-xs text-slate-500 mt-0.5">
-              Speak naturally — words are captured live and converted into structured e-commerce data
+              {copy.instruction}
             </p>
           </div>
         </div>
@@ -184,7 +247,11 @@ export default function VoiceRecorder({ onAudioRecorded, isProcessing, samplePre
           <Globe className="w-3.5 h-3.5 text-slate-500" />
           <select
             value={selectedLang}
-            onChange={(e) => setSelectedLang(e.target.value)}
+            onChange={(e) => {
+              const code = e.target.value;
+              setSelectedLang(code);
+              onLanguageChange?.(languageOptions.find((item) => item.code === code)?.name || 'Hindi', code);
+            }}
             disabled={isRecording}
             className="bg-transparent text-xs font-bold text-slate-700 outline-none cursor-pointer"
           >
@@ -221,17 +288,17 @@ export default function VoiceRecorder({ onAudioRecorded, isProcessing, samplePre
 
         <div className="mt-4 text-center">
           <p className="text-sm font-bold text-slate-900">
-            {isRecording ? 'Listening... Speak naturally in your language' : 'Tap to Start Live Voice Dictation'}
+            {isRecording ? copy.listening : copy.tapMic}
           </p>
           <div className="flex items-center justify-center gap-2 mt-1">
             {isRecording ? (
               <span className="text-xs font-bold text-red-600 animate-pulse flex items-center gap-1">
                 <span className="w-2 h-2 rounded-full bg-red-600"></span>
-                Recording ({formatTime(recordingTime)}) — Click square when finished
+                {copy.recording} ({formatTime(recordingTime)}) — {copy.finish}
               </span>
             ) : (
               <span className="text-xs text-slate-500">
-                Mention craft name, material, technique, dimensions, or time taken
+                {copy.answerOnly}
               </span>
             )}
           </div>
@@ -243,7 +310,7 @@ export default function VoiceRecorder({ onAudioRecorded, isProcessing, samplePre
             <div className="flex items-center justify-between text-[11px] font-bold text-slate-500 mb-1.5 pb-1 border-b border-slate-100">
               <span className="flex items-center gap-1.5 text-terracotta-700">
                 <Sparkles className="w-3 h-3" />
-                Live Spoken Stream ({selectedLang.split('-')[0].toUpperCase()})
+                {copy.yourWords} ({selectedLang.split('-')[0].toUpperCase()})
               </span>
               
               {/* Voiceover Listen Button */}
@@ -253,12 +320,12 @@ export default function VoiceRecorder({ onAudioRecorded, isProcessing, samplePre
                   className="flex items-center gap-1 text-[11px] font-bold text-emerald-700 hover:text-emerald-900 bg-emerald-50 px-2 py-0.5 rounded-md transition-colors"
                 >
                   {isPlayingVoiceover ? <VolumeX className="w-3 h-3 text-red-600" /> : <Volume2 className="w-3 h-3" />}
-                  <span>{isPlayingVoiceover ? 'Stop Voiceover' : '🔊 Listen AI Voiceover'}</span>
+                  <span>{isPlayingVoiceover ? copy.stopVoice : `🔊 ${copy.listen}`}</span>
                 </button>
               )}
             </div>
             <p className="text-xs text-slate-800 font-medium italic min-h-[36px] leading-relaxed">
-              "{liveTranscript || 'Listening to your voice...'}"
+              "{liveTranscript || copy.listeningToYou}"
             </p>
           </div>
         )}
@@ -271,12 +338,12 @@ export default function VoiceRecorder({ onAudioRecorded, isProcessing, samplePre
         </div>
       )}
 
-      {/* Preset Prompts for 100% Demo Reliability */}
+      {/* Optional sample answers for guided demonstrations. */}
       {samplePresets.length > 0 && (
         <div>
           <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block mb-2 flex items-center gap-1.5">
             <Sparkles className="w-3.5 h-3.5 text-amber-500" />
-            Or click a benchmark artisan voice prompt:
+            Or use a sample answer:
           </span>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
             {samplePresets.map((preset) => (

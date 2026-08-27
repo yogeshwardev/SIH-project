@@ -31,7 +31,8 @@ class SpeechSynthesizeRequest(BaseModel):
     language: Optional[str] = "hi-IN"
 
 class ProductInterviewRequest(BaseModel):
-    utterance: str = Field(..., min_length=1, max_length=4096)
+    # An empty utterance starts the guided interview and returns question one.
+    utterance: str = Field(default="", max_length=4096)
     conversation_transcript: Optional[str] = ""
     language: Optional[str] = "Hindi"
     detected_objects: List[str] = Field(default_factory=list)
@@ -51,6 +52,8 @@ class ProductInterviewResponse(BaseModel):
     cost_inputs: Dict[str, Any] = Field(default_factory=dict)
     evidence: Dict[str, str] = Field(default_factory=dict)
     turn_summary: str
+    question_number: int = 1
+    total_questions: int = 7
 
 # --- Product Intelligence Extraction Schemas ---
 class ProductExtractRequest(BaseModel):
@@ -69,13 +72,14 @@ class ProductAttributes(BaseModel):
     weight: Optional[str] = "Not provided"
     production_time: Optional[str] = "Not provided"
     region: Optional[str] = "India"
+    artisan_description: Optional[str] = "Not provided"
     confidence_scores: Dict[str, str] = Field(default_factory=dict)
 
 # --- Listing Generation Schemas ---
 class ListingGenerateRequest(BaseModel):
     attributes: ProductAttributes
     artisan_name: Optional[str] = "Master Artisan"
-    target_languages: Optional[List[str]] = ["English", "Hindi"]
+    target_languages: Optional[List[str]] = ["English", "Hindi", "Telugu"]
 
 class MultilingualListingResponse(BaseModel):
     title_en: str
@@ -84,6 +88,9 @@ class MultilingualListingResponse(BaseModel):
     short_desc_hi: str
     description_en: str
     description_hi: str
+    title_te: str
+    short_desc_te: str
+    description_te: str
     specifications: List[str]
     keywords: List[str]
     authenticity_notes: str
@@ -144,10 +151,13 @@ class ProductCreate(BaseModel):
 
     title: Optional[str] = None
     title_hindi: Optional[str] = None
+    title_telugu: Optional[str] = None
     short_description: Optional[str] = None
     short_description_hindi: Optional[str] = None
+    short_description_telugu: Optional[str] = None
     description: Optional[str] = None
     description_hindi: Optional[str] = None
+    description_telugu: Optional[str] = None
     specifications: Optional[List[str]] = []
     keywords: Optional[List[str]] = []
 
@@ -184,10 +194,13 @@ class ProductUpdate(BaseModel):
 
     title: Optional[str] = None
     title_hindi: Optional[str] = None
+    title_telugu: Optional[str] = None
     short_description: Optional[str] = None
     short_description_hindi: Optional[str] = None
+    short_description_telugu: Optional[str] = None
     description: Optional[str] = None
     description_hindi: Optional[str] = None
+    description_telugu: Optional[str] = None
     specifications: Optional[List[str]] = None
     keywords: Optional[List[str]] = None
 
@@ -232,10 +245,13 @@ class ProductResponse(BaseModel):
 
     title: Optional[str]
     title_hindi: Optional[str]
+    title_telugu: Optional[str]
     short_description: Optional[str]
     short_description_hindi: Optional[str]
+    short_description_telugu: Optional[str]
     description: Optional[str]
     description_hindi: Optional[str]
+    description_telugu: Optional[str]
     specifications: Optional[List[str]] = []
     keywords: Optional[List[str]] = []
 

@@ -121,10 +121,21 @@ class VoiceAssistant {
       onEnd?.();
       return false;
     }
-    const locale = String(lang).toLowerCase().startsWith('hi') ? 'hi-IN' : 'en-IN';
+    const requested = String(lang || 'en-IN').toLowerCase();
+    const locale = requested.startsWith('te') || requested.includes('telugu') || requested.includes('తెలుగు')
+      ? 'te-IN'
+      : requested.startsWith('hi') || requested.includes('hindi') || requested.includes('हिन्द')
+        ? 'hi-IN'
+        : requested.startsWith('ta') || requested.includes('tamil')
+          ? 'ta-IN'
+          : requested.startsWith('bn') || requested.includes('bengali')
+            ? 'bn-IN'
+            : requested.startsWith('mr') || requested.includes('marathi')
+              ? 'mr-IN'
+              : 'en-IN';
     const utterance = new SpeechSynthesisUtterance(text);
     utterance.lang = locale;
-    utterance.rate = 0.92;
+    utterance.rate = 0.88;
     utterance.pitch = 1;
     const voices = this.synth.getVoices();
     utterance.voice = voices.find((voice) => voice.lang.toLowerCase() === locale.toLowerCase())

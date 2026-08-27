@@ -16,13 +16,74 @@ import VoiceRecorder from '../components/VoiceRecorder';
 import PriceExplainerCard from '../components/PriceExplainerCard';
 import { DEMO_PRESETS } from '../components/LiveDemoBar';
 
-// ── Sample voice presets ──────────────────────────
-const VOICE_PRESETS = [
-  { id: 'v1', title: 'बनारसी साड़ी', lang: 'Hindi', flag: '🇮🇳', text: 'यह शुद्ध बनारसी कतान सिल्क साड़ी है। इसमें असली सोने और चांदी की जरी का काम है। इसे हथकरघे पर 6 दिन में बुना गया है।' },
-  { id: 'v2', title: 'Blue Pottery Vase', lang: 'English', flag: '🇬🇧', text: 'This is a handcrafted Jaipur Blue Pottery vase made from quartz stone powder and natural cobalt glaze, hand-painted and kiln-fired.' },
-  { id: 'v3', title: 'असमिया बांस टोकरी', lang: 'Hindi', flag: '🇮🇳', text: 'यह प्राकृतिक असमिया बांस से बनी मजबूत और पर्यावरण के अनुकूल स्टोरेज बास्केट है, पारंपरिक हाथ की बुनाई से तैयार।' },
-  { id: 'v4', title: 'Wooden Toy', lang: 'English', flag: '🇬🇧', text: 'This Channapatna wooden toy is crafted with Ivory wood and polished with non-toxic natural vegetable dyes. Completely child-safe.' },
+const SELLER_LANGUAGE_OPTIONS = [
+  { name: 'Hindi', code: 'hi-IN', label: 'हिन्दी' },
+  { name: 'Telugu', code: 'te-IN', label: 'తెలుగు' },
+  { name: 'English', code: 'en-IN', label: 'English' },
 ];
+
+const speechCodeForLanguage = (language) => {
+  const value = String(language || '').toLowerCase();
+  if (value.startsWith('te') || value.includes('telugu') || value.includes('తెలుగు')) return 'te-IN';
+  if (value.startsWith('hi') || value.includes('hindi') || value.includes('हिन्द')) return 'hi-IN';
+  if (value.startsWith('ta') || value.includes('tamil')) return 'ta-IN';
+  if (value.startsWith('bn') || value.includes('bengali')) return 'bn-IN';
+  if (value.startsWith('mr') || value.includes('marathi')) return 'mr-IN';
+  return 'en-IN';
+};
+
+const confirmationAnswerForLanguage = (language) => {
+  const code = speechCodeForLanguage(language);
+  if (code === 'te-IN') return 'అవును, ఈ సమాచారం మరియు ఖర్చులు సరైనవి.';
+  if (code === 'hi-IN') return 'हाँ, यह जानकारी और लागत सही है।';
+  return 'Yes, these details and costs are correct.';
+};
+
+const questionUiCopyFor = (language) => {
+  const code = speechCodeForLanguage(language);
+  if (code === 'te-IN') return {
+    heading: 'ఒక సులభమైన ప్రశ్న',
+    question: 'ప్రశ్న',
+    of: 'లో',
+    confirm: '✓ అవును, ఇది సరైనది — తర్వాత',
+    heard: 'మేము విన్న సమాధానం',
+    checkAnswer: 'ఇది సరైందైతే తర్వాత నొక్కండి. కాకపోతే మళ్లీ రికార్డ్ చేయండి.',
+    recordAgain: 'మళ్లీ రికార్డ్ చేయండి',
+    saveVoice: 'సమాధానం సేవ్ చేసి తర్వాత',
+    orType: 'లేదా సమాధానం టైప్ చేయండి',
+    placeholder: 'మీ భాషలో టైప్ చేయండి…',
+    save: 'సేవ్ చేసి తర్వాత',
+    back: 'ఫోటోకు తిరిగి వెళ్లండి',
+  };
+  if (code === 'hi-IN') return {
+    heading: 'एक आसान सवाल',
+    question: 'सवाल',
+    of: 'में से',
+    confirm: '✓ हाँ, यह सही है — आगे',
+    heard: 'हमने यह जवाब सुना',
+    checkAnswer: 'यह सही है तो आगे दबाएँ। नहीं तो फिर रिकॉर्ड करें।',
+    recordAgain: 'फिर रिकॉर्ड करें',
+    saveVoice: 'जवाब सहेजें और आगे जाएँ',
+    orType: 'या जवाब लिखें',
+    placeholder: 'अपनी भाषा में लिखें…',
+    save: 'सहेजें और आगे जाएँ',
+    back: 'फोटो पर वापस जाएँ',
+  };
+  return {
+    heading: 'One simple question',
+    question: 'Question',
+    of: 'of',
+    confirm: '✓ Yes, this is correct — Next',
+    heard: 'We heard your answer',
+    checkAnswer: 'If this looks right, tap Next. Otherwise record it again.',
+    recordAgain: 'Record again',
+    saveVoice: 'Save answer & Next',
+    orType: 'Or type the answer',
+    placeholder: 'Type in your own language…',
+    save: 'Save & Next',
+    back: 'Back to Photo',
+  };
+};
 
 // ── KPI Cards data ────────────────────────────────
 function StatCard({ icon: Icon, iconBg, label, value, sub, trend }) {
@@ -868,39 +929,36 @@ function AiListingStudio({ onProductCreated, onNavigateToAdmin }) {
   const [interview, setInterview] = useState(null);
   const [interviewTurns, setInterviewTurns] = useState([]);
   const [typedAnswer, setTypedAnswer] = useState('');
+  const [pendingAnswer, setPendingAnswer] = useState(null);
   const [submitted, setSubmitted] = useState(false);
   const [productId, setProductId] = useState(null);
+  const questionUi = questionUiCopyFor(detLang);
 
   const STEPS = [
-    { n: 1, label: 'Upload Photo', sub: 'AI Studio Enhancement' },
-    { n: 2, label: 'Voice Description', sub: 'Speech-to-Text AI' },
-    { n: 3, label: 'AI Understanding', sub: 'Smart Cataloging' },
-    { n: 4, label: 'Pricing Engine', sub: 'Fair-Trade Calculator' },
-    { n: 5, label: 'Submit for Review', sub: 'Admin Approval' },
+    { n: 1, label: 'Add Photo', sub: 'AI cleans the image' },
+    { n: 2, label: 'Answer Questions', sub: 'One simple question at a time' },
+    { n: 3, label: 'Check Details', sub: 'Review your words' },
+    { n: 4, label: 'See Fair Price', sub: 'Clear cost calculation' },
+    { n: 5, label: 'Send for Review', sub: 'Final submission' },
   ];
 
-  const loadPreset = async (preset) => {
-    setLoading(true); setError(null);
-    try {
-      setLoadMsg('Enhancing image with AI Computer Vision...');
-      setImgData({ original_image_url: preset.rawImage, enhanced_image_url: preset.enhancedImage, detected_objects: [preset.category], dominant_colors: [], segmentation_engine: 'Pre-generated sample (no live confidence)' });
-      setLoadMsg('Transcribing artisan voice...');
-      setTxt(preset.voiceText);
-      setDetLang(preset.language);
-      setLoadMsg('Extracting structured attributes...');
-      const a = await api.extractProductInfo(preset.voiceText, [preset.category, preset.craft], preset.language);
-      setAttrs(a);
-      setLoadMsg('Generating multilingual listing...');
-      const l = await api.generateListing(a, 'Master Artisan');
-      setListing(l);
-      setLoadMsg('Computing fair-trade pricing...');
-      const costPayload = { material_cost: preset.materialCost, labor_cost: preset.laborCost, packaging_cost: preset.packagingCost, production_time: preset.productionTime, category: preset.category, craft_type: preset.craft, material: a.material };
-      setCosts(costPayload);
-      const pr = await api.calculatePrice(costPayload);
-      setPricing(pr);
-      setStep(4);
-    } catch (e) { setError(e.message); }
-    finally { setLoading(false); setLoadMsg(''); }
+  const clearQuestionFlow = () => {
+    setTxt(''); setAttrs(null); setListing(null); setPricing(null);
+    setCosts({ material_cost: null, labor_cost: null, packaging_cost: null, production_time: '' });
+    setInterview(null); setInterviewTurns([]); setTypedAnswer(''); setPendingAnswer(null);
+  };
+
+  const loadPreset = (preset) => {
+    setError(null);
+    clearQuestionFlow();
+    setImgData({
+      original_image_url: preset.rawImage,
+      enhanced_image_url: preset.enhancedImage,
+      detected_objects: [preset.category, preset.craft],
+      dominant_colors: [],
+      segmentation_engine: 'Pre-generated sample (no live confidence)',
+    });
+    setDetLang(preset.language || 'Hindi');
   };
 
   const handleImageUpload = async (e) => {
@@ -909,18 +967,61 @@ function AiListingStudio({ onProductCreated, onNavigateToAdmin }) {
     setLoadMsg('AI Computer Vision: Removing background & enhancing studio quality...');
     try {
       const d = await api.enhanceImage(file);
+      clearQuestionFlow();
       setImgData(d);
-      setStep(2);
     } catch (e) { setError(e.message); }
     finally { setLoading(false); setLoadMsg(''); }
   };
 
-  const handleVoice = async (blob, filename, overTxt = null, overLang = null) => {
+  const beginInterview = async () => {
+    if (!imgData) return;
     setLoading(true); setError(null);
-    setLoadMsg('Voice AI: Listening, extracting evidence, and deciding the next question...');
+    setLoadMsg('Preparing your first simple question…');
     try {
-      let text = overTxt, lang = overLang || 'Hindi';
-      if (!text) { const r = await api.transcribeAudio(blob, lang, filename); text = r.transcript; lang = r.detected_language; }
+      const result = await api.continueProductInterview({
+        utterance: '',
+        conversation_transcript: '',
+        language: detLang,
+        detected_objects: imgData?.detected_objects || [],
+        known_attributes: {},
+        cost_inputs: {},
+        last_question_key: null,
+      });
+      setInterview(result);
+      setAttrs(result.attributes);
+      setCosts({ ...result.cost_inputs, production_time: result.attributes.production_time || '' });
+      setInterviewTurns([{ role: 'assistant', text: result.assistant_message }]);
+      setStep(2);
+      voiceAssistant.speak(result.assistant_message, speechCodeForLanguage(detLang));
+    } catch (e) { setError(e.message); }
+    finally { setLoading(false); setLoadMsg(''); }
+  };
+
+  const captureVoiceAnswer = async (blob, filename, spokenText = null, spokenLanguage = null) => {
+    setLoading(true); setError(null);
+    setLoadMsg('Checking the words we heard…');
+    try {
+      let text = spokenText;
+      let language = spokenLanguage || detLang;
+      if (!text) {
+        const result = await api.transcribeAudio(blob, language, filename);
+        text = result.transcript;
+        language = result.detected_language || language;
+      }
+      if (!String(text || '').trim()) throw new Error('We could not hear an answer. Please try again slowly.');
+      setDetLang(language);
+      setPendingAnswer({ text: String(text).trim(), language });
+    } catch (e) { setError(e.message); }
+    finally { setLoading(false); setLoadMsg(''); }
+  };
+
+  const submitInterviewAnswer = async (answerOverride = null, languageOverride = null) => {
+    const text = String(answerOverride || pendingAnswer?.text || typedAnswer || '').trim();
+    const lang = languageOverride || pendingAnswer?.language || detLang || 'Hindi';
+    if (!text) return;
+    setLoading(true); setError(null);
+    setLoadMsg('Saving your answer and preparing the next step…');
+    try {
       const previousTranscript = transcript;
       const fullTranscript = [previousTranscript, text].filter(Boolean).join('\n');
       setTxt(fullTranscript); setDetLang(lang);
@@ -943,6 +1044,7 @@ function AiListingStudio({ onProductCreated, onNavigateToAdmin }) {
       setCosts(mergedCosts);
       setInterviewTurns(turns => [...turns, { role: 'artisan', text }, { role: 'assistant', text: result.assistant_message }]);
       setTypedAnswer('');
+      setPendingAnswer(null);
 
       if (result.status === 'ready_for_pricing') {
         setLoadMsg('Generating a verified bilingual marketplace listing...');
@@ -958,19 +1060,10 @@ function AiListingStudio({ onProductCreated, onNavigateToAdmin }) {
         setPricing(pr);
         setStep(3);
       } else {
-        voiceAssistant.speak(
-          result.assistant_message,
-          /^(hi|hindi|हिन्द)/i.test(String(lang)) ? 'hi-IN' : 'en-IN'
-        );
+        voiceAssistant.speak(result.assistant_message, speechCodeForLanguage(lang));
       }
     } catch (e) { setError(e.message); }
     finally { setLoading(false); setLoadMsg(''); }
-  };
-
-  const submitTypedInterviewAnswer = () => {
-    const answer = typedAnswer.trim();
-    if (!answer) return;
-    handleVoice(new Blob([answer], { type: 'text/plain' }), 'typed-answer.txt', answer, detLang);
   };
 
   const handleSubmit = async () => {
@@ -992,8 +1085,13 @@ function AiListingStudio({ onProductCreated, onNavigateToAdmin }) {
         region: attrs?.region || 'India',
         title: listing?.title_en || attrs?.product_name,
         title_hindi: listing?.title_hi,
+        title_telugu: listing?.title_te,
         short_description: listing?.short_desc_en,
+        short_description_hindi: listing?.short_desc_hi,
+        short_description_telugu: listing?.short_desc_te,
         description: listing?.description_en,
+        description_hindi: listing?.description_hi,
+        description_telugu: listing?.description_te,
         specifications: listing?.specifications || [],
         keywords: listing?.keywords || [],
         material_cost: costs.material_cost,
@@ -1014,7 +1112,7 @@ function AiListingStudio({ onProductCreated, onNavigateToAdmin }) {
   const reset = () => {
     setStep(1); setImgData(null); setTxt(''); setAttrs(null); setListing(null); setPricing(null); setSubmitted(false); setProductId(null); setError(null);
     setCosts({ material_cost: null, labor_cost: null, packaging_cost: null, production_time: '' });
-    setInterview(null); setInterviewTurns([]); setTypedAnswer('');
+    setInterview(null); setInterviewTurns([]); setTypedAnswer(''); setPendingAnswer(null);
   };
 
   // Success Screen
@@ -1126,8 +1224,8 @@ function AiListingStudio({ onProductCreated, onNavigateToAdmin }) {
                 <Camera className="w-5 h-5 text-orange-600" />
               </div>
               <div>
-                <h3 className="text-[15px] font-bold text-gray-900">Step 1: Upload Product Photo</h3>
-                <p className="text-[12px] text-gray-400">Any background is OK — AI will clean it</p>
+                <h3 className="text-[15px] font-bold text-gray-900">First, add one product photo</h3>
+                <p className="text-[12px] text-gray-500">Do not worry about the background. AI will clean it.</p>
               </div>
             </div>
 
@@ -1136,12 +1234,12 @@ function AiListingStudio({ onProductCreated, onNavigateToAdmin }) {
               <div className="w-14 h-14 rounded-full bg-white border border-gray-200 shadow-sm flex items-center justify-center mx-auto mb-3 group-hover:scale-110 transition-transform">
                 <Upload className="w-7 h-7 text-gray-400 group-hover:text-orange-500 transition-colors" />
               </div>
-              <p className="text-[14px] font-bold text-gray-700 mb-1">Click to Upload Photo</p>
-              <p className="text-[12px] text-gray-400">JPG, PNG, WebP — up to 15MB</p>
+              <p className="text-[14px] font-bold text-gray-700 mb-1">Tap here and choose a photo</p>
+              <p className="text-[12px] text-gray-400">JPG, PNG or WebP — up to 15MB</p>
             </label>
 
             <div className="mt-4 pt-4 border-t border-gray-100">
-              <p className="text-[11px] font-bold uppercase text-gray-400 mb-3 tracking-wider">Quick Demo Presets:</p>
+              <p className="text-[11px] font-bold uppercase text-gray-400 mb-3 tracking-wider">Or try a sample photo</p>
               <div className="grid grid-cols-2 gap-2">
                 {DEMO_PRESETS.slice(0, 4).map(p => (
                   <button key={p.id} onClick={() => loadPreset(p)} className="p-3 rounded-xl border border-gray-200 hover:border-orange-300 hover:bg-orange-50/40 text-left transition-all">
@@ -1152,6 +1250,34 @@ function AiListingStudio({ onProductCreated, onNavigateToAdmin }) {
                 ))}
               </div>
             </div>
+
+            {imgData && (
+              <div className="mt-5 rounded-2xl border-2 border-emerald-300 bg-emerald-50 p-4">
+                <div className="flex items-start gap-3">
+                  <CheckCircle2 className="mt-0.5 h-6 w-6 flex-shrink-0 text-emerald-600" />
+                  <div>
+                    <div className="text-[14px] font-black text-emerald-900">Your photo is ready</div>
+                    <p className="mt-0.5 text-[12px] text-emerald-800">Choose a language. Next, the assistant will ask only six simple questions.</p>
+                  </div>
+                </div>
+                <label className="mt-4 block text-[11px] font-black uppercase tracking-wider text-emerald-800">Your language</label>
+                <select
+                  value={SELLER_LANGUAGE_OPTIONS.find((item) => item.name === detLang)?.name || 'Hindi'}
+                  onChange={(event) => setDetLang(event.target.value)}
+                  className="mt-1 w-full rounded-xl border border-emerald-300 bg-white px-3 py-3 text-[15px] font-bold text-gray-900 outline-none"
+                >
+                  {SELLER_LANGUAGE_OPTIONS.map((language) => (
+                    <option key={language.name} value={language.name}>{language.label}</option>
+                  ))}
+                </select>
+                <button
+                  onClick={beginInterview}
+                  className="mt-3 flex w-full items-center justify-center gap-2 rounded-xl bg-emerald-600 px-5 py-3.5 text-[15px] font-black text-white shadow-md hover:bg-emerald-700"
+                >
+                  Next: Answer simple questions <ArrowRight className="h-5 w-5" />
+                </button>
+              </div>
+            )}
           </div>
 
           {/* Preview Panel */}
@@ -1164,8 +1290,8 @@ function AiListingStudio({ onProductCreated, onNavigateToAdmin }) {
             </div>
             <div className="flex-1 flex items-center justify-center p-4">
               <BeforeAfterSlider
-                originalUrl="/uploads/banarasi_saree_raw.jpg"
-                enhancedUrl="/uploads/banarasi_saree_studio_enhanced.png"
+                originalUrl={imgData?.original_image_url || '/uploads/banarasi_saree_raw.jpg'}
+                enhancedUrl={imgData?.enhanced_image_url || '/uploads/banarasi_saree_studio_enhanced.png'}
                 title="Drag to compare"
               />
             </div>
@@ -1190,59 +1316,73 @@ function AiListingStudio({ onProductCreated, onNavigateToAdmin }) {
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center justify-between gap-3">
                     <div>
-                      <div className="text-[13px] font-black text-violet-950">CraftLink Interactive Product Expert</div>
-                      <div className="text-[10px] font-semibold uppercase tracking-wider text-violet-500">Evidence-gated interview</div>
+                      <div className="text-[15px] font-black text-violet-950">{questionUi.heading}</div>
+                      <div className="text-[11px] font-semibold text-violet-600">
+                        {questionUi.question} {interview?.question_number || 1} {questionUi.of} {interview?.total_questions || 7}
+                      </div>
                     </div>
-                    <span className="rounded-full bg-white px-2.5 py-1 text-[11px] font-black text-violet-700 shadow-sm">
-                      {Math.round((interview?.confidence_score || 0) * 100)}% understanding confidence
+                    <span className="max-w-[190px] rounded-full bg-white px-2.5 py-1 text-right text-[10px] font-black text-violet-700 shadow-sm">
+                      {interview?.turn_summary || 'We save every answer before moving ahead.'}
                     </span>
                   </div>
                   <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-violet-100">
                     <div className="h-full rounded-full bg-gradient-to-r from-violet-500 to-blue-500 transition-all duration-500" style={{ width: `${Math.max(4, (interview?.readiness_score || 0) * 100)}%` }} />
                   </div>
                   <div className="mt-3 rounded-xl border border-white/80 bg-white/90 p-3 text-[13px] font-semibold leading-relaxed text-slate-800">
-                    {interview?.assistant_message || 'Describe your product naturally. I will listen, identify missing facts, and ask only the questions needed for an accurate price.'}
+                    {interview?.assistant_message || 'Tell us about your product in your own words.'}
                   </div>
-                  {interview?.missing_fields?.length > 0 && (
-                    <div className="mt-2 text-[10px] font-medium text-violet-600">
-                      Still verifying: {interview.missing_fields.map(value => value.replaceAll('_', ' ')).join(' • ')}
-                    </div>
-                  )}
                   {interview?.status === 'needs_confirmation' && (
                     <button
-                      onClick={() => handleVoice(new Blob(), 'confirmation.txt', 'Yes, these details and costs are correct.', detLang)}
-                      className="mt-3 w-full rounded-xl bg-emerald-600 px-4 py-2.5 text-[12px] font-black text-white shadow-sm hover:bg-emerald-700"
+                      onClick={() => submitInterviewAnswer(confirmationAnswerForLanguage(detLang), detLang)}
+                      className="mt-3 w-full rounded-xl bg-emerald-600 px-4 py-3 text-[14px] font-black text-white shadow-sm hover:bg-emerald-700"
                     >
-                      Confirm details — unlock 99% verified confidence
+                      {questionUi.confirm}
                     </button>
                   )}
                 </div>
               </div>
-              {interviewTurns.length > 0 && (
-                <div className="mt-3 max-h-32 space-y-1.5 overflow-y-auto border-t border-violet-100 pt-3">
-                  {interviewTurns.slice(-4).map((turn, index) => (
-                    <div key={`${turn.role}-${index}`} className={`text-[11px] ${turn.role === 'assistant' ? 'text-violet-800' : 'text-slate-600'}`}>
-                      <strong>{turn.role === 'assistant' ? 'AI' : 'You'}:</strong> {turn.text}
-                    </div>
-                  ))}
-                </div>
-              )}
             </div>
-            <VoiceRecorder onAudioRecorded={handleVoice} isProcessing={loading} samplePresets={VOICE_PRESETS.map(v => ({ ...v, language: v.lang, text: v.text }))} />
-            <div className="flex gap-2 rounded-xl border border-gray-200 bg-white p-2 shadow-sm">
-              <input
-                value={typedAnswer}
-                onChange={e => setTypedAnswer(e.target.value)}
-                onKeyDown={e => { if (e.key === 'Enter') submitTypedInterviewAnswer(); }}
-                placeholder="Or type your answer here…"
-                className="min-w-0 flex-1 rounded-lg border-0 px-3 py-2 text-[12px] outline-none"
+
+            {!pendingAnswer && (
+              <VoiceRecorder
+                onAudioRecorded={captureVoiceAnswer}
+                isProcessing={loading}
+                initialLanguage={speechCodeForLanguage(detLang)}
+                onLanguageChange={(language) => setDetLang(language)}
               />
-              <button onClick={submitTypedInterviewAnswer} disabled={!typedAnswer.trim()} className="rounded-lg bg-violet-600 px-4 py-2 text-[12px] font-bold text-white disabled:opacity-40">
-                Answer AI
-              </button>
-            </div>
-            <button onClick={() => setStep(1)} className="flex items-center gap-1.5 text-[12px] font-semibold text-gray-500 hover:text-gray-700">
-              <ArrowLeft className="w-4 h-4" /> Back to Photo
+            )}
+
+            {pendingAnswer ? (
+              <div className="rounded-2xl border-2 border-emerald-300 bg-white p-4 shadow-sm">
+                <div className="text-[12px] font-black uppercase tracking-wider text-emerald-700">{questionUi.heard}</div>
+                <p className="mt-2 rounded-xl bg-emerald-50 p-3 text-[14px] font-semibold leading-relaxed text-gray-900">“{pendingAnswer.text}”</p>
+                <p className="mt-2 text-[11px] text-gray-500">{questionUi.checkAnswer}</p>
+                <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
+                  <button onClick={() => setPendingAnswer(null)} className="rounded-xl border border-gray-300 px-4 py-3 text-[13px] font-bold text-gray-700">{questionUi.recordAgain}</button>
+                  <button onClick={() => submitInterviewAnswer()} className="flex items-center justify-center gap-2 rounded-xl bg-violet-600 px-4 py-3 text-[14px] font-black text-white">
+                    {questionUi.saveVoice} <ArrowRight className="h-4 w-4" />
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="rounded-2xl border border-gray-200 bg-white p-3 shadow-sm">
+                <label className="mb-1 block text-[11px] font-bold text-gray-500">{questionUi.orType}</label>
+                <div className="flex flex-col gap-2 sm:flex-row">
+                  <input
+                    value={typedAnswer}
+                    onChange={e => setTypedAnswer(e.target.value)}
+                    onKeyDown={e => { if (e.key === 'Enter') submitInterviewAnswer(); }}
+                    placeholder={questionUi.placeholder}
+                    className="min-w-0 flex-1 rounded-xl border border-gray-200 px-3 py-3 text-[14px] outline-none focus:border-violet-400"
+                  />
+                  <button onClick={() => submitInterviewAnswer()} disabled={!typedAnswer.trim()} className="flex items-center justify-center gap-2 rounded-xl bg-violet-600 px-5 py-3 text-[13px] font-black text-white disabled:opacity-40">
+                    {questionUi.save} <ArrowRight className="h-4 w-4" />
+                  </button>
+                </div>
+              </div>
+            )}
+            <button onClick={() => { clearQuestionFlow(); setStep(1); }} className="flex items-center gap-1.5 text-[12px] font-semibold text-gray-500 hover:text-gray-700">
+              <ArrowLeft className="w-4 h-4" /> {questionUi.back}
             </button>
           </div>
         </div>
@@ -1267,7 +1407,7 @@ function AiListingStudio({ onProductCreated, onNavigateToAdmin }) {
                   <button
                     onClick={() => {
                       if (speaking) { voiceAssistant.stopSpeaking?.(); setSpeaking(false); }
-                      else { setSpeaking(true); voiceAssistant.speak?.(transcript, detLang === 'Hindi' ? 'hi-IN' : 'en-IN', () => setSpeaking(false)); }
+                      else { setSpeaking(true); voiceAssistant.speak?.(transcript, speechCodeForLanguage(detLang), () => setSpeaking(false)); }
                     }}
                     className="flex items-center gap-1 px-2.5 py-1 rounded-lg border border-gray-200 text-[11px] font-semibold text-gray-600 hover:bg-gray-50"
                   >
@@ -1319,6 +1459,7 @@ function AiListingStudio({ onProductCreated, onNavigateToAdmin }) {
 
                 <div className="grid grid-cols-2 gap-3 text-[12px]">
                   {[
+                    ['Your Description', 'artisan_description'],
                     ['Product Name', 'product_name'],
                     ['Craft Type', 'craft_type'],
                     ['Material', 'material'],
@@ -1328,7 +1469,7 @@ function AiListingStudio({ onProductCreated, onNavigateToAdmin }) {
                     ['Region / Origin', 'region'],
                     ['Color', 'color'],
                   ].map(([label, key]) => (
-                    <div key={key} className="bg-gray-50 border border-gray-200 rounded-xl p-2.5">
+                    <div key={key} className={`bg-gray-50 border border-gray-200 rounded-xl p-2.5 ${key === 'artisan_description' ? 'col-span-2' : ''}`}>
                       <span className="block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">{label}</span>
                       {editMode ? (
                         <input
@@ -1355,9 +1496,9 @@ function AiListingStudio({ onProductCreated, onNavigateToAdmin }) {
                     </div>
                     <div className="flex items-center gap-2">
                       <div className="flex bg-gray-100 rounded-lg p-0.5">
-                        {['en', 'hi'].map(l => (
+                        {['en', 'hi', 'te'].map(l => (
                           <button key={l} onClick={() => setListLang(l)} className={`px-3 py-1 rounded-md text-[11px] font-bold transition-all ${listLang === l ? 'bg-white shadow text-orange-600' : 'text-gray-500'}`}>
-                            {l === 'en' ? 'English' : 'हिन्दी'}
+                            {l === 'en' ? 'English' : l === 'hi' ? 'हिन्दी' : 'తెలుగు'}
                           </button>
                         ))}
                       </div>
@@ -1368,13 +1509,19 @@ function AiListingStudio({ onProductCreated, onNavigateToAdmin }) {
                     <div>
                       <span className="text-[10px] font-bold text-gray-400 uppercase">E-Commerce Title</span>
                       <h5 className="font-bold text-gray-900 mt-0.5 leading-snug text-[13px]">
-                        {listLang === 'en' ? listing.title_en : listing.title_hi}
+                        {listLang === 'en' ? listing.title_en : listLang === 'hi' ? listing.title_hi : listing.title_te}
                       </h5>
                     </div>
                     <div>
                       <span className="text-[10px] font-bold text-gray-400 uppercase">Short Summary</span>
                       <p className="text-gray-600 mt-0.5 leading-relaxed">
-                        {listLang === 'en' ? listing.short_desc_en : listing.short_desc_hi}
+                        {listLang === 'en' ? listing.short_desc_en : listLang === 'hi' ? listing.short_desc_hi : listing.short_desc_te}
+                      </p>
+                    </div>
+                    <div>
+                      <span className="text-[10px] font-bold text-gray-400 uppercase">Full Product Description</span>
+                      <p className="mt-0.5 whitespace-pre-line rounded-xl bg-gray-50 p-3 leading-relaxed text-gray-700">
+                        {listLang === 'en' ? listing.description_en : listLang === 'hi' ? listing.description_hi : listing.description_te}
                       </p>
                     </div>
                     <div>
@@ -1392,25 +1539,36 @@ function AiListingStudio({ onProductCreated, onNavigateToAdmin }) {
           </div>
 
           {/* Smart Pricing */}
-          <PriceExplainerCard pricingData={pricing} onUpdateCost={async (c) => {
-            setCosts(c);
-            try { const pr = await api.calculatePrice({ ...c, category: attrs?.category, craft_type: attrs?.craft_type, material: attrs?.material }); setPricing(pr); } catch (e) {}
-          }} currentCosts={costs} />
+          {step === 4 && (
+            <PriceExplainerCard pricingData={pricing} onUpdateCost={async (c) => {
+              setCosts(c);
+              try { const pr = await api.calculatePrice({ ...c, category: attrs?.category, craft_type: attrs?.craft_type, material: attrs?.material }); setPricing(pr); } catch (e) {}
+            }} currentCosts={costs} />
+          )}
 
           {/* Footer Actions */}
           <div className="flex items-center justify-between pt-4 border-t border-gray-200">
-            <button onClick={() => setStep(2)} className="flex items-center gap-1.5 px-5 py-2.5 rounded-xl border border-gray-200 text-[13px] font-semibold text-gray-700 hover:bg-gray-50 transition-colors">
-              <ArrowLeft className="w-4 h-4" /> Back
+            <button onClick={() => setStep(step === 4 ? 3 : 2)} className="flex items-center gap-1.5 px-5 py-2.5 rounded-xl border border-gray-200 text-[13px] font-semibold text-gray-700 hover:bg-gray-50 transition-colors">
+              <ArrowLeft className="w-4 h-4" /> {step === 4 ? 'Back to Details' : 'Back to Questions'}
             </button>
-            <button
-              onClick={handleSubmit}
-              disabled={loading}
-              className="flex items-center gap-2 px-8 py-3 rounded-xl text-white font-black text-[14px] shadow-lg transition-all hover:shadow-xl active:scale-95 disabled:opacity-60"
-              style={{ background: 'linear-gradient(135deg, #f59e0b, #f97316, #ef4444)' }}
-            >
-              <Send className="w-4 h-4" />
-              Submit for Admin Review
-            </button>
+            {step === 3 ? (
+              <button
+                onClick={() => setStep(4)}
+                className="flex items-center gap-2 rounded-xl bg-emerald-600 px-8 py-3 text-[14px] font-black text-white shadow-lg hover:bg-emerald-700"
+              >
+                Details look good — Next to Price <ArrowRight className="h-4 w-4" />
+              </button>
+            ) : (
+              <button
+                onClick={handleSubmit}
+                disabled={loading}
+                className="flex items-center gap-2 px-8 py-3 rounded-xl text-white font-black text-[14px] shadow-lg transition-all hover:shadow-xl active:scale-95 disabled:opacity-60"
+                style={{ background: 'linear-gradient(135deg, #f59e0b, #f97316, #ef4444)' }}
+              >
+                <Send className="w-4 h-4" />
+                Send for Review
+              </button>
+            )}
           </div>
         </div>
       )}

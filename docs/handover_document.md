@@ -73,7 +73,7 @@ d:/sih/
 │   │   │   ├── image_service.py    # Quality-gated U2NetP/BiRefNet segmentation & studio compositor
 │   │   │   ├── speech_service.py   # Fast-first multilingual Whisper cascade
 │   │   │   ├── product_intelligence.py # Zero-hallucination taxonomy parser
-│   │   │   ├── listing_service.py  # Bilingual English & Hindi catalog copywriter
+│   │   │   ├── listing_service.py  # English, Hindi & Telugu catalog copywriter
 │   │   │   └── pricing_service.py  # Fair-trade cost economics calculator
 │   │   ├── utils/
 │   │   │   └── helpers.py          # JSON serialization helpers & string formatters
@@ -131,9 +131,9 @@ d:/sih/
 - **Seller Dashboard**: Active catalog valuation, total settled payouts (₹48,950), pending orders, and 0% intermediary fee guarantee.
 - **AI Listing Studio**: 
   1. *Photo Studio*: Upload raw photo $\rightarrow$ U2NetP handles clear objects, a calibrated quality gate escalates difficult images to OpenVINO-accelerated BiRefNet, and the compositor performs foreground-aware lighting correction with a grounding shadow.
-  2. *Interactive Voice Interview*: Speak in Hindi/English $\rightarrow$ immediate browser captions or the Faster Whisper `base` → `small` local cascade, spoken follow-up questions, resumable answer history, and a visible evidence-readiness meter.
+  2. *Interactive Voice Interview*: Choose Hindi, Telugu, or English, then answer six friendly questions one at a time. Each voice or typed answer is reviewed before **Save & Next**; immediate browser captions and the Faster Whisper `base` → `small` local cascade keep the interaction responsive.
   3. *Evidence-Gated Extraction*: The AI retains confirmed product facts, reads them back for artisan confirmation, and prevents pricing until essential production and cost inputs have been supplied and verified.
-  4. *Multilingual Copywriting*: Generated English and Hindi titles, rich descriptions, bullet specifications, and SEO tags with **"🔊 Listen AI Voiceover"** playback.
+  4. *Multilingual Copywriting*: Generated English, Hindi, and Telugu titles and descriptions preserve the artisan's own words, with specifications, SEO tags, and localized voice playback.
   5. *Algorithmic Pricing*: Direct raw materials + artisan labor days + packaging overhead + Ensemble ML reference price recommendation.
   6. *Submit for Verification*: Submits craft to the Admin Approval Queue as `Pending Approval`.
 
@@ -151,7 +151,7 @@ d:/sih/
 | :--- | :--- | :--- |
 | **Computer Vision Studio** | U2NetP fast tier + calibrated gate + OpenVINO-accelerated BiRefNet-General-Lite + adaptive matte refinement | Measured mask confidence with per-signal breakdown, 1200 × 1200 catalog output, background preload, and GrabCut safety fallback |
 | **Interactive Voice Product Expert** | Web Speech API + local Faster Whisper `base` → `small` CPU/int8 cascade + optional cloud transcription + stateless interview policy | Low-latency multilingual turns, word-level confidence, uncertainty escalation, silence rejection, human confirmation, and evidence-gated pricing |
-| **AI Voiceover (TTS)** | Multilingual Neural `SpeechSynthesis` Engine | Native Hindi (`hi-IN`) and Indian English (`en-IN`) text-to-speech with natural cadence |
+| **AI Voiceover (TTS)** | Multilingual neural service + browser `SpeechSynthesis` fallback | Hindi (`hi-IN`), Telugu (`te-IN`), and Indian English (`en-IN`) prompts with localized controls and offline fallback |
 | **Product Intelligence (NLP)** | Evidence-gated parser + craft taxonomy + explicit seller confirmation | Missing facts remain unverified; complete product/cost understanding receives 99% only after human confirmation |
 | **Algorithmic Pricing Engine** | **Voting Ensemble**: Random Forest Regressor + Gradient Boosting Regressor + fair-trade cost floor | Suggested range plus benchmark sample count, similarity confidence, assumptions, and low-coverage human-review flag |
 

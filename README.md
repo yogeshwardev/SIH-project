@@ -34,7 +34,7 @@ flowchart TD
     C --> H[Studio Enhanced Image]
     D --> I[Multilingual Transcript]
     E --> J[Structured Metadata]
-    F --> K[English + Hindi Listings]
+    F --> K[English + Hindi + Telugu Listings]
     G --> L[Transparent Fair Price]
 
     H --> M[(SQLite Database)]
@@ -164,9 +164,9 @@ PORT=8000
 1. Open `http://localhost:5173`.
 2. Click **"SIH Demo"** or pick any craft preset (**Banarasi Saree**, **Blue Pottery**, **Bamboo Basket**, **Dhokra Art**, or **Wooden Toy**).
 3. **Step 1 (Photo Studio)**: Drag the interactive **Before/After Split Slider** to showcase background removal and studio lighting.
-4. **Step 2 (Interactive Voice AI)**: Answer the AI's spoken follow-up questions until the evidence-readiness meter unlocks pricing.
-5. **Step 3 (AI Understanding)**: Highlight the **Anti-Hallucination guarantee** and confidence badges.
-6. **Step 4 (Listing Studio)**: Toggle between **English and Hindi listings**, specifications, and SEO keywords.
+4. **Step 2 (Interactive Voice AI)**: Choose Hindi, Telugu, or English. Answer six friendly questions one at a time, checking each answer before tapping **Save & Next**.
+5. **Step 3 (AI Understanding)**: Confirm the summary, then verify that **Your Description** preserves the artisan's exact words.
+6. **Step 4 (Listing Studio)**: Toggle between **English, Hindi, and Telugu listings**, specifications, and SEO keywords.
 7. **Step 5 (Smart Pricing)**: Show the full **"Why this price?"** economic breakdown and ML market reference range.
 8. **Step 6 (Publish & Impact)**: Publish to catalog, explore the **Buyer Marketplace**, and download **CSV / JSON export files**.
 

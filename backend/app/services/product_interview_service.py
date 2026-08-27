@@ -12,36 +12,42 @@ class ProductInterviewService:
     leakage while still supporting an unlimited number of voice turns.
     """
 
+    # Keep the assisted flow deliberately short. Technique, dimensions and region
+    # are still extracted when the artisan mentions them, but are not mandatory
+    # questions for pricing.
     QUESTION_ORDER = [
-        "product_identity", "material", "technique", "production_time",
-        "material_cost", "labor_cost", "packaging_cost", "dimensions", "region",
+        "product_description", "material", "production_time",
+        "material_cost", "labor_cost", "packaging_cost",
     ]
-    PRICING_REQUIRED = {"product_identity", "material", "production_time", "material_cost", "labor_cost", "packaging_cost"}
+    PRICING_REQUIRED = set(QUESTION_ORDER)
 
     QUESTIONS = {
         "en": {
-            "product_identity": "What is this product and which traditional craft is it?",
-            "material": "What exact materials are used? Please mention the main material and any decoration or coating.",
-            "technique": "Which technique and tools do you use to make it?",
-            "production_time": "How many working hours or days does one piece take to make?",
-            "material_cost": "What is the total raw-material cost for one piece, in rupees?",
-            "labor_cost": "What fair labor amount should be paid for making one piece, in rupees?",
-            "packaging_cost": "What does safe packaging for one piece cost, in rupees? Say zero if none.",
-            "dimensions": "What are the product dimensions or size?",
-            "region": "Where is this product made? Please name the village, city, or state.",
-            "confirmation": "Please confirm: are the product details and costs I summarized correct?",
+            "product_description": "Please tell me about your product in your own words. What is it called, what makes it special, and how is it used? There is no wrong answer.",
+            "material": "What is it made from? You can say the main material in simple words.",
+            "production_time": "About how long does one item take to make? Hours or days is fine.",
+            "material_cost": "About how much do the materials for one item cost, in rupees?",
+            "labor_cost": "How much should you be paid for your work on one item, in rupees?",
+            "packaging_cost": "How much does packing one item cost? Say zero if there is no cost.",
+            "confirmation": "Is this information correct? Choose Yes to continue, or tell me what to change.",
         },
         "hi": {
-            "product_identity": "यह कौन सा उत्पाद है और यह किस पारंपरिक शिल्प से बना है?",
-            "material": "इसमें कौन-कौन सी सामग्री लगी है? मुख्य सामग्री और सजावट या कोटिंग भी बताइए।",
-            "technique": "इसे बनाने में कौन सी तकनीक और औज़ार इस्तेमाल होते हैं?",
-            "production_time": "एक पीस बनाने में कितने काम के घंटे या दिन लगते हैं?",
-            "material_cost": "एक पीस की कच्ची सामग्री की कुल लागत कितने रुपये है?",
-            "labor_cost": "एक पीस बनाने की उचित कारीगर मजदूरी कितने रुपये होनी चाहिए?",
-            "packaging_cost": "एक पीस की सुरक्षित पैकिंग में कितने रुपये लगते हैं? खर्च नहीं है तो शून्य कहें।",
-            "dimensions": "उत्पाद का आकार या माप क्या है?",
-            "region": "यह उत्पाद कहाँ बनाया जाता है? गाँव, शहर या राज्य बताइए।",
-            "confirmation": "कृपया पुष्टि करें: क्या मेरे द्वारा बताए गए उत्पाद विवरण और लागत सही हैं?",
+            "product_description": "अपने उत्पाद के बारे में अपने शब्दों में बताइए। इसका नाम क्या है, इसकी खास बात क्या है और इसका उपयोग कैसे होता है? जैसा आसान लगे वैसा बोलिए।",
+            "material": "यह किस चीज़ से बना है? मुख्य सामग्री का नाम आसान शब्दों में बताइए।",
+            "production_time": "एक उत्पाद बनाने में लगभग कितना समय लगता है? घंटे या दिन में बता सकते हैं।",
+            "material_cost": "एक उत्पाद की सामग्री पर लगभग कितने रुपये खर्च होते हैं?",
+            "labor_cost": "एक उत्पाद बनाने की आपकी मेहनत के कितने रुपये मिलने चाहिए?",
+            "packaging_cost": "एक उत्पाद की पैकिंग में कितने रुपये लगते हैं? खर्च नहीं है तो शून्य कहें।",
+            "confirmation": "क्या यह जानकारी सही है? आगे बढ़ने के लिए हाँ चुनें, या जो बदलना है वह बताइए।",
+        },
+        "te": {
+            "product_description": "మీ ఉత్పత్తి గురించి మీ మాటల్లో చెప్పండి. దాని పేరు ఏమిటి, దాని ప్రత్యేకత ఏమిటి, దాన్ని ఎలా ఉపయోగిస్తారు? మీకు సులభంగా అనిపించినట్లు చెప్పండి.",
+            "material": "ఇది దేనితో తయారైంది? ముఖ్యమైన పదార్థం పేరును సులభమైన మాటల్లో చెప్పండి.",
+            "production_time": "ఒక ఉత్పత్తి తయారు చేయడానికి సుమారుగా ఎంత సమయం పడుతుంది? గంటలు లేదా రోజుల్లో చెప్పవచ్చు.",
+            "material_cost": "ఒక ఉత్పత్తికి కావలసిన పదార్థాల ఖర్చు సుమారుగా ఎన్ని రూపాయలు?",
+            "labor_cost": "ఒక ఉత్పత్తి తయారుచేసిన మీ పనికి ఎన్ని రూపాయలు రావాలి?",
+            "packaging_cost": "ఒక ఉత్పత్తి ప్యాకింగ్‌కు ఎన్ని రూపాయలు ఖర్చవుతుంది? ఖర్చు లేకపోతే సున్నా అని చెప్పండి.",
+            "confirmation": "ఈ సమాచారం సరైందా? ముందుకు వెళ్లడానికి అవును ఎంచుకోండి, లేదా మార్చాల్సింది చెప్పండి.",
         },
     }
 
@@ -65,7 +71,17 @@ class ProductInterviewService:
             full_transcript, detected_objects or [], language
         )
         self._merge_extracted(attrs, extracted, evidence)
-        self._apply_contextual_answer(attrs, costs, evidence, last_question_key, utterance)
+        # A blank first turn starts the assisted, one-question-at-a-time flow.
+        # Visual guesses can help the listing later, but they must not silently
+        # skip questions that the artisan has not answered themselves.
+        if not utterance and not conversation_transcript and not last_question_key:
+            attrs["_interview_confirmed_fields"] = []
+        if utterance and not conversation_transcript and not self._meaningful(attrs.get("artisan_description")):
+            attrs["artisan_description"] = utterance[:600]
+            evidence["artisan_description"] = "artisan's own words"
+        answer_was_invalid = self._apply_contextual_answer(
+            attrs, costs, evidence, last_question_key, utterance
+        )
         self._extract_labeled_costs(full_transcript, costs, evidence)
 
         missing = self._missing_fields(attrs, costs)
@@ -75,13 +91,13 @@ class ProductInterviewService:
         readiness = round(answered_count / len(self.QUESTION_ORDER), 2)
 
         next_key = missing[0] if missing else None
-        locale = "hi" if str(language).lower().startswith(("hi", "हिन्द")) else "en"
+        locale = self._locale(language)
         if completed and human_confirmed:
-            assistant_message = (
-                "धन्यवाद। मूल्य निर्धारण के लिए जरूरी जानकारी पूरी है। मैंने आपके उत्तरों के आधार पर उचित बाजार मूल्य तैयार किया है।"
-                if locale == "hi" else
-                "Thank you. I now have the evidence required for pricing. I have prepared a fair market recommendation from your confirmed answers."
-            )
+            assistant_message = {
+                "hi": "धन्यवाद। जानकारी पूरी है। अब अपने उत्पाद का विवरण और उचित मूल्य देखिए।",
+                "te": "ధన్యవాదాలు. సమాచారం పూర్తైంది. ఇప్పుడు మీ ఉత్పత్తి వివరణ మరియు సరైన ధరను చూడండి.",
+                "en": "Thank you. The information is complete. You can now review your product description and fair price.",
+            }[locale]
             status = "ready_for_pricing"
             confidence_score = 0.99
         elif completed:
@@ -92,11 +108,22 @@ class ProductInterviewService:
             confidence_score = round(min(0.94, 0.72 + readiness * 0.22), 2)
         else:
             assistant_message = self.QUESTIONS[locale][next_key]
+            if answer_was_invalid:
+                retry = {
+                    "hi": "कोई बात नहीं, मैं वह जवाब समझ नहीं पाया। कृपया एक बार फिर आसान शब्दों में बताइए।",
+                    "te": "పరవాలేదు, ఆ సమాధానం నాకు అర్థం కాలేదు. దయచేసి మరోసారి సులభంగా చెప్పండి.",
+                    "en": "No problem, I could not understand that answer. Please try once more in simple words.",
+                }[locale]
+                assistant_message = f"{retry} {assistant_message}"
             status = "needs_information"
             confidence_score = round(0.45 + readiness * 0.45, 2)
 
         confirmed = [label for label in self.QUESTION_ORDER if label not in missing]
-        summary = f"Confirmed {len(confirmed)} of {len(self.QUESTION_ORDER)} product and pricing facts."
+        summary = {
+            "hi": f"{len(confirmed)} में से {len(self.QUESTION_ORDER)} आसान सवाल पूरे हुए।",
+            "te": f"{len(self.QUESTION_ORDER)} సులభమైన ప్రశ్నల్లో {len(confirmed)} పూర్తయ్యాయి.",
+            "en": f"Completed {len(confirmed)} of {len(self.QUESTION_ORDER)} simple questions.",
+        }[locale]
         return {
             "status": status,
             "assistant_message": assistant_message,
@@ -109,6 +136,12 @@ class ProductInterviewService:
             "cost_inputs": costs,
             "evidence": evidence,
             "turn_summary": summary,
+            "question_number": (
+                len(self.QUESTION_ORDER) + 1
+                if next_key in {None, "confirmation"}
+                else self.QUESTION_ORDER.index(next_key) + 1
+            ),
+            "total_questions": len(self.QUESTION_ORDER) + 1,
         }
 
     @staticmethod
@@ -129,41 +162,65 @@ class ProductInterviewService:
     def _apply_contextual_answer(
         self, attrs: Dict[str, Any], costs: Dict[str, Any], evidence: Dict[str, str],
         question_key: Optional[str], answer: str,
-    ) -> None:
+    ) -> bool:
         if not question_key or not answer:
-            return
+            return False
         if question_key == "confirmation":
             normalized = answer.strip().lower()
-            confirmed = bool(re.search(r"\b(yes|correct|confirm|confirmed|right|ok|okay)\b|^(हाँ|हां|जी|सही)", normalized))
+            confirmed = bool(re.search(
+                r"\b(yes|correct|confirm|confirmed|right|ok|okay)\b|^(हाँ|हां|जी|सही|అవును|సరే|సరి|కరెక్ట్)",
+                normalized,
+            ))
             attrs["_human_confirmed"] = confirmed
             evidence["human_confirmation"] = "confirmed by artisan" if confirmed else "correction requested"
-            return
+            return False
         if question_key in {"material_cost", "labor_cost", "packaging_cost"}:
             amount = self._first_amount(answer)
             if amount is not None and amount >= 0:
                 costs[question_key] = amount
                 evidence[question_key] = "direct voice answer"
-            return
-        if question_key == "product_identity":
+                self._mark_interview_field_confirmed(attrs, question_key)
+                return False
+            return True
+        if question_key == "product_description":
+            if len(answer.strip()) < 8:
+                return True
+            attrs["artisan_description"] = answer[:600]
             if not self._meaningful(attrs.get("craft_type")):
                 attrs["craft_type"] = answer[:160]
             if not self._meaningful(attrs.get("product_name")):
                 attrs["product_name"] = answer[:160]
-            evidence["product_identity"] = "direct voice answer"
+            evidence["artisan_description"] = "artisan's own words"
+            self._mark_interview_field_confirmed(attrs, question_key)
         elif question_key == "production_time":
             duration = self._duration(answer)
             if duration:
                 attrs["production_time"] = duration
                 evidence["production_time"] = "direct voice answer"
+                self._mark_interview_field_confirmed(attrs, question_key)
+            else:
+                return True
         elif question_key in {"material", "technique", "dimensions", "region"}:
+            if question_key == "material" and self._looks_like_currency_only(answer):
+                return True
             attrs[question_key] = answer[:180]
             evidence[question_key] = "direct voice answer"
+            self._mark_interview_field_confirmed(attrs, question_key)
+        return False
+
+    @staticmethod
+    def _mark_interview_field_confirmed(attrs: Dict[str, Any], question_key: str) -> None:
+        confirmed = attrs.get("_interview_confirmed_fields")
+        if not isinstance(confirmed, list):
+            return
+        if question_key not in confirmed:
+            confirmed.append(question_key)
 
     def _extract_labeled_costs(self, text: str, costs: Dict[str, Any], evidence: Dict[str, str]) -> None:
         patterns = {
-            "material_cost": r"(?:material|raw material|कच्च[ेी]? माल|सामग्री)(?:\s+cost|\s+की लागत)?[^\d]{0,24}(\d[\d,]*(?:\.\d+)?)",
-            "labor_cost": r"(?:labou?r|wage|मजदूरी|कारीगर)[^\d]{0,24}(\d[\d,]*(?:\.\d+)?)",
-            "packaging_cost": r"(?:packaging|packing|पैकिंग|पैकेजिंग)[^\d]{0,24}(\d[\d,]*(?:\.\d+)?)",
+            "material_cost": r"(?:material|raw material|कच्च[ेी]? माल|सामग्री|ముడి సరుకు|పదార్థాల?)(?:\s+cost|\s+की लागत)?[^\d]{0,24}(\d[\d,]*(?:\.\d+)?)",
+            "labor_cost": r"(?:labou?r|wage|मजदूरी|कारीगर|కూలి|పని|శ్రమ)[^\d]{0,24}(\d[\d,]*(?:\.\d+)?)",
+            "packaging_cost": r"(?:packaging|packing|पैकिंग|पैकेजिंग|ప్యాకింగ్|ప్యాకేజింగ్)[^\d]{0,24}(\d[\d,]*(?:\.\d+)?)",
         }
         for key, pattern in patterns.items():
             match = re.search(pattern, text, flags=re.IGNORECASE)
@@ -172,16 +229,19 @@ class ProductInterviewService:
                 evidence[key] = "labeled voice statement"
 
     def _missing_fields(self, attrs: Dict[str, Any], costs: Dict[str, Any]) -> List[str]:
+        assisted_confirmed = attrs.get("_interview_confirmed_fields")
+        assisted_mode = isinstance(assisted_confirmed, list)
+
+        def answered(field: str, has_value: bool) -> bool:
+            return has_value and (not assisted_mode or field in assisted_confirmed)
+
         present = {
-            "product_identity": self._meaningful(attrs.get("craft_type")) or self._meaningful(attrs.get("product_name")),
-            "material": self._meaningful(attrs.get("material")),
-            "technique": self._meaningful(attrs.get("technique")),
-            "production_time": self._meaningful(attrs.get("production_time")),
-            "material_cost": costs.get("material_cost") is not None,
-            "labor_cost": costs.get("labor_cost") is not None,
-            "packaging_cost": costs.get("packaging_cost") is not None,
-            "dimensions": self._meaningful(attrs.get("dimensions")),
-            "region": self._meaningful(attrs.get("region")),
+            "product_description": answered("product_description", self._meaningful(attrs.get("artisan_description"))),
+            "material": answered("material", self._meaningful(attrs.get("material"))),
+            "production_time": answered("production_time", self._meaningful(attrs.get("production_time"))),
+            "material_cost": answered("material_cost", costs.get("material_cost") is not None),
+            "labor_cost": answered("labor_cost", costs.get("labor_cost") is not None),
+            "packaging_cost": answered("packaging_cost", costs.get("packaging_cost") is not None),
         }
         return [field for field in self.QUESTION_ORDER if not present[field]]
 
@@ -193,6 +253,13 @@ class ProductInterviewService:
                 f"सामग्री {attrs.get('material')}, समय {attrs.get('production_time')}, "
                 f"सामग्री लागत ₹{costs.get('material_cost', 0):,.0f}, मजदूरी ₹{costs.get('labor_cost', 0):,.0f}, "
                 f"और पैकिंग ₹{costs.get('packaging_cost', 0):,.0f}."
+            )
+        if locale == "te":
+            return (
+                f"నేను అర్థం చేసుకున్నది: {attrs.get('craft_type') or attrs.get('product_name')}, "
+                f"పదార్థం {attrs.get('material')}, తయారీ సమయం {attrs.get('production_time')}, "
+                f"పదార్థాల ఖర్చు ₹{costs.get('material_cost', 0):,.0f}, మీ పని ₹{costs.get('labor_cost', 0):,.0f}, "
+                f"ప్యాకింగ్ ₹{costs.get('packaging_cost', 0):,.0f}."
             )
         return (
             f"I understood: {attrs.get('craft_type') or attrs.get('product_name')}; "
@@ -221,13 +288,39 @@ class ProductInterviewService:
         return float(match.group(1).replace(",", "")) if match else None
 
     @staticmethod
+    def _looks_like_currency_only(text: str) -> bool:
+        return bool(re.fullmatch(
+            r"\s*(?:₹|rs\.?|inr)?\s*\d[\d,]*(?:\.\d+)?\s*"
+            r"(?:rupees?|रुप(?:ये|या)?|रुपये|రూపాయలు?|రూపాయి)?\s*",
+            str(text or ""),
+            flags=re.IGNORECASE,
+        ))
+
+    @staticmethod
     def _duration(text: str) -> Optional[str]:
-        match = re.search(r"(\d+(?:\.\d+)?)\s*(hours?|hrs?|days?|weeks?|घंटे?|दिन|सप्ताह)", text, flags=re.IGNORECASE)
+        match = re.search(
+            r"(\d+(?:\.\d+)?)\s*(hours?|hrs?|days?|weeks?|घंटे?|दिन|सप्ताह|గంటలు?|రోజులు?|వారాలు?)",
+            text,
+            flags=re.IGNORECASE,
+        )
         if not match:
             return None
         unit = match.group(2).lower()
-        normalized = "hours" if unit.startswith(("hour", "hr", "घंट")) else "weeks" if unit.startswith(("week", "सप्त")) else "days"
+        normalized = (
+            "hours" if unit.startswith(("hour", "hr", "घंट", "గంట"))
+            else "weeks" if unit.startswith(("week", "सप्त", "వార"))
+            else "days"
+        )
         return f"{match.group(1)} {normalized}"
+
+    @staticmethod
+    def _locale(language: str) -> str:
+        value = str(language or "").strip().lower()
+        if value.startswith("te") or "telugu" in value or "తెలుగు" in value:
+            return "te"
+        if value.startswith("hi") or "hindi" in value or "हिन्द" in value or "हिंदी" in value:
+            return "hi"
+        return "en"
 
 
 product_interview_service = ProductInterviewService()

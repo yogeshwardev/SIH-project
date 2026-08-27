@@ -59,8 +59,13 @@ const TRUST = [
   { icon: '🤝', title: 'Zero Middlemen',  sub: 'Direct artisan price' },
 ];
 
+const SEEDED_CATALOG_PRODUCTS = COMMERCIAL_PRODUCTS.map((product) => ({
+  ...product,
+  _catalogKey: `seed-${product.id}`,
+}));
+
 export default function BuyerDashboardPage({ onAddToCart, onBuyNow }) {
-  const [products, setProducts]   = useState(COMMERCIAL_PRODUCTS);
+  const [products, setProducts]   = useState(SEEDED_CATALOG_PRODUCTS);
   const [heroIdx, setHeroIdx]     = useState(0);
   const [pdpProduct, setPdp]      = useState(null);
   const [activeCat, setActiveCat] = useState('All');
@@ -71,7 +76,15 @@ export default function BuyerDashboardPage({ onAddToCart, onBuyNow }) {
 
   useEffect(() => {
     api.getProducts({ status: 'Published' })
-      .then(d => { if (d?.length) setProducts([...COMMERCIAL_PRODUCTS, ...d]); })
+      .then(d => {
+        if (d?.length) {
+          const databaseProducts = d.map((product) => ({
+            ...product,
+            _catalogKey: `database-${product.id}`,
+          }));
+          setProducts([...SEEDED_CATALOG_PRODUCTS, ...databaseProducts]);
+        }
+      })
       .catch(() => {});
   }, []);
 
@@ -285,7 +298,7 @@ export default function BuyerDashboardPage({ onAddToCart, onBuyNow }) {
               const sold  = 40 + ((p.id * 17) % 50);
               return (
                 <button
-                  key={p.id}
+                  key={p._catalogKey || p.id}
                   onClick={() => setPdp(p)}
                   style={{
                     background: '#FAFAFA',
@@ -434,7 +447,7 @@ export default function BuyerDashboardPage({ onAddToCart, onBuyNow }) {
               <div className="stagger-children" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(185px, 1fr))', gap: '10px' }}>
                 {filtered.map(product => (
                   <ProductCardCommercial
-                    key={product.id}
+                    key={product._catalogKey || product.id}
                     product={product}
                     onAddToCart={onAddToCart}
                     onQuickView={setPdp}

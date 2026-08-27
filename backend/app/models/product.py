@@ -31,10 +31,13 @@ class Product(Base):
     # Generated Multilingual Listings
     title = Column(String, nullable=True)
     title_hindi = Column(String, nullable=True)
+    title_telugu = Column(String, nullable=True)
     short_description = Column(Text, nullable=True)
     short_description_hindi = Column(Text, nullable=True)
+    short_description_telugu = Column(Text, nullable=True)
     description = Column(Text, nullable=True)
     description_hindi = Column(Text, nullable=True)
+    description_telugu = Column(Text, nullable=True)
     specifications = Column(Text, nullable=True)  # JSON-serialized list of strings
     keywords = Column(Text, nullable=True)        # JSON-serialized list of strings
 

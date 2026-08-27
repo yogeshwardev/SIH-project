@@ -13,7 +13,7 @@ class ListingService:
         artisan_name: str = "Master Artisan"
     ) -> MultilingualListingResponse:
         """
-        Generate marketplace listings in English and Hindi:
+        Generate marketplace listings in English, Hindi and Telugu:
         - Concise professional title
         - Short punchy marketplace description
         - Rich storytelling description
@@ -49,6 +49,12 @@ class ListingService:
         dims = attr.dimensions
         p_time = attr.production_time
         color = attr.color
+        artisan_description = (
+            attr.artisan_description.strip()
+            if attr.artisan_description and attr.artisan_description.strip().lower() not in {"not provided", "not specified"}
+            else ""
+        )
+        own_words_en = f"In the artisan's own words: “{artisan_description}”\n\n" if artisan_description else ""
 
         # Map common craft terms to Hindi
         name_hi = p_name
@@ -76,6 +82,7 @@ class ListingService:
         )
 
         description_en = (
+            own_words_en +
             f"Celebrate India's rich cultural heritage with this authentic {p_name}, handcrafted with passion in {region}.\n\n"
             f"• Heritage Craftsmanship: Each piece is meticulously created by skilled traditional artisans using {tech}.\n"
             f"• Premium Raw Material: Sourced using genuine {mat} for durability, authentic texture, and natural elegance.\n"
@@ -92,6 +99,7 @@ class ListingService:
         )
 
         description_hi = (
+            (f"कारीगर के अपने शब्दों में: “{artisan_description}”\n\n" if artisan_description else "") +
             f"भारतीय हस्तकला की अमूल्य धरोहर को अपने घर लाएं। यह प्रामाणिक {p_name} {region} के पारंपरिक शिल्पकारों द्वारा पूर्ण समर्पण से तैयार किया गया है।\n\n"
             f"• पारंपरिक कारीगरी: {tech} विधि द्वारा प्रत्येक बारीकी को हाथों से तराशा गया है।\n"
             f"• शुद्ध सामग्री: उच्च गुणवत्ता वाले {mat} से निर्मित जो इसकी प्रामाणिकता और सुंदरता को दीर्घायु बनाता है।\n"
@@ -99,7 +107,23 @@ class ListingService:
             f"• निर्माण समय: लगभग {p_time} का धैर्यपूर्ण हस्तशिल्प श्रम।"
         )
 
-        # 3. Structured Specifications
+        # 3. Telugu listing. The artisan's own description is retained verbatim so
+        # their story remains the primary source even when product terms are regional.
+        title_te = f"ప్రామాణిక చేతిపని {p_name} | {region} సంప్రదాయ కళ"
+        short_desc_te = (
+            f"{region} కళాకారులు {mat}తో చేతితో తయారు చేసిన {p_name}. "
+            f"సంప్రదాయ {craft} విధానంలో సుమారు {p_time} శ్రమతో తయారైంది."
+        )
+        description_te = (
+            (f"కళాకారుని స్వంత మాటల్లో: “{artisan_description}”\n\n" if artisan_description else "") +
+            f"ఇది {region} కళాకారులు శ్రద్ధగా తయారు చేసిన ప్రామాణిక {p_name}.\n\n"
+            f"• సంప్రదాయ నైపుణ్యం: {tech} విధానంతో చేతితో తయారు చేశారు.\n"
+            f"• ముఖ్య పదార్థం: {mat}.\n"
+            f"• కళాకారునికి నేరుగా మద్దతు: న్యాయమైన ధరతో గ్రామీణ కళాకారుని శ్రమకు గౌరవం.\n"
+            f"• తయారీ సమయం: సుమారు {p_time}."
+        )
+
+        # 4. Structured Specifications
         specifications = [
             f"Craft Type: {craft}",
             f"Primary Material: {mat}",
@@ -111,7 +135,7 @@ class ListingService:
             "Direct Artisan Fair-Trade Product"
         ]
 
-        # 4. Keywords
+        # 5. Keywords
         keywords = [
             p_name.lower(),
             craft.lower(),
@@ -134,6 +158,9 @@ class ListingService:
             short_desc_hi=short_desc_hi,
             description_en=description_en,
             description_hi=description_hi,
+            title_te=title_te,
+            short_desc_te=short_desc_te,
+            description_te=description_te,
             specifications=specifications,
             keywords=keywords,
             authenticity_notes=authenticity
@@ -143,7 +170,7 @@ class ListingService:
         import requests
         url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={settings.GEMINI_API_KEY}"
         prompt = (
-            f"Generate a professional bilingual e-commerce listing (English and Hindi) for an authentic Indian handicraft:\n"
+            f"Generate a professional trilingual e-commerce listing (English, Hindi and Telugu) for an authentic Indian handicraft:\n"
             f"Product: {attr.product_name}, Craft: {attr.craft_type}, Material: {attr.material}, "
             f"Region: {attr.region}, Time: {attr.production_time}, Dimensions: {attr.dimensions}.\n"
             f"STRICT RULE: Do NOT invent missing details. Output valid JSON matching MultilingualListingResponse schema."
@@ -165,13 +192,13 @@ class ListingService:
         url = "https://api.openai.com/v1/responses"
         headers = {"Authorization": f"Bearer {settings.OPENAI_API_KEY}", "Content-Type": "application/json"}
         prompt = (
-            "Generate an authentic bilingual e-commerce listing for the supplied Indian handicraft. "
+            "Generate an authentic English, Hindi and Telugu e-commerce listing for the supplied Indian handicraft. "
             "Use only the supplied attributes; never invent certifications, materials, dimensions, origin, or technique. "
             f"Artisan: {artisan_name}. Attributes: {json.dumps(attr.model_dump(), ensure_ascii=False)}"
         )
         payload = {
             "model": settings.OPENAI_TEXT_MODEL,
-            "instructions": "You write precise English and Hindi marketplace copy for Indian artisan products.",
+            "instructions": "You write precise English, Hindi and Telugu marketplace copy for Indian artisan products.",
             "input": prompt,
             "store": False,
             "text": {

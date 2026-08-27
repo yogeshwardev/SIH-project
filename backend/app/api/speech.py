@@ -3,7 +3,13 @@ from pathlib import Path
 from typing import Optional
 from fastapi import APIRouter, UploadFile, File, Form, HTTPException, status, Response
 from backend.app.config import settings
-from backend.app.schemas.product import SpeechTranscribeResponse, SpeechSynthesizeRequest
+from backend.app.schemas.product import (
+    ProductInterviewRequest,
+    ProductInterviewResponse,
+    SpeechTranscribeResponse,
+    SpeechSynthesizeRequest,
+)
+from backend.app.services.product_interview_service import product_interview_service
 from backend.app.services.speech_service import speech_service
 from backend.app.utils.helpers import sanitize_filename
 
@@ -68,12 +74,32 @@ async def synthesize_speech(req: SpeechSynthesizeRequest):
             detail=f"Voiceover failed: {str(e)}",
         )
 
+@router.post("/product-interview", response_model=ProductInterviewResponse)
+async def continue_product_interview(req: ProductInterviewRequest):
+    """Run one evidence-gated turn of the artisan product interview."""
+    try:
+        return product_interview_service.continue_interview(
+            utterance=req.utterance,
+            conversation_transcript=req.conversation_transcript or "",
+            language=req.language or "Hindi",
+            detected_objects=req.detected_objects,
+            known_attributes=req.known_attributes,
+            cost_inputs=req.cost_inputs,
+            last_question_key=req.last_question_key,
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Product interview failed: {str(e)}")
+
 @router.get("/capabilities")
 async def speech_capabilities():
     cloud_enabled = settings.AI_PROVIDER.lower() == "openai" and bool(settings.OPENAI_API_KEY)
     return {
         "cloud_transcription": cloud_enabled,
+        "local_transcription": speech_service.local_transcription_available(),
+        "local_transcription_model": settings.LOCAL_WHISPER_MODEL if speech_service.local_transcription_available() else None,
         "cloud_voiceover": cloud_enabled,
         "browser_dictation_fallback": True,
         "browser_voiceover_fallback": True,
+        "guided_product_interview": True,
+        "evidence_gated_pricing": True,
     }

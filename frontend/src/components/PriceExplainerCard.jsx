@@ -62,6 +62,13 @@ export default function PriceExplainerCard({ pricingData, onUpdateCost, currentC
             <p className="text-xs text-slate-500">
               Guarantees sustainable living wage for artisans + prevents marketplace distress selling
             </p>
+            <div className="mt-1.5 flex flex-wrap items-center gap-2 text-[10px] font-bold">
+              <span className={`rounded-full px-2 py-0.5 ${pricingData.confidence_level === 'HIGH' ? 'bg-emerald-100 text-emerald-800' : pricingData.confidence_level === 'MEDIUM' ? 'bg-amber-100 text-amber-800' : 'bg-red-100 text-red-800'}`}>
+                {Math.round((pricingData.pricing_confidence_score || 0) * 100)}% pricing confidence
+              </span>
+              <span className="text-slate-500">{pricingData.benchmark_sample_count || 0} comparable benchmark records</span>
+              {pricingData.requires_human_review && <span className="text-red-700">Human price review required</span>}
+            </div>
           </div>
         </div>
 
@@ -251,6 +258,14 @@ export default function PriceExplainerCard({ pricingData, onUpdateCost, currentC
                 `Based on ${costs.production_time} of skilled hand craftsmanship, total production costs sum to ₹${totalCost}. The AI blends a 35% sustainable fair-trade margin with Random Forest machine learning benchmarks from regional artisan records to avoid under-pricing handmade heritage artifacts.`
               }
             </p>
+            {pricingData.assumptions?.length > 0 && (
+              <div className="rounded-lg border border-slate-200 bg-slate-50 p-2.5">
+                <strong className="text-slate-800">Model assumptions:</strong>
+                <ul className="mt-1 list-disc space-y-0.5 pl-4 text-[11px]">
+                  {pricingData.assumptions.map((assumption, index) => <li key={index}>{assumption}</li>)}
+                </ul>
+              </div>
+            )}
             <div className="bg-emerald-50 p-2.5 rounded-lg border border-emerald-200 flex items-start gap-2">
               <CheckCircle2 className="w-4 h-4 text-emerald-700 flex-shrink-0 mt-0.5" />
               <div className="text-[11px] text-emerald-900 leading-tight">

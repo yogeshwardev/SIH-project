@@ -3,6 +3,8 @@ import wave
 import time
 import math
 import requests
+import importlib.util
+import threading
 from pathlib import Path
 from typing import Dict, Any, Optional
 from backend.app.config import settings
@@ -11,6 +13,7 @@ class SpeechService:
     def __init__(self):
         self.upload_dir = settings.UPLOAD_DIR
         self._whisper_model = None
+        self._whisper_lock = threading.Lock()
 
     def transcribe_audio(self, audio_file_path: str, hint_language: Optional[str] = None) -> Dict[str, Any]:
         """
@@ -100,10 +103,56 @@ class SpeechService:
                 0.98
             )
 
+        if self.local_transcription_available():
+            return self._transcribe_with_local_whisper(file_path, hint_language)
+
         raise RuntimeError(
-            "Cloud transcription is not configured. Use live browser dictation, or set "
+            "No speech engine is installed. Install faster-whisper or configure "
             "AI_PROVIDER=openai and OPENAI_API_KEY in backend/.env."
         )
+
+    def _transcribe_with_local_whisper(self, file_path: Path, hint_language: Optional[str]) -> tuple[str, str, float]:
+        from faster_whisper import WhisperModel
+
+        with self._whisper_lock:
+            if self._whisper_model is None:
+                self._whisper_model = WhisperModel(
+                    settings.LOCAL_WHISPER_MODEL,
+                    device=settings.LOCAL_WHISPER_DEVICE,
+                    compute_type=settings.LOCAL_WHISPER_COMPUTE_TYPE,
+                    download_root=str(settings.MODELS_DIR / "whisper"),
+                )
+            language_code = self._normalize_language_code(hint_language)
+            segments, info = self._whisper_model.transcribe(
+                str(file_path),
+                language=language_code,
+                beam_size=5,
+                vad_filter=True,
+                condition_on_previous_text=False,
+                word_timestamps=False,
+                hotwords="Banarasi zari Katan Dhokra Channapatna Madhubani pottery bamboo",
+            )
+            segment_list = [
+                segment for segment in segments
+                if not (segment.no_speech_prob > 0.65 and segment.avg_logprob < -0.5)
+            ]
+
+        transcript = " ".join(segment.text.strip() for segment in segment_list if segment.text.strip()).strip()
+        if not transcript:
+            raise RuntimeError("No speech was detected in the recording.")
+        avg_probability = 0.0
+        if segment_list:
+            avg_probability = sum(math.exp(min(0.0, segment.avg_logprob)) for segment in segment_list) / len(segment_list)
+        language_probability = float(getattr(info, "language_probability", 0.75) or 0.75)
+        confidence = round(max(0.35, min(0.99, avg_probability * language_probability)), 3)
+        if confidence < 0.42:
+            raise RuntimeError("Speech was too quiet or unclear to transcribe reliably. Please record again closer to the microphone.")
+        detected_code = getattr(info, "language", None) or language_code
+        return transcript, self._language_name(detected_code, transcript), confidence
+
+    @staticmethod
+    def local_transcription_available() -> bool:
+        return importlib.util.find_spec("faster_whisper") is not None
 
     def _transcribe_with_openai(self, file_path: Path, hint_language: Optional[str]) -> tuple[str, str, float]:
         language_code = self._normalize_language_code(hint_language)

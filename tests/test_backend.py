@@ -89,6 +89,52 @@ def test_speech_capabilities_are_explicit():
     assert response.status_code == 200
     assert response.json()["browser_dictation_fallback"] is True
     assert "cloud_transcription" in response.json()
+    assert response.json()["local_transcription"] is True
+    assert response.json()["local_transcription_model"] == "small"
+    assert response.json()["guided_product_interview"] is True
+    assert response.json()["evidence_gated_pricing"] is True
+
+def test_guided_product_interview_blocks_unverified_pricing():
+    first = client.post("/api/speech/product-interview", json={
+        "utterance": "This is a Jaipur Blue Pottery vase made with quartz and cobalt glaze. It takes 3 days.",
+        "language": "English",
+    })
+    assert first.status_code == 200
+    data = first.json()
+    assert data["status"] == "needs_information"
+    assert data["next_question_key"] == "material_cost"
+    assert "material_cost" in data["missing_fields"]
+
+    second = client.post("/api/speech/product-interview", json={
+        "utterance": "1200 rupees",
+        "conversation_transcript": "This is a Jaipur Blue Pottery vase made with quartz and cobalt glaze. It takes 3 days.",
+        "language": "English",
+        "known_attributes": data["attributes"],
+        "cost_inputs": data["cost_inputs"],
+        "last_question_key": data["next_question_key"],
+    })
+    assert second.status_code == 200
+    second_data = second.json()
+    assert second_data["cost_inputs"]["material_cost"] == 1200.0
+    assert second_data["next_question_key"] == "labor_cost"
+
+def test_guided_product_interview_reaches_pricing_readiness():
+    response = client.post("/api/speech/product-interview", json={
+        "utterance": (
+            "This is a Jaipur Blue Pottery vase made with quartz and cobalt glaze. "
+            "It takes 3 days. Material cost 1200 rupees, labor 2500 rupees, packaging 150 rupees."
+        ),
+        "language": "English",
+    })
+    assert response.status_code == 200
+    data = response.json()
+    assert data["status"] == "ready_for_pricing"
+    assert data["cost_inputs"] == {
+        "material_cost": 1200.0,
+        "labor_cost": 2500.0,
+        "packaging_cost": 150.0,
+    }
+    assert data["readiness_score"] >= 0.66
 
 def test_nlp_product_information_extraction():
     transcript = "यह शुद्ध बनारसी कतान सिल्क साड़ी है जिसे हथकरघे पर 6 दिन में बुना गया है। इसकी लंबाई 6.5 मीटर है।"
@@ -150,6 +196,10 @@ def test_smart_pricing_engine():
     assert data["suggested_price"] >= data["recommended_min_price"]
     assert len(data["price_breakdown"]) == 4
     assert "Banarasi" in data["explanation"]
+    assert 0.0 < data["pricing_confidence_score"] <= 1.0
+    assert data["confidence_level"] in {"LOW", "MEDIUM", "HIGH"}
+    assert isinstance(data["requires_human_review"], bool)
+    assert len(data["assumptions"]) >= 2
 
 def test_product_crud_lifecycle():
     # 1. Create Product

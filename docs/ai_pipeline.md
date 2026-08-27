@@ -10,17 +10,18 @@ CraftLink AI integrates five foundational AI/ML modules designed to run reliably
 ```
 Raw Photograph 
   → Resolution Validation (< 1600px Lanczos Resampling)
-  → LAB Color Space Conversion
-  → CLAHE (Contrast-Limited Adaptive Histogram Equalization, clipLimit=2.2)
-  → Color Quantization (Median-Cut Dominant Palette Extraction)
-  → U2Net / GrabCut Foreground Segmentation & Alpha Matte Generation
-  → Studio Backdrop Compositing with Gaussian Ambient Ground Shadow
-  → Edge Sharpening & HD PNG Output
+  → BiRefNet-General-Lite Neural Foreground Segmentation
+  → Mask Refinement (bilateral smoothing, adaptive morphology, component cleanup)
+  → Foreground-Aware LAB Exposure and Color Correction
+  → Masked Dominant-Palette Extraction
+  → 1200 × 1200 Studio Backdrop with Gaussian Ground Shadow
+  → Edge-Preserving Sharpening & Transparent-Matte Compositing
 ```
 
 ### Key Technical Details
-- **Shadow Lifting & Texture Preservation**: Crafts like Banarasi silk brocades or Dokra metal casting have intricate surface textures. Standard global histogram equalization blows out highlights. We utilize CLAHE on the luminosity channel ($L$) in the CIE-LAB color space to enhance local contrast without color distortion.
-- **Background Replacement**: Segmentation removes distracting cluttered surfaces (bedsheets, tiled floors, shadows) and re-composites the segmented item onto a neutral gradient canvas ($RGB: 248, 248, 249$) with a synthetic soft drop shadow calculated from the alpha boundary.
+- **Neural Background Removal**: BiRefNet-General-Lite produces the primary alpha matte. The service then refines thin and elongated crafts separately so handles, pens, reeds, jewelry, and narrow edges survive cleanup. GrabCut remains an automatic offline fallback if the neural runtime is unavailable.
+- **Shadow Lifting & Texture Preservation**: Exposure and local contrast correction run only inside the foreground mask, preventing a white wall or paper background from skewing product color. This preserves weave, carving, paint, and metal detail without contaminating the object boundary.
+- **Quality Guardrail**: Each matte receives a geometric quality score. Implausible neural masks fall back safely, while accepted masks are cropped, centered, and composited on a neutral gradient with a synthetic soft ground shadow.
 
 ---
 
@@ -30,6 +31,13 @@ Raw Photograph
 - **Supported Formats**: WAV, MP3, M4A, WebM (HTML5 `MediaRecorder` direct browser microphone recording), OGG.
 - **Language Detection**: Identifies whether the artisan is speaking in Hindi, English, Bengali, Tamil, Telugu, Marathi, or Gujarati.
 - **Phonetic Entity Matching**: Tailored for Indian craft vocabulary (e.g., *Zari*, *Katan Silk*, *Lost-Wax*, *Terracotta*, *Channapatna*, *Dokra*, *Pattachitra*).
+- **Resilient Recognition**: Browser live captions are the fast path, cloud transcription is used when configured, and Faster Whisper `small` with CPU int8 quantization is the local recorded-audio fallback. Voice-activity and confidence checks reject silent or unclear recordings instead of generating product claims.
+
+### Guided Product Interview
+- Each voice or typed response is processed as an independent, resumable turn; the client sends only the current user's confirmed state, preventing cross-artisan conversation leakage.
+- The interview selects the next missing high-value fact and asks it aloud in Hindi or English.
+- Pricing remains locked until product identity, material, production time, raw-material cost, fair labor, and packaging cost are explicitly evidenced.
+- A visible readiness meter and conversation history allow the artisan to understand and correct the AI before the listing is generated.
 
 ---
 
@@ -59,6 +67,8 @@ Generates full e-commerce listings in both **English** and **Hindi**:
 ---
 
 ## 5. Machine Learning Smart Pricing Engine
+
+The ensemble recommendation includes a benchmark-coverage confidence score, comparable-record count, craft similarity, explicit calculation assumptions, and a mandatory human-review flag for low-coverage inputs. Confidence measures data coverage; it is not presented as a guarantee of the future selling price.
 
 ### Architecture
 - **Model**: Scikit-Learn `RandomForestRegressor(n_estimators=100, max_depth=8, random_state=42)`.

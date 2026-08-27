@@ -55,11 +55,11 @@ flowchart TD
 
 | Module | Model / Technology | Why Chosen & Implementation Details |
 | :--- | :--- | :--- |
-| **Image AI** | **CLAHE + U2Net / GrabCut + Studio Compositor** | Enhances local weave/carving contrast without highlight blowout; isolates cluttered backgrounds and creates a studio-quality backdrop with soft grounding shadows. |
-| **Speech AI** | **Whisper / Acoustic Phonetic Transcriber** | High-accuracy speech-to-text with Indian dialect identification (Hindi, English, Bengali, Tamil, Telugu, Marathi). |
-| **Product Intelligence** | **Anti-Hallucination Entity Parser** | Converts unstructured natural language into structured taxonomy; strictly enforces zero-hallucination policy with confidence scoring (`HIGH`, `MEDIUM`, `NEEDS_CONFIRMATION`). |
+| **Image AI** | **BiRefNet-General-Lite + Adaptive Matte Refinement + Studio Compositor** | Neural foreground extraction handles difficult clutter and thin objects; foreground-aware color correction, mask scoring, GrabCut fallback, and a soft grounding shadow produce a catalog-ready 1200 × 1200 image. |
+| **Speech AI** | **Browser Dictation + Faster Whisper `small` (CPU int8) + Interactive Product Interview** | Live captions provide low latency; recorded WebM/WAV audio falls back to local multilingual Whisper without a cloud key, then feeds a resumable spoken/typed interview. |
+| **Product Intelligence** | **Evidence-Gated Entity & Cost Collector** | Retains facts across turns, identifies missing fields, and blocks pricing until identity, material, production time, material cost, labor, and packaging are confirmed. |
 | **Listing GenAI** | **Bilingual Multilingual Engine (EN + HI)** | Generates marketplace titles, summaries, storytelling heritage narratives, bullet specifications, and SEO tags. (Supports Gemini/OpenAI/local fallback). |
-| **Pricing Engine** | **Random Forest Regressor + Fair-Trade Economics** | Trained on 30+ authentic Indian craft cluster benchmarks (`reference_prices.csv`); guarantees cost recovery ($Material + Labor + Packaging$) plus sustainable fair-trade margin. |
+| **Pricing Engine** | **Random Forest + Gradient Boosting Ensemble + Fair-Trade Economics** | Blends confirmed direct costs with craft benchmarks, reports benchmark coverage and similarity confidence, exposes assumptions, and flags unfamiliar products for human review. |
 
 ---
 
@@ -157,7 +157,7 @@ PORT=8000
 1. Open `http://localhost:5173`.
 2. Click **"SIH Demo"** or pick any craft preset (**Banarasi Saree**, **Blue Pottery**, **Bamboo Basket**, **Dhokra Art**, or **Wooden Toy**).
 3. **Step 1 (Photo Studio)**: Drag the interactive **Before/After Split Slider** to showcase background removal and studio lighting.
-4. **Step 2 (Speech AI)**: Listen/view the real Hindi/English speech transcript and language badge.
+4. **Step 2 (Interactive Voice AI)**: Answer the AI's spoken follow-up questions until the evidence-readiness meter unlocks pricing.
 5. **Step 3 (AI Understanding)**: Highlight the **Anti-Hallucination guarantee** and confidence badges.
 6. **Step 4 (Listing Studio)**: Toggle between **English and Hindi listings**, specifications, and SEO keywords.
 7. **Step 5 (Smart Pricing)**: Show the full **"Why this price?"** economic breakdown and ML market reference range.

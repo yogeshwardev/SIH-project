@@ -70,7 +70,7 @@ d:/sih/
 │   │   │   ├── artisan.py          # Pydantic schemas for sellers
 │   │   │   └── product.py          # Pydantic schemas for listings, pricing, orders
 │   │   ├── services/
-│   │   │   ├── image_service.py    # CLAHE, GrabCut segmentation & studio drop shadow compositor
+│   │   │   ├── image_service.py    # BiRefNet neural segmentation, matte refinement & studio compositor
 │   │   │   ├── speech_service.py   # Multi-language acoustic speech transcriber
 │   │   │   ├── product_intelligence.py # Zero-hallucination taxonomy parser
 │   │   │   ├── listing_service.py  # Bilingual English & Hindi catalog copywriter
@@ -130,9 +130,9 @@ d:/sih/
 ### Portal 2: 🏢 Artisan Seller Central (`http://localhost:5173` $\rightarrow$ Seller Central)
 - **Seller Dashboard**: Active catalog valuation, total settled payouts (₹48,950), pending orders, and 0% intermediary fee guarantee.
 - **AI Listing Studio**: 
-  1. *Photo Studio*: Upload raw photo $\rightarrow$ AI isolates background, enhances lighting with CLAHE, and adds grounding soft shadow.
-  2. *Live Voice Dictation*: Speak in Hindi/English $\rightarrow$ real-time Web Speech recognition streams text on screen.
-  3. *AI Metadata Extraction*: Zero-hallucination taxonomy mapping with confidence scoring.
+  1. *Photo Studio*: Upload raw photo $\rightarrow$ BiRefNet AI isolates the craft, performs foreground-aware lighting correction, validates the mask, and adds a grounding soft shadow.
+  2. *Interactive Voice Interview*: Speak in Hindi/English $\rightarrow$ transcription, spoken follow-up questions, resumable answer history, and a visible evidence-readiness meter.
+  3. *Evidence-Gated Extraction*: The AI retains confirmed product facts and prevents pricing until essential production and cost inputs have been supplied.
   4. *Multilingual Copywriting*: Generated English and Hindi titles, rich descriptions, bullet specifications, and SEO tags with **"🔊 Listen AI Voiceover"** playback.
   5. *Algorithmic Pricing*: Direct raw materials + artisan labor days + packaging overhead + Ensemble ML reference price recommendation.
   6. *Submit for Verification*: Submits craft to the Admin Approval Queue as `Pending Approval`.
@@ -149,11 +149,11 @@ d:/sih/
 
 | Subsystem | Model / Algorithm | Performance & Metric |
 | :--- | :--- | :--- |
-| **Computer Vision Studio** | CLAHE (LAB color space) + GrabCut Segmentation + Multi-Layer Gaussian Shadow Compositor | Edge feathering (7x7), 4K high-resolution studio output |
-| **Live Speech Recognition** | Web Speech API (`webkitSpeechRecognition`) + Backend Whisper audio stream | Real-time continuous transcription in Hindi, English, and 6 Indian languages |
+| **Computer Vision Studio** | BiRefNet-General-Lite + adaptive matte refinement + foreground-aware LAB correction + Gaussian shadow compositor | Neural segmentation with mask-quality reporting and 1200 × 1200 catalog output; GrabCut safety fallback |
+| **Interactive Voice Product Expert** | Web Speech API + local Faster Whisper `small` CPU/int8 fallback + optional cloud transcription + stateless interview policy | Multilingual spoken/typed turns, silence rejection, targeted follow-ups, resumable state, and evidence-gated pricing |
 | **AI Voiceover (TTS)** | Multilingual Neural `SpeechSynthesis` Engine | Native Hindi (`hi-IN`) and Indian English (`en-IN`) text-to-speech with natural cadence |
 | **Product Intelligence (NLP)** | Rule-based regex parser + 50+ craft taxonomies with confidence tagging | 100% precision, strict zero-hallucination compliance |
-| **Algorithmic Pricing Engine** | **Voting Ensemble**: Random Forest Regressor (150 trees) + Gradient Boosting Regressor (120 trees, lr=0.08) | **$R^2 = 0.9824$**, **$\text{MAE} = \text{Rs. } 560.02$** on 150+ Indian craft benchmarks |
+| **Algorithmic Pricing Engine** | **Voting Ensemble**: Random Forest Regressor + Gradient Boosting Regressor + fair-trade cost floor | Suggested range plus benchmark sample count, similarity confidence, assumptions, and low-coverage human-review flag |
 
 ---
 

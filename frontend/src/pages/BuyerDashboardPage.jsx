@@ -1,126 +1,188 @@
-import React, { useState, useEffect } from 'react';
-import { 
-  ChevronLeft, ChevronRight, Zap, SlidersHorizontal, ShieldCheck, 
-  Star, Truck, Award, ShoppingCart, Filter, X
+import React, { useState, useEffect, useRef } from 'react';
+import {
+  ChevronLeft, ChevronRight, Zap, ShoppingCart, Filter,
+  Search, ShieldCheck, Truck, RotateCcw, Star, SlidersHorizontal,
+  TrendingUp, Package, X
 } from 'lucide-react';
 import { api } from '../services/api';
 import { COMMERCIAL_PRODUCTS, CRAFT_CATEGORIES } from '../data/commercialProducts';
 import ProductCardCommercial from '../components/ProductCardCommercial';
 import ProductDetailModal from '../components/ProductDetailModal';
 
-// Hero banner data
-const HERO_BANNERS = [
+/* ─────────────────────────────────────────────────────
+   HERO BANNER DATA
+───────────────────────────────────────────────────── */
+const BANNERS = [
   {
-    title: 'Great Indian Handloom Festival',
-    subtitle: 'Shop pure Banarasi silk & Kanchipuram sarees direct from the loom',
-    discount: 'Up to 45% OFF',
-    tag: '100% Silk Mark & GI Certified',
-    bg: 'linear-gradient(135deg, #7B0D1E 0%, #4A0E17 50%, #1A0508 100%)',
-    ctaText: 'Shop Handlooms',
-    ctaCat: 'Handloom & Textiles',
-    image: 'https://images.unsplash.com/photo-1610030460946-7e2e7e01e37e?w=800&q=80',
+    eyebrow:  'Great Indian Handloom Sale',
+    headline: 'Pure Silk\nSarees Direct\nFrom the Loom',
+    sub:      'Banarasi, Kanjeevaram & Chanderi — GI Certified, Zero Middlemen',
+    discount: 'Up to 45% off',
+    ctaText:  'Shop Handlooms',
+    ctaCat:   'Handloom & Textiles',
+    accent:   '#D4A017',
+    bg:       'linear-gradient(130deg, #1a0a00 0%, #3b1508 40%, #6b2408 100%)',
+    img:      'https://images.unsplash.com/photo-1610030460946-7e2e7e01e37e?w=700&q=85',
   },
   {
-    title: 'Jaipur Blue Pottery — 500-Year Heritage',
-    subtitle: 'Clay-free quartz pottery glazed with cobalt blue & hand-painted',
-    discount: 'Flat 36% OFF',
-    tag: 'From Sanganer Kiln Masters',
-    bg: 'linear-gradient(135deg, #0F3460 0%, #16213E 50%, #0D1117 100%)',
-    ctaText: 'Explore Ceramics',
-    ctaCat: 'Pottery & Ceramics',
-    image: 'https://images.unsplash.com/photo-1565193566173-7a0ee3dbe261?w=800&q=80',
+    eyebrow:  '500-Year Heritage Craft',
+    headline: 'Jaipur Blue\nPottery\nCollection',
+    sub:      'Clay-free quartz glazed with cobalt blue — Handpainted, Kiln Fired',
+    discount: 'Flat 36% off',
+    ctaText:  'Explore Ceramics',
+    ctaCat:   'Pottery & Ceramics',
+    accent:   '#60A5FA',
+    bg:       'linear-gradient(130deg, #030B1A 0%, #0C1F3F 40%, #0F3460 100%)',
+    img:      'https://images.unsplash.com/photo-1565193566173-7a0ee3dbe261?w=700&q=85',
   },
   {
-    title: 'Bastar Dhokra — 4000 Years of Bell Metal',
-    subtitle: 'Lost-wax cast tribal bronze sculptures by indigenous Ghadwa artists',
-    discount: 'Zero Middlemen',
-    tag: 'GI Tagged • 100% Tribal Community',
-    bg: 'linear-gradient(135deg, #3D2612 0%, #2A1810 50%, #140C06 100%)',
-    ctaText: 'Discover Tribal Art',
-    ctaCat: 'Metal Craft & Bell Metal',
-    image: 'https://images.unsplash.com/photo-1611095790444-1dfa35e37b52?w=800&q=80',
+    eyebrow:  'Bastar Tribal Community',
+    headline: '4000 Years of\nBell Metal\nCraft',
+    sub:      'Lost-wax cast Dhokra sculptures — Zero Industrial Machines Used',
+    discount: 'Direct from artisan',
+    ctaText:  'Discover Tribal Art',
+    ctaCat:   'Metal Craft & Bell Metal',
+    accent:   '#FB923C',
+    bg:       'linear-gradient(130deg, #0D0500 0%, #2A1000 40%, #4A1A00 100%)',
+    img:      'https://images.unsplash.com/photo-1611095790444-1dfa35e37b52?w=700&q=85',
   },
 ];
 
+/* ─────────────────────────────────────────────────────
+   TRUST STRIP
+───────────────────────────────────────────────────── */
+const TRUST_ITEMS = [
+  { icon: '🚚', title: 'Free Delivery', sub: 'Orders above ₹499' },
+  { icon: '🔒', title: 'Secure Payments', sub: 'UPI · Cards · COD' },
+  { icon: '↩️', title: '7-Day Returns', sub: 'No questions asked' },
+  { icon: '🏅', title: 'GI Certified', sub: '100% authentic origin' },
+  { icon: '🤝', title: 'Zero Middlemen', sub: 'Direct artisan pricing' },
+];
+
+/* ─────────────────────────────────────────────────────
+   CATEGORY ICONS ROW
+───────────────────────────────────────────────────── */
+const QUICK_CATS = [
+  { id: 'All',                      emoji: '🛍️', label: 'All Crafts' },
+  { id: 'Handloom & Textiles',      emoji: '🧣', label: 'Handloom' },
+  { id: 'Pottery & Ceramics',       emoji: '🏺', label: 'Pottery' },
+  { id: 'Woodcraft & Carving',      emoji: '🪵', label: 'Woodcraft' },
+  { id: 'Metal Craft & Bell Metal', emoji: '🔱', label: 'Metal Art' },
+  { id: 'Cane & Bamboo',            emoji: '🧺', label: 'Bamboo' },
+  { id: 'Traditional Paintings',    emoji: '🎨', label: 'Paintings' },
+];
+
+/* ═══════════════════════════════════════════════════════
+   MAIN PAGE
+═══════════════════════════════════════════════════════ */
 export default function BuyerDashboardPage({ onAddToCart, onOpenCart, onBuyNow }) {
-  const [products, setProducts]           = useState(COMMERCIAL_PRODUCTS);
-  const [heroIdx, setHeroIdx]             = useState(0);
-  const [activeProduct, setActiveProduct] = useState(null);
-  const [filterOpen, setFilterOpen]       = useState(false);
+  const [products, setProducts]   = useState(COMMERCIAL_PRODUCTS);
+  const [heroIdx, setHeroIdx]     = useState(0);
+  const [pdpProduct, setPdp]      = useState(null);
+  const [activeCat, setActiveCat] = useState('All');
+  const [maxPrice, setMaxPrice]   = useState(35000);
+  const [minRating, setMinRating] = useState(0);
+  const [showFilters, setShowFilters] = useState(false);
+  const [searchQ, setSearchQ]     = useState('');
+  const heroTimer = useRef(null);
 
-  // Filter state
-  const [activeCat, setActiveCat]   = useState('All');
-  const [maxPrice, setMaxPrice]     = useState(35000);
-  const [minRating, setMinRating]   = useState(0);
-
-  // Auto-rotate hero
-  useEffect(() => {
-    const t = setInterval(() => setHeroIdx(i => (i + 1) % HERO_BANNERS.length), 5000);
-    return () => clearInterval(t);
-  }, []);
-
-  // Fetch live products from backend
   useEffect(() => {
     api.getProducts({ status: 'Published' })
       .then(data => { if (data?.length) setProducts([...COMMERCIAL_PRODUCTS, ...data]); })
       .catch(() => {});
   }, []);
 
+  // Auto-rotate hero
+  useEffect(() => {
+    heroTimer.current = setInterval(() => setHeroIdx(i => (i + 1) % BANNERS.length), 5500);
+    return () => clearInterval(heroTimer.current);
+  }, []);
+
+  const advanceBanner = (dir) => {
+    clearInterval(heroTimer.current);
+    setHeroIdx(i => (i + dir + BANNERS.length) % BANNERS.length);
+    heroTimer.current = setInterval(() => setHeroIdx(i => (i + 1) % BANNERS.length), 5500);
+  };
+
   const filtered = products.filter(p => {
     const price  = p.price || p.suggested_price || 2499;
     const rating = p.rating || 4.7;
+    const name   = (p.product_name || '').toLowerCase();
     const catOk  = activeCat === 'All' || p.category === activeCat;
-    const priceOk = price <= maxPrice;
-    const ratingOk = rating >= minRating;
-    return catOk && priceOk && ratingOk;
+    const prOk   = price <= maxPrice;
+    const rOk    = rating >= minRating;
+    const sOk    = !searchQ || name.includes(searchQ.toLowerCase());
+    return catOk && prOk && rOk && sOk;
   });
 
-  const banner = HERO_BANNERS[heroIdx];
-  const deals  = products.slice(0, 5);
+  const banner = BANNERS[heroIdx];
 
   return (
-    <div style={{ fontFamily: "'Inter', sans-serif", backgroundColor: '#f3f4f6', minHeight: '100vh' }}>
+    <div style={{ fontFamily: "'Inter', sans-serif", backgroundColor: '#F0F2F5', minHeight: '100vh' }}>
 
-      {/* ═══════════════════════════════════════════
+      {/* ═══════════════════════════════════════════════
           HERO CAROUSEL
-      ═══════════════════════════════════════════ */}
-      <div className="relative overflow-hidden" style={{ height: '380px' }}>
-        {/* Background */}
-        {HERO_BANNERS.map((b, i) => (
+      ═══════════════════════════════════════════════ */}
+      <div className="relative" style={{ height: 'clamp(300px, 48vw, 440px)', overflow: 'hidden' }}>
+        {BANNERS.map((b, i) => (
           <div
             key={i}
-            className="absolute inset-0 transition-opacity duration-700 hero-slide"
+            className="absolute inset-0 hero-slide"
             style={{ background: b.bg, opacity: heroIdx === i ? 1 : 0, pointerEvents: heroIdx === i ? 'auto' : 'none' }}
           >
-            {/* Right image */}
+            {/* Right photo — fades in beautifully */}
             <div
-              className="absolute right-0 top-0 h-full w-[45%] hidden md:block"
+              className="absolute inset-y-0 right-0 w-1/2 hidden md:block"
               style={{
-                backgroundImage: `url(${b.image})`,
+                backgroundImage: `url(${b.img})`,
                 backgroundSize: 'cover',
-                backgroundPosition: 'center',
-                maskImage: 'linear-gradient(to right, transparent 0%, rgba(0,0,0,0.7) 40%, black 100%)',
-                WebkitMaskImage: 'linear-gradient(to right, transparent 0%, rgba(0,0,0,0.7) 40%, black 100%)',
+                backgroundPosition: 'center top',
+                maskImage: 'linear-gradient(to right, transparent 0%, rgba(0,0,0,0.5) 20%, black 60%)',
+                WebkitMaskImage: 'linear-gradient(to right, transparent 0%, rgba(0,0,0,0.5) 20%, black 60%)',
               }}
             />
 
+            {/* Noise texture overlay */}
+            <div className="absolute inset-0 opacity-[0.04]"
+              style={{ backgroundImage: "url(\"data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E\")" }} />
+
             {/* Content */}
-            <div className="relative z-10 h-full flex flex-col justify-center px-6 sm:px-10 lg:px-16 max-w-[700px]">
-              <span className="inline-flex items-center gap-1.5 bg-white/15 border border-white/25 text-white text-[11px] font-bold uppercase tracking-widest px-3 py-1 rounded-full backdrop-blur-sm mb-4">
-                {b.tag}
-              </span>
-              <h2 className="text-white font-black leading-tight mb-2" style={{ fontSize: 'clamp(22px, 4vw, 42px)', fontFamily: "'Outfit', sans-serif" }}>
-                {b.title}
-              </h2>
-              <p className="text-white/75 text-sm sm:text-base mb-5 max-w-[520px]">{b.subtitle}</p>
+            <div className="relative z-10 h-full flex flex-col justify-center px-8 sm:px-12 lg:px-16 xl:px-20 max-w-[620px]">
+              {/* Eyebrow */}
+              <div className="mb-4">
+                <span
+                  className="inline-flex items-center gap-2 text-[11px] font-black uppercase tracking-[0.18em] px-3 py-1.5 rounded-full border border-white/20 backdrop-blur-sm"
+                  style={{ background: 'rgba(255,255,255,0.08)', color: b.accent }}
+                >
+                  <span className="w-1.5 h-1.5 rounded-full inline-block animate-pulse-dot" style={{ background: b.accent }} />
+                  {b.eyebrow}
+                </span>
+              </div>
+
+              {/* Headline */}
+              <h1
+                className="font-black text-white leading-none mb-4"
+                style={{
+                  fontSize: 'clamp(28px, 5vw, 52px)',
+                  fontFamily: "'Outfit', sans-serif",
+                  textShadow: '0 2px 24px rgba(0,0,0,0.4)',
+                  whiteSpace: 'pre-line',
+                }}
+              >
+                {b.headline}
+              </h1>
+
+              <p className="text-white/65 text-sm leading-relaxed mb-6 max-w-[420px]">{b.sub}</p>
+
               <div className="flex items-center gap-4">
-                <span className="text-amber-300 font-black text-2xl">{b.discount}</span>
+                <span className="font-black text-2xl" style={{ color: b.accent }}>{b.discount}</span>
                 <button
                   onClick={() => setActiveCat(b.ctaCat)}
-                  className="flex items-center gap-2 px-5 py-2.5 rounded-full font-bold text-sm text-gray-900 transition-all active:scale-95"
-                  style={{ backgroundColor: '#ffd814', border: '1px solid #f0c000' }}
+                  className="flex items-center gap-2 px-5 py-2.5 rounded-full font-black text-sm text-gray-900 transition-all hover:scale-105 active:scale-95"
+                  style={{ background: b.accent, boxShadow: `0 4px 20px ${b.accent}50` }}
                 >
-                  {b.ctaText} <ChevronRight className="w-4 h-4" />
+                  {b.ctaText}
+                  <ChevronRight className="w-4 h-4" strokeWidth={3} />
                 </button>
               </div>
             </div>
@@ -128,269 +190,300 @@ export default function BuyerDashboardPage({ onAddToCart, onOpenCart, onBuyNow }
         ))}
 
         {/* Arrows */}
-        <button
-          onClick={() => setHeroIdx(i => (i - 1 + HERO_BANNERS.length) % HERO_BANNERS.length)}
-          className="absolute left-3 top-1/2 -translate-y-1/2 z-20 w-10 h-10 rounded-full bg-black/40 hover:bg-black/70 text-white flex items-center justify-center backdrop-blur-sm transition-colors"
-        >
-          <ChevronLeft className="w-5 h-5" />
-        </button>
-        <button
-          onClick={() => setHeroIdx(i => (i + 1) % HERO_BANNERS.length)}
-          className="absolute right-3 top-1/2 -translate-y-1/2 z-20 w-10 h-10 rounded-full bg-black/40 hover:bg-black/70 text-white flex items-center justify-center backdrop-blur-sm transition-colors"
-        >
-          <ChevronRight className="w-5 h-5" />
-        </button>
+        {[
+          { dir: -1, pos: 'left-3' },
+          { dir:  1, pos: 'right-3' },
+        ].map(({ dir, pos }) => (
+          <button
+            key={dir}
+            onClick={() => advanceBanner(dir)}
+            className={`absolute ${pos} top-1/2 -translate-y-1/2 z-20 w-10 h-10 rounded-full flex items-center justify-center transition-all hover:scale-110`}
+            style={{ background: 'rgba(0,0,0,0.35)', backdropFilter: 'blur(8px)', border: '1px solid rgba(255,255,255,0.15)' }}
+          >
+            {dir < 0
+              ? <ChevronLeft  className="w-5 h-5 text-white" strokeWidth={2.5} />
+              : <ChevronRight className="w-5 h-5 text-white" strokeWidth={2.5} />}
+          </button>
+        ))}
 
-        {/* Dots */}
-        <div className="absolute bottom-4 inset-x-0 flex justify-center gap-2 z-20">
-          {HERO_BANNERS.map((_, i) => (
+        {/* Dot indicators */}
+        <div className="absolute bottom-4 inset-x-0 flex justify-center items-center gap-2 z-20">
+          {BANNERS.map((_, i) => (
             <button
               key={i}
-              onClick={() => setHeroIdx(i)}
-              className={`rounded-full transition-all ${heroIdx === i ? 'w-6 h-2.5 bg-amber-400' : 'w-2.5 h-2.5 bg-white/50'}`}
+              onClick={() => { clearInterval(heroTimer.current); setHeroIdx(i); }}
+              className="transition-all rounded-full"
+              style={{
+                width:  heroIdx === i ? '24px' : '8px',
+                height: '8px',
+                background: heroIdx === i ? banner.accent : 'rgba(255,255,255,0.35)',
+              }}
             />
           ))}
         </div>
       </div>
 
-      {/* ═══════════════════════════════════════════
-          CATEGORY SHORTCUT ICONS (Flipkart Style)
-      ═══════════════════════════════════════════ */}
-      <div className="bg-white border-b border-gray-200 shadow-sm overflow-x-auto">
-        <div className="flex items-center gap-0 max-w-[1400px] mx-auto px-4 py-1">
-          {CRAFT_CATEGORIES.map(cat => (
+      {/* ═══════════════════════════════════════════════
+          CATEGORY QUICK ICONS
+      ═══════════════════════════════════════════════ */}
+      <div className="bg-white border-b border-gray-200" style={{ boxShadow: '0 1px 0 rgba(0,0,0,0.05)' }}>
+        <div className="max-w-[1400px] mx-auto flex overflow-x-auto scrollbar-none">
+          {QUICK_CATS.map(c => (
             <button
-              key={cat.id}
-              onClick={() => setActiveCat(cat.filter || 'All')}
-              className={`flex flex-col items-center gap-1.5 px-4 sm:px-6 py-3 flex-shrink-0 border-b-2 transition-all ${
-                activeCat === (cat.filter || 'All')
-                  ? 'border-orange-500 text-orange-600'
-                  : 'border-transparent text-gray-600 hover:text-orange-500'
-              }`}
+              key={c.id}
+              onClick={() => setActiveCat(c.id)}
+              className="flex flex-col items-center gap-1.5 px-5 py-3.5 flex-shrink-0 transition-colors relative"
+              style={{ borderBottom: activeCat === c.id ? '2.5px solid #F97316' : '2.5px solid transparent' }}
             >
-              <span className="text-2xl">{cat.emoji}</span>
-              <span className="text-[11px] font-semibold whitespace-nowrap">{cat.label}</span>
+              <span className="text-[22px] leading-none">{c.emoji}</span>
+              <span
+                className="text-[11px] font-semibold whitespace-nowrap"
+                style={{ color: activeCat === c.id ? '#EA580C' : '#6B7280' }}
+              >
+                {c.label}
+              </span>
             </button>
           ))}
         </div>
       </div>
 
-      {/* ═══════════════════════════════════════════
-          DEALS OF THE DAY (Flipkart Flash Sale)
-      ═══════════════════════════════════════════ */}
-      <div id="deals" className="max-w-[1400px] mx-auto px-3 sm:px-4 lg:px-6 mt-4">
-        <div className="bg-white rounded-xl shadow-card overflow-hidden">
+      {/* ═══════════════════════════════════════════════
+          TRUST STRIP
+      ═══════════════════════════════════════════════ */}
+      <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 mt-4">
+        <div className="bg-white rounded-2xl overflow-hidden" style={{ boxShadow: '0 1px 4px rgba(0,0,0,0.07)' }}>
+          <div className="flex items-stretch overflow-x-auto scrollbar-none divide-x divide-gray-100">
+            {TRUST_ITEMS.map((item, i) => (
+              <div key={i} className="flex items-center gap-3 px-5 py-3.5 flex-shrink-0 flex-1 min-w-[160px]">
+                <span className="text-xl flex-shrink-0">{item.icon}</span>
+                <div>
+                  <div className="text-[12px] font-bold text-gray-900 leading-none">{item.title}</div>
+                  <div className="text-[11px] text-gray-400 mt-0.5">{item.sub}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* ═══════════════════════════════════════════════
+          DEALS OF THE DAY
+      ═══════════════════════════════════════════════ */}
+      <div id="deals" className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 mt-4">
+        <div className="bg-white rounded-2xl overflow-hidden" style={{ boxShadow: '0 1px 4px rgba(0,0,0,0.07)' }}>
           
-          {/* Section Header */}
-          <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
+          {/* Header */}
+          <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
             <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-lg bg-red-600 flex items-center justify-center">
-                <Zap className="w-5 h-5 text-white fill-white" />
+              <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #EF4444, #DC2626)' }}>
+                <Zap className="w-4.5 h-4.5 text-white fill-white" />
               </div>
               <div>
-                <h2 className="text-[17px] font-bold text-gray-900" style={{ fontFamily: "'Outfit', sans-serif" }}>
+                <h2 className="text-[15px] font-black text-gray-900" style={{ fontFamily: "'Outfit', sans-serif" }}>
                   Deal of the Day
                 </h2>
-                <span className="text-[12px] text-gray-500">
-                  Ends in: <span className="text-red-600 font-bold animate-countdown">04h : 18m : 32s</span>
-                </span>
+                <div className="flex items-center gap-1 text-[11px] text-gray-400 mt-0.5">
+                  Ends in:
+                  <span className="text-red-600 font-black ml-1 animate-countdown">04:18:32</span>
+                </div>
               </div>
             </div>
-            <button className="text-[13px] font-semibold text-blue-600 hover:underline">
+            <button className="text-[13px] font-semibold text-[#007185] hover:text-[#C45500] hover:underline transition-colors">
               See all deals →
             </button>
           </div>
 
-          {/* Deal Cards Row */}
-          <div className="p-4 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
-            {deals.map(product => {
-              const price = product.price || product.suggested_price || 2499;
-              const mrp = product.mrp || Math.round(price * 1.45);
-              const disc = product.discount_pct || Math.round(((mrp - price) / mrp) * 100);
+          {/* Deal Cards */}
+          <div className="p-4 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
+            {products.slice(0, 5).map(p => {
+              const price = p.price || p.suggested_price || 2499;
+              const mrp   = p.mrp || Math.round(price * 1.45);
+              const disc  = p.discount_pct || Math.round(((mrp - price) / mrp) * 100);
+              const sold  = 40 + ((p.id * 17) % 50);
               return (
-                <div
-                  key={product.id}
-                  onClick={() => setActiveProduct(product)}
-                  className="group border border-gray-200 rounded-lg p-3 hover:border-orange-300 hover:shadow-md cursor-pointer transition-all"
+                <button
+                  key={p.id}
+                  onClick={() => setPdp(p)}
+                  className="group text-left rounded-xl overflow-hidden border border-gray-200 hover:border-orange-300 transition-all hover:shadow-md"
                 >
                   {/* Image */}
-                  <div className="aspect-square bg-gray-50 rounded-md overflow-hidden flex items-center justify-center mb-2 img-zoom-container">
+                  <div className="aspect-square bg-gray-50 flex items-center justify-center overflow-hidden p-2">
                     <img
-                      src={product.enhanced_image || product.original_image}
-                      alt={product.product_name}
-                      className="w-full h-full object-contain p-2"
-                      onError={e => e.target.src = `https://placehold.co/200x200/f3f4f6/9ca3af?text=${encodeURIComponent(product.product_name?.slice(0,8) || 'Craft')}`}
+                      src={p.enhanced_image || p.original_image}
+                      alt={p.product_name}
+                      className="w-full h-full object-contain transition-transform duration-300 group-hover:scale-105"
+                      onError={e => e.target.src = `https://placehold.co/200x200/F3F4F6/9CA3AF?text=${encodeURIComponent((p.product_name || '').slice(0, 8))}`}
                     />
                   </div>
-
-                  {/* Discount pill */}
-                  <div className="mb-1.5">
-                    <span className="deal-badge">-{disc}%</span>
-                    <span className="text-[10px] text-red-600 font-bold ml-1">OFF</span>
-                  </div>
-
-                  {/* Progress bar (sold quantity indicator) */}
-                  <div className="mb-1.5">
-                    <div className="bg-gray-200 rounded-full h-1.5 overflow-hidden">
-                      <div
-                        className="h-full bg-orange-500 rounded-full"
-                        style={{ width: `${Math.round(60 + Math.random() * 30)}%` }}
-                      />
+                  <div className="p-2.5">
+                    <div className="flex items-center gap-1.5 mb-1.5">
+                      <span className="deal-badge">-{disc}%</span>
+                      <span className="text-[10px] text-red-600 font-bold">OFF</span>
                     </div>
-                    <span className="text-[10px] text-orange-600 font-bold mt-0.5 block">Selling fast</span>
+                    {/* Sold progress */}
+                    <div className="mb-2">
+                      <div className="bg-gray-200 rounded-full h-1.5 overflow-hidden">
+                        <div
+                          className="h-full rounded-full transition-all"
+                          style={{ width: `${sold}%`, background: sold > 70 ? '#EF4444' : '#F97316' }}
+                        />
+                      </div>
+                      <span className="text-[10px] text-orange-600 font-bold mt-0.5 block">
+                        {sold > 70 ? '🔥 Almost sold out' : `${sold}% claimed`}
+                      </span>
+                    </div>
+                    <div className="text-[15px] font-black text-gray-900">₹{price.toLocaleString('en-IN')}</div>
+                    <div className="text-[10px] text-gray-400 line-through">₹{mrp.toLocaleString('en-IN')}</div>
+                    <p className="text-[11px] text-gray-600 mt-1 line-clamp-2 group-hover:text-orange-700 transition-colors">
+                      {p.product_name}
+                    </p>
                   </div>
-
-                  <div className="text-[14px] font-bold text-gray-900">₹{price.toLocaleString('en-IN')}</div>
-                  <div className="text-[10px] text-gray-500 line-through">₹{mrp.toLocaleString('en-IN')}</div>
-                  <p className="text-[11px] text-gray-700 mt-1 line-clamp-2 group-hover:text-orange-700">{product.product_name}</p>
-                </div>
+                </button>
               );
             })}
           </div>
         </div>
       </div>
 
-      {/* ═══════════════════════════════════════════
-          TRUST STRIP  
-      ═══════════════════════════════════════════ */}
-      <div className="max-w-[1400px] mx-auto px-3 sm:px-4 lg:px-6 mt-4">
-        <div className="bg-white rounded-xl shadow-card p-4 grid grid-cols-2 md:grid-cols-4 gap-4">
-          {[
-            { icon: '🚚', title: 'FREE Delivery', sub: 'On orders above ₹499' },
-            { icon: '🔒', title: 'Secure Payment', sub: 'UPI, Card, COD accepted' },
-            { icon: '↩️', title: '7-Day Returns', sub: 'Hassle-free returns' },
-            { icon: '🏅', title: 'GI Certified', sub: '100% authentic crafts' },
-          ].map(item => (
-            <div key={item.title} className="flex items-center gap-3">
-              <span className="text-2xl">{item.icon}</span>
-              <div>
-                <div className="text-[13px] font-bold text-gray-900">{item.title}</div>
-                <div className="text-[11px] text-gray-500">{item.sub}</div>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* ═══════════════════════════════════════════
-          MAIN CATALOG — FILTER SIDEBAR + PRODUCTS GRID
-      ═══════════════════════════════════════════ */}
-      <div className="max-w-[1400px] mx-auto px-3 sm:px-4 lg:px-6 mt-4 pb-12">
+      {/* ═══════════════════════════════════════════════
+          MAIN CATALOG — SIDEBAR + GRID
+      ═══════════════════════════════════════════════ */}
+      <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 mt-4 pb-16">
         <div className="flex gap-4 items-start">
 
-          {/* SIDEBAR FILTERS */}
-          <aside className="hidden lg:block w-[220px] flex-shrink-0">
-            <div className="bg-white rounded-xl shadow-card p-4 space-y-5 sticky top-[130px]">
-              
-              <h3 className="text-[14px] font-bold text-gray-900 pb-2 border-b border-gray-200 flex items-center gap-1.5">
-                <Filter className="w-4 h-4" />
-                Filters
-              </h3>
-
-              {/* Category */}
-              <div>
-                <h4 className="text-[12px] font-bold text-gray-700 uppercase tracking-wider mb-2">Category</h4>
-                {['All', 'Handloom & Textiles', 'Pottery & Ceramics', 'Woodcraft & Carving', 'Metal Craft & Bell Metal', 'Cane & Bamboo', 'Traditional Paintings'].map(c => (
-                  <label key={c} className="flex items-center gap-2 py-1.5 cursor-pointer group">
-                    <input
-                      type="radio"
-                      name="cat"
-                      checked={activeCat === c}
-                      onChange={() => setActiveCat(c)}
-                      className="accent-orange-500"
-                    />
-                    <span className={`text-[13px] ${activeCat === c ? 'text-orange-600 font-bold' : 'text-gray-700 group-hover:text-gray-900'}`}>
-                      {c}
-                    </span>
-                  </label>
-                ))}
+          {/* FILTER SIDEBAR */}
+          <aside className="hidden lg:block w-[210px] flex-shrink-0 sticky top-[80px]">
+            <div className="bg-white rounded-2xl overflow-hidden" style={{ boxShadow: '0 1px 4px rgba(0,0,0,0.07)' }}>
+              <div className="px-4 py-3.5 border-b border-gray-100 flex items-center justify-between">
+                <h3 className="text-[13px] font-black text-gray-900 flex items-center gap-1.5">
+                  <SlidersHorizontal className="w-4 h-4 text-gray-500" />
+                  Filters
+                </h3>
+                <button
+                  onClick={() => { setActiveCat('All'); setMaxPrice(35000); setMinRating(0); }}
+                  className="text-[11px] text-[#007185] hover:underline font-semibold"
+                >
+                  Clear all
+                </button>
               </div>
 
-              {/* Price */}
-              <div className="border-t border-gray-200 pt-4">
-                <h4 className="text-[12px] font-bold text-gray-700 uppercase tracking-wider mb-3">
-                  Price: Up to ₹{maxPrice.toLocaleString('en-IN')}
-                </h4>
-                <input
-                  type="range"
-                  min={500} max={35000} step={500}
-                  value={maxPrice}
-                  onChange={e => setMaxPrice(Number(e.target.value))}
-                  className="w-full accent-orange-500"
-                />
-                <div className="flex justify-between text-[11px] text-gray-400 mt-1">
-                  <span>₹500</span>
-                  <span>₹35,000</span>
+              <div className="p-4 space-y-5">
+                {/* Category */}
+                <div>
+                  <h4 className="text-[11px] font-black text-gray-400 uppercase tracking-widest mb-2.5">Category</h4>
+                  <div className="space-y-1.5">
+                    {QUICK_CATS.map(c => (
+                      <label key={c.id} className="flex items-center gap-2.5 cursor-pointer group">
+                        <input
+                          type="radio"
+                          name="cat"
+                          checked={activeCat === c.id}
+                          onChange={() => setActiveCat(c.id)}
+                          className="w-3.5 h-3.5 accent-orange-500"
+                        />
+                        <span className={`text-[12px] flex items-center gap-1.5 ${activeCat === c.id ? 'font-bold text-orange-600' : 'font-medium text-gray-700 group-hover:text-gray-900'}`}>
+                          <span>{c.emoji}</span>
+                          {c.label}
+                        </span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Price */}
+                <div className="border-t border-gray-100 pt-4">
+                  <h4 className="text-[11px] font-black text-gray-400 uppercase tracking-widest mb-3">
+                    Max Price: <span className="text-gray-800 normal-case font-black">₹{maxPrice.toLocaleString('en-IN')}</span>
+                  </h4>
+                  <input
+                    type="range"
+                    min={499} max={35000} step={500}
+                    value={maxPrice}
+                    onChange={e => setMaxPrice(Number(e.target.value))}
+                    className="w-full accent-orange-500 h-1.5"
+                  />
+                  <div className="flex justify-between text-[10px] text-gray-400 mt-1.5 font-semibold">
+                    <span>₹499</span><span>₹35,000</span>
+                  </div>
+                </div>
+
+                {/* Rating */}
+                <div className="border-t border-gray-100 pt-4">
+                  <h4 className="text-[11px] font-black text-gray-400 uppercase tracking-widest mb-2.5">Min. Rating</h4>
+                  {[{v: 4, label: '4★ & up'}, {v: 3, label: '3★ & up'}, {v: 0, label: 'All ratings'}].map(r => (
+                    <label key={r.v} className="flex items-center gap-2.5 py-1 cursor-pointer">
+                      <input
+                        type="radio"
+                        name="rating"
+                        checked={minRating === r.v}
+                        onChange={() => setMinRating(r.v)}
+                        className="w-3.5 h-3.5 accent-orange-500"
+                      />
+                      <span className={`text-[12px] flex items-center gap-1 ${minRating === r.v ? 'font-bold text-orange-600' : 'text-gray-600'}`}>
+                        {r.v > 0 && <span className="text-amber-500">{'★'.repeat(r.v)}</span>}
+                        {r.label}
+                      </span>
+                    </label>
+                  ))}
                 </div>
               </div>
-
-              {/* Avg Rating */}
-              <div className="border-t border-gray-200 pt-4">
-                <h4 className="text-[12px] font-bold text-gray-700 uppercase tracking-wider mb-2">Avg. Customer Review</h4>
-                {[4, 3, 0].map(r => (
-                  <label key={r} className="flex items-center gap-2 py-1 cursor-pointer">
-                    <input
-                      type="radio"
-                      name="rating"
-                      checked={minRating === r}
-                      onChange={() => setMinRating(r)}
-                      className="accent-orange-500"
-                    />
-                    <div className="flex items-center gap-1">
-                      <span className="text-amber-500 text-[12px]">{'★'.repeat(r || 1)}</span>
-                      <span className="text-[12px] text-gray-700">
-                        {r === 0 ? 'All Ratings' : `${r}★ & Up`}
-                      </span>
-                    </div>
-                  </label>
-                ))}
-              </div>
-
-              {/* Clear button */}
-              <button
-                onClick={() => { setActiveCat('All'); setMaxPrice(35000); setMinRating(0); }}
-                className="w-full text-[12px] text-blue-600 hover:underline font-semibold text-left"
-              >
-                ✕ Clear all filters
-              </button>
             </div>
           </aside>
 
-          {/* MAIN CONTENT AREA */}
+          {/* PRODUCTS AREA */}
           <div className="flex-1 min-w-0">
-            
-            {/* Results Bar */}
-            <div className="bg-white rounded-xl shadow-card px-4 py-3 mb-3 flex items-center justify-between">
-              <div className="text-[13px] text-gray-700">
-                Showing <strong className="text-gray-900">{filtered.length}</strong> results
-                {activeCat !== 'All' && <span> for <strong className="text-orange-600">"{activeCat}"</strong></span>}
+
+            {/* Toolbar */}
+            <div className="bg-white rounded-2xl px-4 py-3 mb-3 flex items-center justify-between gap-3"
+              style={{ boxShadow: '0 1px 4px rgba(0,0,0,0.07)' }}>
+              <div className="text-[13px] text-gray-600">
+                Showing <strong className="text-gray-900 font-black">{filtered.length}</strong> results
+                {activeCat !== 'All' && (
+                  <span> in <strong className="text-orange-600">{activeCat}</strong></span>
+                )}
               </div>
-              
-              {/* Mobile filter toggle */}
-              <button
-                onClick={() => setFilterOpen(true)}
-                className="lg:hidden flex items-center gap-1.5 text-[13px] font-semibold text-gray-700 border border-gray-300 px-3 py-1.5 rounded-lg"
-              >
-                <Filter className="w-4 h-4" />
-                Filter
-              </button>
+              <div className="flex items-center gap-2">
+                {/* Mobile filter */}
+                <button
+                  onClick={() => setShowFilters(true)}
+                  className="lg:hidden flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-gray-200 text-[12px] font-semibold text-gray-700 hover:bg-gray-50"
+                >
+                  <Filter className="w-3.5 h-3.5" />
+                  Filter
+                </button>
+                <div className="flex items-center gap-1.5 bg-gray-100 rounded-xl px-3 py-1.5">
+                  <Search className="w-3.5 h-3.5 text-gray-400" />
+                  <input
+                    type="text"
+                    placeholder="Search..."
+                    value={searchQ}
+                    onChange={e => setSearchQ(e.target.value)}
+                    className="bg-transparent text-[12px] text-gray-700 outline-none w-28"
+                  />
+                </div>
+              </div>
             </div>
 
             {/* Products Grid */}
             {filtered.length === 0 ? (
-              <div className="bg-white rounded-xl shadow-card p-12 text-center">
-                <ShoppingCart className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-                <h3 className="text-[15px] font-bold text-gray-700 mb-1">No results found</h3>
-                <p className="text-[13px] text-gray-500">Try adjusting your filters.</p>
+              <div className="bg-white rounded-2xl p-16 text-center" style={{ boxShadow: '0 1px 4px rgba(0,0,0,0.07)' }}>
+                <Package className="w-12 h-12 text-gray-200 mx-auto mb-3" />
+                <p className="text-[14px] font-semibold text-gray-500">No products found</p>
+                <button
+                  onClick={() => { setActiveCat('All'); setMaxPrice(35000); setMinRating(0); setSearchQ(''); }}
+                  className="mt-3 text-[13px] text-orange-500 font-bold hover:underline"
+                >
+                  Clear filters
+                </button>
               </div>
             ) : (
-              <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3">
+              <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3 stagger-children">
                 {filtered.map(product => (
                   <ProductCardCommercial
                     key={product.id}
                     product={product}
                     onAddToCart={onAddToCart}
-                    onQuickView={setActiveProduct}
+                    onQuickView={setPdp}
                     onBuyNow={onBuyNow}
                   />
                 ))}
@@ -400,39 +493,48 @@ export default function BuyerDashboardPage({ onAddToCart, onOpenCart, onBuyNow }
         </div>
       </div>
 
-      {/* ═══════════════════════════════════════════
-          UNDER ₹999 MEESHO STYLE BANNER
-      ═══════════════════════════════════════════ */}
-      <div id="under999" className="max-w-[1400px] mx-auto px-3 sm:px-4 lg:px-6 mb-8">
+      {/* ═══════════════════════════════════════════════
+          UNDER ₹999 MEESHO-STYLE BANNER
+      ═══════════════════════════════════════════════ */}
+      <div id="under999" className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 mb-8">
         <div
-          className="rounded-2xl overflow-hidden p-6 sm:p-10 flex flex-col sm:flex-row items-center justify-between gap-6"
-          style={{ background: 'linear-gradient(135deg, #F15025 0%, #E91E8C 60%, #9B1FE8 100%)' }}
+          className="rounded-2xl overflow-hidden relative"
+          style={{ background: 'linear-gradient(135deg, #7C3AED 0%, #EC4899 50%, #F59E0B 100%)' }}
         >
-          <div className="text-white">
-            <div className="inline-block bg-white/20 text-white text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-full mb-3">
-              Budget Artisan Store
+          {/* Pattern overlay */}
+          <div className="absolute inset-0 opacity-10"
+            style={{ backgroundImage: 'radial-gradient(circle at 20% 50%, white 1px, transparent 1px), radial-gradient(circle at 80% 20%, white 1px, transparent 1px)', backgroundSize: '30px 30px' }}
+          />
+          <div className="relative px-8 py-10 flex flex-col sm:flex-row items-center justify-between gap-6">
+            <div className="text-white">
+              <div className="inline-flex items-center gap-2 bg-white/20 border border-white/30 text-white text-[10px] font-black uppercase tracking-widest px-3 py-1.5 rounded-full mb-4">
+                <TrendingUp className="w-3 h-3" />
+                Budget Artisan Store
+              </div>
+              <h2 className="text-2xl sm:text-3xl font-black leading-tight mb-2" style={{ fontFamily: "'Outfit', sans-serif" }}>
+                Everyday Crafts Under ₹999
+              </h2>
+              <p className="text-white/75 text-sm max-w-md">
+                Bamboo baskets, terracotta diyas, wooden toys & more — straight from India's villages.
+              </p>
             </div>
-            <h2 className="text-2xl sm:text-3xl font-black leading-tight mb-2" style={{ fontFamily: "'Outfit', sans-serif" }}>
-              Everyday Crafts Under ₹999
-            </h2>
-            <p className="text-white/80 text-sm max-w-md">
-              Authentic bamboo baskets, terracotta diyas, wooden toys and more — straight from India's villages.
-            </p>
+            <button
+              onClick={() => { setMaxPrice(999); setActiveCat('All'); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+              className="px-8 py-3.5 rounded-full bg-white font-black text-sm text-gray-900 shadow-xl whitespace-nowrap hover:shadow-2xl transition-all hover:scale-105 active:scale-95 flex-shrink-0"
+            >
+              Browse Under ₹999 →
+            </button>
           </div>
-          <button
-            onClick={() => { setMaxPrice(999); setActiveCat('All'); window.scrollTo({ top: 0 }); }}
-            className="px-8 py-3.5 rounded-full bg-white text-gray-900 font-black text-sm shadow-lg whitespace-nowrap hover:shadow-xl transition-shadow active:scale-95"
-          >
-            Browse Under ₹999 →
-          </button>
         </div>
       </div>
 
-      {/* PRODUCT DETAIL MODAL */}
-      {activeProduct && (
+      {/* ═══════════════════════════════════════════════
+          PRODUCT DETAIL MODAL
+      ═══════════════════════════════════════════════ */}
+      {pdpProduct && (
         <ProductDetailModal
-          product={activeProduct}
-          onClose={() => setActiveProduct(null)}
+          product={pdpProduct}
+          onClose={() => setPdp(null)}
           onAddToCart={onAddToCart}
           onBuyNow={onBuyNow}
         />

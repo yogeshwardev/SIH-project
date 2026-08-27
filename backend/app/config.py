@@ -28,6 +28,9 @@ class Settings(BaseSettings):
     OPENAI_TTS_MODEL: str = "gpt-4o-mini-tts"
     OPENAI_TTS_VOICE: str = "coral"
     GROQ_API_KEY: str = ""
+    LOCAL_WHISPER_MODEL: str = "small"
+    LOCAL_WHISPER_DEVICE: str = "cpu"
+    LOCAL_WHISPER_COMPUTE_TYPE: str = "int8"
     
     # Image enhancement config
     MAX_IMAGE_SIZE_MB: int = 15

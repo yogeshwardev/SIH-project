@@ -1,114 +1,161 @@
 import React, { useState } from 'react';
-import { Heart, ShoppingCart, Zap, Check, Eye, Star, Truck } from 'lucide-react';
+import { Heart, ShoppingCart, Check, Eye, Truck } from 'lucide-react';
+
+/* Star rendering */
+function Stars({ rating }) {
+  const full = Math.floor(rating);
+  const half = rating - full >= 0.5;
+  return (
+    <div className="flex items-center gap-0.5 text-amber-400" style={{ fontSize: '13px', lineHeight: 1 }}>
+      {Array.from({ length: 5 }, (_, i) => (
+        <span key={i}>
+          {i < full ? '★' : i === full && half ? '⯨' : '☆'}
+        </span>
+      ))}
+    </div>
+  );
+}
 
 export default function ProductCardCommercial({ product, onAddToCart, onQuickView, onBuyNow }) {
-  const [wishlisted, setWishlisted]     = useState(false);
-  const [addedToCart, setAddedToCart]   = useState(false);
+  const [wishlisted,  setWishlisted]  = useState(false);
+  const [justAdded,   setJustAdded]   = useState(false);
 
   const price    = product.price || product.suggested_price || 2499;
   const mrp      = product.mrp  || Math.round(price * 1.45);
   const discount = product.discount_pct || Math.round(((mrp - price) / mrp) * 100);
   const rating   = product.rating || 4.7;
   const reviews  = product.review_count || 230;
+  const savings  = mrp - price;
 
   const handleCart = (e) => {
     e.stopPropagation();
     onAddToCart(product);
-    setAddedToCart(true);
-    setTimeout(() => setAddedToCart(false), 2000);
+    setJustAdded(true);
+    setTimeout(() => setJustAdded(false), 2200);
   };
 
-  // Star display
-  const fullStars  = Math.floor(rating);
-  const halfStar   = rating - fullStars >= 0.5;
+  const handleBuy = (e) => {
+    e.stopPropagation();
+    onBuyNow(product);
+  };
+
+  const handleWish = (e) => {
+    e.stopPropagation();
+    setWishlisted(w => !w);
+  };
 
   return (
     <div
-      className="product-card-hover bg-white rounded-lg border border-gray-200 hover:border-gray-300 flex flex-col overflow-hidden cursor-pointer group"
+      className="product-card-hover group cursor-pointer select-none"
       onClick={() => onQuickView(product)}
-      style={{ fontFamily: "'Inter', sans-serif" }}
+      style={{ fontFamily: "'Inter', sans-serif", borderRadius: '12px' }}
     >
-      {/* ── IMAGE BLOCK ────────────────────────────── */}
-      <div className="relative bg-white" style={{ paddingTop: '100%' }}>
-        <div className="absolute inset-0 flex items-center justify-center p-3 img-zoom-container bg-gray-50">
+      {/* ── IMAGE BLOCK ──────────────────────────── */}
+      <div className="relative bg-[#FAFAFA] rounded-t-xl overflow-hidden" style={{ paddingTop: '100%' }}>
+        
+        {/* Image */}
+        <div className="absolute inset-0 flex items-center justify-center p-3 img-zoom-container">
           <img
             src={product.enhanced_image || product.original_image}
             alt={product.product_name}
             className="w-full h-full object-contain"
             loading="lazy"
             onError={e => {
-              e.target.src = `https://placehold.co/400x400/f8f9fa/6b7280?text=${encodeURIComponent(product.product_name?.slice(0,12) || 'Craft')}`;
+              e.target.src = `https://placehold.co/400x400/F8F9FA/CBD5E1?text=${encodeURIComponent((product.product_name || '').slice(0, 10))}`;
             }}
           />
         </div>
 
-        {/* Discount Badge */}
+        {/* Discount badge — top left */}
         {discount > 0 && (
-          <div className="absolute top-2 left-2 deal-badge">
-            -{discount}% off
+          <div
+            className="absolute top-2.5 left-2.5 text-white font-black text-[11px] px-1.5 py-0.5 rounded-md"
+            style={{ background: 'linear-gradient(135deg, #EF4444, #DC2626)' }}
+          >
+            -{discount}%
           </div>
         )}
 
-        {/* Wishlist */}
+        {/* Wishlist — top right */}
         <button
-          onClick={e => { e.stopPropagation(); setWishlisted(w => !w); }}
-          className="absolute top-2 right-2 w-8 h-8 rounded-full bg-white shadow-md border border-gray-200 flex items-center justify-center text-gray-400 hover:text-red-500 transition-colors opacity-0 group-hover:opacity-100"
+          onClick={handleWish}
+          className="absolute top-2.5 right-2.5 w-8 h-8 rounded-full flex items-center justify-center transition-all opacity-0 group-hover:opacity-100"
+          style={{ background: 'rgba(255,255,255,0.92)', boxShadow: '0 2px 8px rgba(0,0,0,0.12)', backdropFilter: 'blur(4px)' }}
         >
-          <Heart className={`w-4 h-4 ${wishlisted ? 'fill-red-500 text-red-500' : ''}`} />
+          <Heart
+            className="w-4 h-4 transition-colors"
+            style={{ color: wishlisted ? '#EF4444' : '#9CA3AF', fill: wishlisted ? '#EF4444' : 'none' }}
+          />
         </button>
 
-        {/* Quick View overlay */}
-        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/5 transition-colors flex items-end justify-center pb-2 opacity-0 group-hover:opacity-100">
-          <span className="bg-white/95 text-gray-800 text-[11px] font-semibold px-3 py-1 rounded-full shadow border border-gray-200 flex items-center gap-1">
-            <Eye className="w-3 h-3" />
+        {/* Quick view pill on hover */}
+        <div
+          className="absolute inset-x-3 bottom-2 opacity-0 group-hover:opacity-100 transition-all translate-y-1 group-hover:translate-y-0"
+          style={{ transitionDuration: '0.2s' }}
+        >
+          <div
+            className="flex items-center justify-center gap-1.5 text-[11px] font-semibold py-1.5 rounded-lg"
+            style={{ background: 'rgba(255,255,255,0.9)', backdropFilter: 'blur(6px)', color: '#374151', boxShadow: '0 2px 12px rgba(0,0,0,0.12)' }}
+          >
+            <Eye className="w-3.5 h-3.5" />
             Quick View
-          </span>
+          </div>
         </div>
       </div>
 
-      {/* ── CONTENT ────────────────────────────────── */}
-      <div className="p-3 flex flex-col flex-1">
-
-        {/* Brand / Guild */}
-        <div className="text-[11px] text-blue-600 font-semibold truncate mb-1 hover:underline">
+      {/* ── CONTENT ──────────────────────────────── */}
+      <div
+        className="p-3 flex flex-col flex-1 border-t border-gray-100"
+        style={{ background: 'white', borderRadius: '0 0 12px 12px' }}
+      >
+        {/* Brand */}
+        <div
+          className="text-[11px] font-semibold truncate mb-0.5"
+          style={{ color: '#007185' }}
+        >
           {product.brand_or_guild || 'Verified Artisan'}
         </div>
 
         {/* Product Name */}
-        <h3 className="text-[13px] text-gray-900 font-normal leading-snug line-clamp-2 mb-1.5 group-hover:text-[#c45500]">
+        <h3 className="text-[13px] font-medium text-gray-900 leading-snug line-clamp-2 mb-2"
+          style={{ letterSpacing: '-0.01em' }}>
           {product.title || product.product_name}
         </h3>
 
-        {/* Stars */}
-        <div className="flex items-center gap-1.5 mb-2">
-          <div className="flex items-center gap-0.5 text-amber-500 text-xs">
-            {'★'.repeat(fullStars)}
-            {halfStar && '½'}
-            {'☆'.repeat(Math.max(0, 5 - fullStars - (halfStar ? 1 : 0)))}
-          </div>
-          <span className="text-[12px] text-blue-600 hover:text-orange-500 hover:underline cursor-pointer">
+        {/* Stars + Review count */}
+        <div className="flex items-center gap-1.5 mb-1.5">
+          <Stars rating={rating} />
+          <span className="text-[11px] font-semibold" style={{ color: '#007185' }}>
             ({reviews.toLocaleString()})
           </span>
         </div>
 
-        {/* Prime & Delivery */}
+        {/* Delivery + Prime */}
         <div className="flex items-center gap-1.5 mb-2">
           {product.is_prime && (
-            <span className="prime-badge text-[10px] px-1.5 py-0.5 rounded-sm">prime</span>
+            <span className="prime-badge text-[9px] px-1.5 py-0.5 rounded-sm">prime</span>
           )}
-          <span className="text-[11px] text-gray-600 truncate">{product.delivery_days}</span>
+          <span className="text-[10px] text-gray-500 flex items-center gap-0.5 truncate">
+            <Truck className="w-3 h-3 inline flex-shrink-0" />
+            {product.delivery_days || 'FREE delivery by Friday'}
+          </span>
         </div>
 
         {/* Badge */}
         {product.badge && (
           <div className="mb-1.5">
-            <span className={`inline-block text-[10px] font-bold px-1.5 py-0.5 rounded ${
-              product.badge === 'Best Seller' ? 'bg-orange-500 text-white' :
-              product.badge === "Amazon's Choice" ? 'bg-gray-900 text-white' :
-              product.badge === 'GI Certified' ? 'bg-emerald-700 text-white' :
-              'bg-red-600 text-white'
-            }`}>
-              #{product.badge}
+            <span
+              className="inline-block text-[10px] font-black px-1.5 py-0.5 rounded text-white"
+              style={{
+                background:
+                  product.badge === 'Best Seller' ? '#E87722' :
+                  product.badge === "Amazon's Choice" ? '#131921' :
+                  product.badge === 'GI Certified' ? '#15803D' :
+                  product.badge === 'Luxury Pick' ? '#7C3AED' :
+                  '#CC0C39'
+              }}
+            >
+              {product.badge === 'Best Seller' ? '🏆 ' : ''}{product.badge}
             </span>
           </div>
         )}
@@ -116,42 +163,41 @@ export default function ProductCardCommercial({ product, onAddToCart, onQuickVie
         {/* Spacer */}
         <div className="flex-1" />
 
-        {/* Pricing */}
-        <div className="mb-2">
-          <div className="flex items-baseline gap-2 flex-wrap">
-            <span className="text-[12px] text-gray-600 font-normal">₹</span>
-            <span className="text-[20px] font-bold text-gray-900 leading-none">
+        {/* Price block */}
+        <div className="mb-3">
+          <div className="flex items-baseline gap-1.5">
+            <span className="text-[11px] text-gray-700 font-semibold">₹</span>
+            <span className="text-[21px] font-black text-gray-900 leading-none" style={{ letterSpacing: '-0.03em' }}>
               {price.toLocaleString('en-IN')}
             </span>
           </div>
-          <div className="text-[11px] text-gray-500 mt-0.5">
-            M.R.P.: <span className="line-through">₹{mrp.toLocaleString('en-IN')}</span>
-            {' '}<span className="text-green-700 font-semibold">(Save ₹{(mrp - price).toLocaleString('en-IN')})</span>
+          <div className="text-[11px] text-gray-400 mt-0.5 flex items-center gap-1.5">
+            <span>M.R.P.</span>
+            <span className="line-through">₹{mrp.toLocaleString('en-IN')}</span>
+            <span className="text-green-700 font-bold">Save ₹{savings.toLocaleString('en-IN')}</span>
           </div>
         </div>
 
         {/* Action Buttons */}
-        <div className="grid grid-cols-2 gap-1.5 mt-auto">
+        <div className="grid grid-cols-2 gap-1.5">
           <button
             onClick={handleCart}
-            className={`btn-amazon-cart flex items-center justify-center gap-1 text-[12px] font-bold py-2 rounded-lg transition-all active:scale-95 ${
-              addedToCart ? 'bg-green-500 border-green-600 text-white' : ''
-            }`}
+            className="btn-amazon-cart flex items-center justify-center gap-1"
+            style={{ height: '34px', fontSize: '12px' }}
           >
-            {addedToCart ? (
-              <><Check className="w-3.5 h-3.5" /><span>Added</span></>
-            ) : (
-              <><ShoppingCart className="w-3.5 h-3.5" /><span>Add to Cart</span></>
-            )}
+            {justAdded
+              ? <><Check className="w-3.5 h-3.5 flex-shrink-0" /><span>Added!</span></>
+              : <><ShoppingCart className="w-3.5 h-3.5 flex-shrink-0" /><span>Add to Cart</span></>
+            }
           </button>
           <button
-            onClick={e => { e.stopPropagation(); onBuyNow(product); }}
-            className="btn-amazon-buy flex items-center justify-center text-[12px] font-bold py-2 rounded-lg transition-all active:scale-95"
+            onClick={handleBuy}
+            className="btn-amazon-buy flex items-center justify-center"
+            style={{ height: '34px', fontSize: '12px' }}
           >
             Buy Now
           </button>
         </div>
-
       </div>
     </div>
   );

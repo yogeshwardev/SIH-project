@@ -16,6 +16,7 @@ class PricingMLModel:
     def __init__(self):
         self.pipeline = None
         self.is_trained = False
+        self.reference_data = None
         self.feature_columns = [
             'category', 'craft_type', 'material', 'production_time_days',
             'material_cost', 'labor_cost', 'packaging_cost'
@@ -119,6 +120,7 @@ class PricingMLModel:
 
         X = df[self.feature_columns]
         y = df['market_reference_price']
+        self.reference_data = df.copy()
 
         preprocessor = ColumnTransformer(
             transformers=[
@@ -152,6 +154,11 @@ class PricingMLModel:
         return r2, mae
 
     def load_or_train(self):
+        if os.path.exists(DATA_PATH):
+            try:
+                self.reference_data = pd.read_csv(DATA_PATH)
+            except Exception:
+                self.reference_data = None
         if os.path.exists(MODEL_PATH):
             try:
                 self.pipeline = joblib.load(MODEL_PATH)

@@ -34,6 +34,19 @@ export const api = {
     return res.json();
   },
 
+  async continueProductInterview(payload) {
+    const res = await fetch(`${API_BASE}/speech/product-interview`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ detail: 'Product interview failed' }));
+      throw new Error(err.detail || 'Product interview failed');
+    }
+    return res.json();
+  },
+
   // 3. Product Intelligence Extraction (NLP)
   async extractProductInfo(transcript, detectedObjects = [], language = 'Hindi') {
     const res = await fetch(`${API_BASE}/products/extract-information`, {

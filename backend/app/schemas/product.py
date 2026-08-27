@@ -24,6 +24,26 @@ class SpeechSynthesizeRequest(BaseModel):
     text: str = Field(..., min_length=1, max_length=4096)
     language: Optional[str] = "hi-IN"
 
+class ProductInterviewRequest(BaseModel):
+    utterance: str = Field(..., min_length=1, max_length=4096)
+    conversation_transcript: Optional[str] = ""
+    language: Optional[str] = "Hindi"
+    detected_objects: List[str] = Field(default_factory=list)
+    known_attributes: Dict[str, Any] = Field(default_factory=dict)
+    cost_inputs: Dict[str, Any] = Field(default_factory=dict)
+    last_question_key: Optional[str] = None
+
+class ProductInterviewResponse(BaseModel):
+    status: str
+    assistant_message: str
+    next_question_key: Optional[str] = None
+    missing_fields: List[str] = Field(default_factory=list)
+    readiness_score: float
+    attributes: Dict[str, Any] = Field(default_factory=dict)
+    cost_inputs: Dict[str, Any] = Field(default_factory=dict)
+    evidence: Dict[str, str] = Field(default_factory=dict)
+    turn_summary: str
+
 # --- Product Intelligence Extraction Schemas ---
 class ProductExtractRequest(BaseModel):
     transcript: str
@@ -87,6 +107,12 @@ class PriceRecommendationResponse(BaseModel):
     price_breakdown: List[PriceBreakdownItem]
     explanation: str
     pricing_model_type: str
+    pricing_confidence_score: float = 0.0
+    confidence_level: str = "LOW"
+    benchmark_sample_count: int = 0
+    benchmark_similarity_score: float = 0.0
+    requires_human_review: bool = True
+    assumptions: List[str] = Field(default_factory=list)
 
 # --- Product Entity CRUD Schemas ---
 class ProductCreate(BaseModel):

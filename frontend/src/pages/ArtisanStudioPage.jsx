@@ -448,12 +448,23 @@ export default function ArtisanStudioPage({ onProductCreated, activePreset, onNa
       {/* STEP 2: Voice & Tell Us About Your Product */}
       {step === 2 && !loading && (
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-          <div className="lg:col-span-5">
+          <div className="lg:col-span-5 space-y-3">
             {imageEnhanceData && (
-              <BeforeAfterSlider
-                originalUrl={imageEnhanceData.original_image_url}
-                enhancedUrl={imageEnhanceData.enhanced_image_url}
-              />
+              <>
+                <BeforeAfterSlider
+                  originalUrl={imageEnhanceData.original_image_url}
+                  enhancedUrl={imageEnhanceData.enhanced_image_url}
+                />
+                <div className="flex flex-wrap items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-[11px] font-semibold text-emerald-900">
+                  <Sparkles className="h-4 w-4" />
+                  <span>{imageEnhanceData.segmentation_engine || 'Neural segmentation'}</span>
+                  {typeof imageEnhanceData.mask_quality_score === 'number' && (
+                    <span className="rounded-full bg-white px-2 py-0.5 text-emerald-700">
+                      Mask quality {(imageEnhanceData.mask_quality_score * 100).toFixed(1)}%
+                    </span>
+                  )}
+                </div>
+              </>
             )}
           </div>
           <div className="lg:col-span-7 space-y-4">

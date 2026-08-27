@@ -870,7 +870,10 @@ function AiListingStudio({ onProductCreated, onNavigateToAdmin }) {
   const [listing, setListing]     = useState(null);
   const [listLang, setListLang]   = useState('en');
   const [pricing, setPricing]     = useState(null);
-  const [costs, setCosts]         = useState({ material_cost: 1500, labor_cost: 2400, packaging_cost: 180, production_time: '3 days' });
+  const [costs, setCosts]         = useState({ material_cost: null, labor_cost: null, packaging_cost: null, production_time: '' });
+  const [interview, setInterview] = useState(null);
+  const [interviewTurns, setInterviewTurns] = useState([]);
+  const [typedAnswer, setTypedAnswer] = useState('');
   const [submitted, setSubmitted] = useState(false);
   const [productId, setProductId] = useState(null);
 
@@ -920,23 +923,60 @@ function AiListingStudio({ onProductCreated, onNavigateToAdmin }) {
 
   const handleVoice = async (blob, filename, overTxt = null, overLang = null) => {
     setLoading(true); setError(null);
-    setLoadMsg('Speech AI: Converting voice to text...');
+    setLoadMsg('Voice AI: Listening, extracting evidence, and deciding the next question...');
     try {
       let text = overTxt, lang = overLang || 'Hindi';
       if (!text) { const r = await api.transcribeAudio(blob, lang, filename); text = r.transcript; lang = r.detected_language; }
-      setTxt(text); setDetLang(lang);
-      setLoadMsg('Extracting structured craft data (zero-hallucination)...');
-      const a = await api.extractProductInfo(text, imgData?.detected_objects || [], lang);
-      setAttrs(a);
-      setLoadMsg('Generating bilingual marketplace listing...');
-      const l = await api.generateListing(a, 'Master Artisan');
-      setListing(l);
-      setLoadMsg('Computing fair-trade pricing model...');
-      const pr = await api.calculatePrice({ ...costs, category: a.category, craft_type: a.craft_type, material: a.material });
-      setPricing(pr);
-      setStep(3);
+      const previousTranscript = transcript;
+      const fullTranscript = [previousTranscript, text].filter(Boolean).join('\n');
+      setTxt(fullTranscript); setDetLang(lang);
+
+      const result = await api.continueProductInterview({
+        utterance: text,
+        conversation_transcript: previousTranscript,
+        language: lang,
+        detected_objects: imgData?.detected_objects || [],
+        known_attributes: attrs || {},
+        cost_inputs: costs,
+        last_question_key: interview?.next_question_key || null,
+      });
+      const mergedCosts = {
+        ...result.cost_inputs,
+        production_time: result.attributes.production_time || result.cost_inputs.production_time || '',
+      };
+      setInterview(result);
+      setAttrs(result.attributes);
+      setCosts(mergedCosts);
+      setInterviewTurns(turns => [...turns, { role: 'artisan', text }, { role: 'assistant', text: result.assistant_message }]);
+      setTypedAnswer('');
+
+      if (result.status === 'ready_for_pricing') {
+        setLoadMsg('Generating a verified bilingual marketplace listing...');
+        const l = await api.generateListing(result.attributes, 'Master Artisan');
+        setListing(l);
+        setLoadMsg('Pricing AI: Blending confirmed costs with regional market benchmarks...');
+        const pr = await api.calculatePrice({
+          ...mergedCosts,
+          category: result.attributes.category,
+          craft_type: result.attributes.craft_type,
+          material: result.attributes.material,
+        });
+        setPricing(pr);
+        setStep(3);
+      } else {
+        voiceAssistant.speak(
+          result.assistant_message,
+          /^(hi|hindi|हिन्द)/i.test(String(lang)) ? 'hi-IN' : 'en-IN'
+        );
+      }
     } catch (e) { setError(e.message); }
     finally { setLoading(false); setLoadMsg(''); }
+  };
+
+  const submitTypedInterviewAnswer = () => {
+    const answer = typedAnswer.trim();
+    if (!answer) return;
+    handleVoice(new Blob([answer], { type: 'text/plain' }), 'typed-answer.txt', answer, detLang);
   };
 
   const handleSubmit = async () => {
@@ -979,6 +1019,8 @@ function AiListingStudio({ onProductCreated, onNavigateToAdmin }) {
 
   const reset = () => {
     setStep(1); setImgData(null); setTxt(''); setAttrs(null); setListing(null); setPricing(null); setSubmitted(false); setProductId(null); setError(null);
+    setCosts({ material_cost: null, labor_cost: null, packaging_cost: null, production_time: '' });
+    setInterview(null); setInterviewTurns([]); setTypedAnswer('');
   };
 
   // Success Screen
@@ -1146,7 +1188,57 @@ function AiListingStudio({ onProductCreated, onNavigateToAdmin }) {
             </div>
           )}
           <div className="space-y-4">
+            <div className="rounded-2xl border border-violet-200 bg-gradient-to-br from-violet-50 to-blue-50 p-4 shadow-sm">
+              <div className="flex items-start gap-3">
+                <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl bg-violet-600 text-white shadow-sm">
+                  <MessageSquare className="h-4 w-4" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center justify-between gap-3">
+                    <div>
+                      <div className="text-[13px] font-black text-violet-950">CraftLink Interactive Product Expert</div>
+                      <div className="text-[10px] font-semibold uppercase tracking-wider text-violet-500">Evidence-gated interview</div>
+                    </div>
+                    <span className="rounded-full bg-white px-2.5 py-1 text-[11px] font-black text-violet-700 shadow-sm">
+                      {Math.round((interview?.readiness_score || 0) * 100)}% ready
+                    </span>
+                  </div>
+                  <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-violet-100">
+                    <div className="h-full rounded-full bg-gradient-to-r from-violet-500 to-blue-500 transition-all duration-500" style={{ width: `${Math.max(4, (interview?.readiness_score || 0) * 100)}%` }} />
+                  </div>
+                  <div className="mt-3 rounded-xl border border-white/80 bg-white/90 p-3 text-[13px] font-semibold leading-relaxed text-slate-800">
+                    {interview?.assistant_message || 'Describe your product naturally. I will listen, identify missing facts, and ask only the questions needed for an accurate price.'}
+                  </div>
+                  {interview?.missing_fields?.length > 0 && (
+                    <div className="mt-2 text-[10px] font-medium text-violet-600">
+                      Still verifying: {interview.missing_fields.map(value => value.replaceAll('_', ' ')).join(' • ')}
+                    </div>
+                  )}
+                </div>
+              </div>
+              {interviewTurns.length > 0 && (
+                <div className="mt-3 max-h-32 space-y-1.5 overflow-y-auto border-t border-violet-100 pt-3">
+                  {interviewTurns.slice(-4).map((turn, index) => (
+                    <div key={`${turn.role}-${index}`} className={`text-[11px] ${turn.role === 'assistant' ? 'text-violet-800' : 'text-slate-600'}`}>
+                      <strong>{turn.role === 'assistant' ? 'AI' : 'You'}:</strong> {turn.text}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
             <VoiceRecorder onAudioRecorded={handleVoice} isProcessing={loading} samplePresets={VOICE_PRESETS.map(v => ({ ...v, language: v.lang, text: v.text }))} />
+            <div className="flex gap-2 rounded-xl border border-gray-200 bg-white p-2 shadow-sm">
+              <input
+                value={typedAnswer}
+                onChange={e => setTypedAnswer(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Enter') submitTypedInterviewAnswer(); }}
+                placeholder="Or type your answer here…"
+                className="min-w-0 flex-1 rounded-lg border-0 px-3 py-2 text-[12px] outline-none"
+              />
+              <button onClick={submitTypedInterviewAnswer} disabled={!typedAnswer.trim()} className="rounded-lg bg-violet-600 px-4 py-2 text-[12px] font-bold text-white disabled:opacity-40">
+                Answer AI
+              </button>
+            </div>
             <button onClick={() => setStep(1)} className="flex items-center gap-1.5 text-[12px] font-semibold text-gray-500 hover:text-gray-700">
               <ArrowLeft className="w-4 h-4" /> Back to Photo
             </button>

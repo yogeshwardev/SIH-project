@@ -1,5 +1,6 @@
 import re
 import math
+from difflib import SequenceMatcher
 import pandas as pd
 from typing import Dict, Any, List
 from backend.app.config import settings
@@ -134,6 +135,15 @@ class PricingService:
             f"{market_ref_str}, with an optimal suggested listing price of ₹{suggested_price:,.0f}."
         )
 
+        confidence = self._benchmark_confidence(
+            req.category or "", req.craft_type or "", req.material or "",
+            prod_hours, total_cost,
+        )
+        assumptions = ["One artisan working 8 productive hours per stated working day."]
+        if packaging_cost == 0:
+            assumptions.append("Packaging cost was confirmed as zero; shipping charges are excluded.")
+        assumptions.append("Recommendation is for one retail unit and excludes marketplace tax or delivery fees.")
+
         return PriceRecommendationResponse(
             total_cost=round(total_cost, 2),
             minimum_sustainable_price=round(minimum_sustainable_price, 2),
@@ -144,8 +154,57 @@ class PricingService:
             market_reference_range=market_ref_str,
             price_breakdown=breakdown_items,
             explanation=explanation,
-            pricing_model_type="Hybrid Random Forest ML + Fair-Trade Cost Model"
+            pricing_model_type="Hybrid Ensemble ML + Fair-Trade Cost Model",
+            pricing_confidence_score=confidence["score"],
+            confidence_level=confidence["level"],
+            benchmark_sample_count=confidence["sample_count"],
+            benchmark_similarity_score=confidence["similarity"],
+            requires_human_review=confidence["requires_review"],
+            assumptions=assumptions,
         )
+
+    def _benchmark_confidence(
+        self, category: str, craft_type: str, material: str,
+        production_hours: float, total_cost: float,
+    ) -> Dict[str, Any]:
+        """Estimate benchmark coverage; never disguise extrapolation as certainty."""
+        try:
+            frame = pricing_ml_model.reference_data
+            if frame is None or frame.empty:
+                return {"score": 0.35, "level": "LOW", "sample_count": 0, "similarity": 0.0, "requires_review": True}
+
+            category_text = category.strip().lower()
+            same_category = frame[frame["category"].astype(str).str.lower() == category_text]
+            candidates = same_category if not same_category.empty else frame
+            craft_similarity = max(
+                SequenceMatcher(None, craft_type.lower(), str(value).lower()).ratio()
+                for value in candidates["craft_type"].dropna()
+            ) if len(candidates) else 0.0
+            material_similarity = max(
+                SequenceMatcher(None, material.lower(), str(value).lower()).ratio()
+                for value in candidates["material"].dropna()
+            ) if len(candidates) else 0.0
+
+            cost_min = float(candidates["total_production_cost"].quantile(0.05))
+            cost_max = float(candidates["total_production_cost"].quantile(0.95))
+            day_value = production_hours / 8.0
+            day_min = float(candidates["production_time_days"].quantile(0.05))
+            day_max = float(candidates["production_time_days"].quantile(0.95))
+            category_coverage = 1.0 if not same_category.empty else 0.0
+            cost_coverage = 1.0 if cost_min <= total_cost <= cost_max else 0.35
+            time_coverage = 1.0 if day_min <= day_value <= day_max else 0.35
+            score = min(0.98, 0.35 + 0.15 * category_coverage + 0.20 * craft_similarity + 0.10 * material_similarity + 0.10 * cost_coverage + 0.10 * time_coverage)
+            score = round(score, 2)
+            level = "HIGH" if score >= 0.85 else "MEDIUM" if score >= 0.70 else "LOW"
+            return {
+                "score": score,
+                "level": level,
+                "sample_count": int(len(same_category)),
+                "similarity": round(craft_similarity, 2),
+                "requires_review": score < 0.70,
+            }
+        except Exception:
+            return {"score": 0.35, "level": "LOW", "sample_count": 0, "similarity": 0.0, "requires_review": True}
 
     def _parse_production_hours(self, time_str: str) -> float:
         """Parse human readable production duration into approximate hours."""

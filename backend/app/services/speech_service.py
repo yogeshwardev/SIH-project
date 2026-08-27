@@ -13,6 +13,7 @@ from backend.app.config import settings
 class SpeechService:
     def __init__(self):
         self.upload_dir = settings.UPLOAD_DIR
+        self._whisper_fast_model = None
         self._whisper_model = None
         self._whisper_lock = threading.Lock()
 
@@ -81,72 +82,124 @@ class SpeechService:
         )
 
     def warmup(self) -> None:
-        if not self.local_transcription_available() or self._whisper_model is not None:
+        if not self.local_transcription_available():
             return
         try:
-            from faster_whisper import WhisperModel
             with self._whisper_lock:
+                if self._whisper_fast_model is None:
+                    self._whisper_fast_model = self._create_whisper_model(settings.LOCAL_WHISPER_FAST_MODEL)
                 if self._whisper_model is None:
-                    self._whisper_model = WhisperModel(
-                        settings.LOCAL_WHISPER_MODEL,
-                        device=settings.LOCAL_WHISPER_DEVICE,
-                        compute_type=settings.LOCAL_WHISPER_COMPUTE_TYPE,
-                        download_root=str(settings.MODELS_DIR / "whisper"),
-                        cpu_threads=settings.LOCAL_WHISPER_CPU_THREADS,
-                        num_workers=1,
-                    )
+                    if settings.LOCAL_WHISPER_MODEL == settings.LOCAL_WHISPER_FAST_MODEL:
+                        self._whisper_model = self._whisper_fast_model
+                    else:
+                        self._whisper_model = self._create_whisper_model(settings.LOCAL_WHISPER_MODEL)
         except Exception:
             return
 
     def _transcribe_with_local_whisper(self, file_path: Path, hint_language: Optional[str]) -> tuple[str, str, float, str, Dict[str, float]]:
-        from faster_whisper import WhisperModel
-
+        language_code = self._normalize_language_code(hint_language)
         with self._whisper_lock:
-            if self._whisper_model is None:
-                self._whisper_model = WhisperModel(
-                    settings.LOCAL_WHISPER_MODEL,
-                    device=settings.LOCAL_WHISPER_DEVICE,
-                    compute_type=settings.LOCAL_WHISPER_COMPUTE_TYPE,
-                    download_root=str(settings.MODELS_DIR / "whisper"),
-                    cpu_threads=settings.LOCAL_WHISPER_CPU_THREADS,
-                    num_workers=1,
-                )
-            language_code = self._normalize_language_code(hint_language)
-            segments, info = self._whisper_model.transcribe(
-                str(file_path),
-                language=language_code,
-                beam_size=settings.LOCAL_WHISPER_BEAM_SIZE,
-                vad_filter=True,
-                condition_on_previous_text=False,
-                word_timestamps=True,
-                hotwords="Banarasi zari Katan Dhokra Channapatna Madhubani pottery bamboo",
+            if self._whisper_fast_model is None:
+                self._whisper_fast_model = self._create_whisper_model(settings.LOCAL_WHISPER_FAST_MODEL)
+            fast_candidate = self._decode_local_candidate(self._whisper_fast_model, file_path, language_code)
+            fast_accepted = (
+                fast_candidate["confidence"] >= settings.LOCAL_WHISPER_FAST_ACCEPT_CONFIDENCE
+                and fast_candidate["low_confidence_word_ratio"] <= 0.25
+                and bool(fast_candidate["transcript"])
             )
-            segment_list = [
-                segment for segment in segments
-                if not (segment.no_speech_prob > 0.65 and segment.avg_logprob < -0.5)
-            ]
 
-        transcript = " ".join(segment.text.strip() for segment in segment_list if segment.text.strip()).strip()
+            if fast_accepted or settings.LOCAL_WHISPER_MODEL == settings.LOCAL_WHISPER_FAST_MODEL:
+                selected = fast_candidate
+                fallback_triggered = 0.0
+                engine_model = settings.LOCAL_WHISPER_FAST_MODEL
+            else:
+                fallback_triggered = 1.0
+                if self._whisper_model is None:
+                    self._whisper_model = self._create_whisper_model(settings.LOCAL_WHISPER_MODEL)
+                accuracy_candidate = self._decode_local_candidate(self._whisper_model, file_path, language_code)
+                selected = max(
+                    (fast_candidate, accuracy_candidate),
+                    key=lambda item: item["confidence"] - (0.12 * item["low_confidence_word_ratio"]),
+                )
+                engine_model = (
+                    settings.LOCAL_WHISPER_MODEL
+                    if selected is accuracy_candidate
+                    else settings.LOCAL_WHISPER_FAST_MODEL
+                )
+
+        transcript = selected["transcript"]
         if not transcript:
             raise RuntimeError("No speech was detected in the recording.")
-        words = [word for segment in segment_list for word in (segment.words or []) if word.word.strip()]
-        if not words:
-            raise RuntimeError("No reliable words were detected in the recording.")
-        probabilities = np.asarray([float(word.probability) for word in words], dtype=np.float64)
-        avg_probability = float(probabilities.mean())
-        median_probability = float(np.median(probabilities))
-        language_probability = float(getattr(info, "language_probability", 0.75) or 0.75)
-        confidence = round(max(0.0, min(0.99, avg_probability)), 3)
+        confidence = selected["confidence"]
         if confidence < 0.42:
             raise RuntimeError("Speech was too quiet or unclear to transcribe reliably. Please record again closer to the microphone.")
-        detected_code = getattr(info, "language", None) or language_code
         details = {
-            "mean_word_probability": round(avg_probability, 3),
-            "median_word_probability": round(median_probability, 3),
-            "language_probability": round(language_probability, 3),
-            "low_confidence_word_ratio": round(float((probabilities < 0.70).mean()), 3),
+            "mean_word_probability": round(confidence, 3),
+            "median_word_probability": round(selected["median_word_probability"], 3),
+            "language_probability": round(selected["language_probability"], 3),
+            "low_confidence_word_ratio": round(selected["low_confidence_word_ratio"], 3),
+            "fast_path_threshold": round(settings.LOCAL_WHISPER_FAST_ACCEPT_CONFIDENCE, 3),
+            "fallback_triggered": fallback_triggered,
+            "fast_path_confidence": round(fast_candidate["confidence"], 3),
         }
-        return transcript, self._language_name(detected_code, transcript), confidence, f"faster-whisper-{settings.LOCAL_WHISPER_MODEL}-int8", details
+        return (
+            transcript,
+            self._language_name(selected["detected_code"], transcript),
+            round(confidence, 3),
+            f"faster-whisper-{engine_model}-int8",
+            details,
+        )
+
+    @staticmethod
+    def _decode_local_candidate(model, file_path: Path, language_code: Optional[str]) -> Dict[str, Any]:
+        segments, info = model.transcribe(
+            str(file_path),
+            language=language_code,
+            beam_size=settings.LOCAL_WHISPER_BEAM_SIZE,
+            vad_filter=True,
+            condition_on_previous_text=False,
+            word_timestamps=True,
+            hotwords="Banarasi zari Katan Dhokra Channapatna Madhubani pottery bamboo quartz cobalt rupees",
+        )
+        segment_list = [
+            segment for segment in segments
+            if not (segment.no_speech_prob > 0.65 and segment.avg_logprob < -0.5)
+        ]
+        transcript = " ".join(segment.text.strip() for segment in segment_list if segment.text.strip()).strip()
+        words = [word for segment in segment_list for word in (segment.words or []) if word.word.strip()]
+        probabilities = np.asarray([float(word.probability) for word in words], dtype=np.float64)
+        detected_code = getattr(info, "language", None) or language_code
+        language_probability = float(getattr(info, "language_probability", 0.75) or 0.75)
+        if probabilities.size == 0:
+            return {
+                "transcript": "",
+                "confidence": 0.0,
+                "median_word_probability": 0.0,
+                "language_probability": language_probability,
+                "low_confidence_word_ratio": 1.0,
+                "detected_code": detected_code,
+            }
+        return {
+            "transcript": transcript,
+            "confidence": float(probabilities.mean()),
+            "median_word_probability": float(np.median(probabilities)),
+            "language_probability": language_probability,
+            "low_confidence_word_ratio": float((probabilities < 0.70).mean()),
+            "detected_code": detected_code,
+        }
+
+    @staticmethod
+    def _create_whisper_model(model_name: str):
+        from faster_whisper import WhisperModel
+
+        return WhisperModel(
+            model_name,
+            device=settings.LOCAL_WHISPER_DEVICE,
+            compute_type=settings.LOCAL_WHISPER_COMPUTE_TYPE,
+            download_root=str(settings.MODELS_DIR / "whisper"),
+            cpu_threads=settings.LOCAL_WHISPER_CPU_THREADS,
+            num_workers=1,
+        )
 
     @staticmethod
     def local_transcription_available() -> bool:

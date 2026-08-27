@@ -85,8 +85,28 @@ def test_image_enhancement_endpoint_returns_renderable_urls(monkeypatch):
     assert data["original_image_url"].startswith("/uploads/")
     assert data["enhanced_image_url"].endswith("_studio_enhanced.png")
     assert data["segmentation_engine"] == "test-segmentation"
+    assert data["confidence_score"] == 0.99
+    assert data["confidence_breakdown"]["component_coherence"] == 1.0
+    assert "segmentation_seconds" in data["latency_breakdown"]
     assert client.get(data["original_image_url"]).status_code == 200
     assert client.get(data["enhanced_image_url"]).status_code == 200
+
+def test_mask_confidence_rewards_coherence_and_rejects_clutter():
+    import numpy as np
+
+    coherent = np.zeros((300, 300), dtype=np.uint8)
+    coherent[55:245, 90:210] = 255
+    quality, valid, details = image_service._score_mask(coherent)
+    assert valid is True
+    assert quality >= 0.95
+    assert details["component_coherence"] == 1.0
+
+    cluttered = coherent.copy()
+    cluttered[10:45, 10:100] = 140
+    cluttered[250:285, 200:295] = 140
+    clutter_quality, _, clutter_details = image_service._score_mask(cluttered)
+    assert clutter_quality < quality
+    assert clutter_details["component_coherence"] < 0.9
 
 def test_speech_capabilities_are_explicit():
     response = client.get("/api/speech/capabilities")

@@ -1,129 +1,230 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { Sparkles, Sliders, Download, Eye, Layers } from 'lucide-react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
+import { Sparkles, Eye, Download, MoveHorizontal } from 'lucide-react';
 
-export default function BeforeAfterSlider({ originalUrl, enhancedUrl, title = 'Product Enhancement' }) {
-  const [sliderPosition, setSliderPosition] = useState(50);
-  const [isDragging, setIsDragging] = useState(false);
+export default function BeforeAfterSlider({
+  originalUrl,
+  enhancedUrl,
+  title = 'AI Studio Enhancement',
+}) {
+  const [pos, setPos]           = useState(50);   // 0–100 %
+  const [dragging, setDragging] = useState(false);
   const containerRef = useRef(null);
 
-  const handleMove = (clientX) => {
-    if (!containerRef.current) return;
-    const rect = containerRef.current.getBoundingClientRect();
-    const x = clientX - rect.left;
-    let percentage = (x / rect.width) * 100;
-    if (percentage < 0) percentage = 0;
-    if (percentage > 100) percentage = 100;
-    setSliderPosition(percentage);
-  };
+  /* ── Core position calculation ── */
+  const calcPos = useCallback((clientX) => {
+    const el = containerRef.current;
+    if (!el) return;
+    const rect = el.getBoundingClientRect();
+    const pct  = Math.min(100, Math.max(0, ((clientX - rect.left) / rect.width) * 100));
+    setPos(pct);
+  }, []);
 
-  const handleMouseDown = () => setIsDragging(true);
-  const handleMouseUp = () => setIsDragging(false);
+  /* ── Mouse events ── */
+  const onMouseDown = useCallback((e) => {
+    e.preventDefault();
+    setDragging(true);
+    calcPos(e.clientX);
+  }, [calcPos]);
 
+  /* ── Touch events ── */
+  const onTouchStart = useCallback((e) => {
+    setDragging(true);
+    calcPos(e.touches[0].clientX);
+  }, [calcPos]);
+
+  /* ── Global move / up listeners (added when dragging) ── */
   useEffect(() => {
-    const onMouseMove = (e) => {
-      if (isDragging) handleMove(e.clientX);
-    };
-    const onTouchMove = (e) => {
-      if (isDragging && e.touches[0]) handleMove(e.touches[0].clientX);
-    };
-    const onStop = () => setIsDragging(false);
+    if (!dragging) return;
 
-    window.addEventListener('mousemove', onMouseMove);
-    window.addEventListener('mouseup', onStop);
-    window.addEventListener('touchmove', onTouchMove);
-    window.addEventListener('touchend', onStop);
+    const onMove = (e) => {
+      const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+      calcPos(clientX);
+    };
+    const onStop = () => setDragging(false);
+
+    window.addEventListener('mousemove', onMove);
+    window.addEventListener('mouseup',   onStop);
+    window.addEventListener('touchmove', onMove, { passive: true });
+    window.addEventListener('touchend',  onStop);
 
     return () => {
-      window.removeEventListener('mousemove', onMouseMove);
-      window.removeEventListener('mouseup', onStop);
-      window.removeEventListener('touchmove', onTouchMove);
-      window.removeEventListener('touchend', onStop);
+      window.removeEventListener('mousemove', onMove);
+      window.removeEventListener('mouseup',   onStop);
+      window.removeEventListener('touchmove', onMove);
+      window.removeEventListener('touchend',  onStop);
     };
-  }, [isDragging]);
+  }, [dragging, calcPos]);
+
+  const showBoth = !!originalUrl && !!enhancedUrl;
+  const imgSrc   = enhancedUrl || originalUrl;
 
   return (
-    <div className="bg-white rounded-2xl border border-artisan-200 shadow-sm p-4 sm:p-5">
-      <div className="flex items-center justify-between mb-3">
-        <div className="flex items-center gap-2">
-          <div className="w-7 h-7 rounded-lg bg-emerald-100 text-emerald-800 flex items-center justify-center">
-            <Sparkles className="w-4 h-4" />
+    <div style={{
+      background: '#fff',
+      border: '1px solid #D5D9D9',
+      borderRadius: '12px',
+      overflow: 'hidden',
+      fontFamily: "'Inter', sans-serif",
+    }}>
+      {/* Header */}
+      <div style={{ padding: '12px 14px', borderBottom: '1px solid #EAEDED', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <div style={{ width: '28px', height: '28px', borderRadius: '8px', background: '#EAF7EE', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <Sparkles style={{ width: '14px', height: '14px', color: '#1D7A3B' }} />
           </div>
-          <h3 className="text-base font-bold text-slate-800">
-            AI Studio Catalog Enhancement
-          </h3>
+          <span style={{ fontSize: '13px', fontWeight: 700, color: '#0F1111' }}>AI Studio Enhancement</span>
         </div>
-        <span className="text-xs font-semibold text-slate-500 flex items-center gap-1">
-          <Sliders className="w-3.5 h-3.5 text-terracotta-600" />
-          Drag slider to compare
-        </span>
+        {showBoth && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '11px', color: '#8D9096' }}>
+            <MoveHorizontal style={{ width: '13px', height: '13px' }} />
+            Drag to compare
+          </div>
+        )}
       </div>
 
-      {/* Interactive Split View Container */}
+      {/* Slider container */}
       <div
         ref={containerRef}
-        onMouseDown={handleMouseDown}
-        onTouchStart={handleMouseDown}
-        className="relative w-full h-[320px] sm:h-[400px] rounded-xl overflow-hidden cursor-ew-resize select-none bg-slate-900 border border-artisan-200 shadow-inner group"
+        onMouseDown={onMouseDown}
+        onTouchStart={onTouchStart}
+        style={{
+          position: 'relative',
+          width: '100%',
+          height: '340px',
+          overflow: 'hidden',
+          background: '#1a1a1a',
+          cursor: dragging ? 'ew-resize' : showBoth ? 'ew-resize' : 'default',
+          userSelect: 'none',
+          /* Prevent native image drag from interrupting our drag */
+          WebkitUserDrag: 'none',
+        }}
       >
-        {/* ENHANCED IMAGE (Base) */}
+        {/* ── AFTER / enhanced image (full width, always visible underneath) ── */}
         <img
-          src={enhancedUrl || originalUrl}
-          alt="AI Enhanced Product"
-          className="absolute inset-0 w-full h-full object-contain bg-slate-900/50"
+          src={imgSrc}
+          alt="AI Enhanced"
+          draggable="false"
+          style={{
+            position: 'absolute', inset: 0,
+            width: '100%', height: '100%',
+            objectFit: 'contain',
+            pointerEvents: 'none',
+          }}
+          onError={e => { e.target.src = 'https://placehold.co/400x340/1a1a1a/555?text=Enhanced'; }}
         />
 
-        {/* Enhanced Badge */}
-        <div className="absolute top-3 right-3 bg-emerald-700/90 backdrop-blur-md text-white text-xs font-bold px-2.5 py-1 rounded-md shadow-md z-10 flex items-center gap-1.5 border border-emerald-400/40">
-          <Sparkles className="w-3.5 h-3.5" />
-          <span>AI ENHANCED</span>
+        {/* AFTER badge */}
+        <div style={{
+          position: 'absolute', top: '10px', right: '10px', zIndex: 15,
+          background: 'rgba(29,122,59,0.92)',
+          color: '#fff', fontSize: '10px', fontWeight: 800,
+          padding: '3px 8px', borderRadius: '4px',
+          display: 'flex', alignItems: 'center', gap: '4px',
+          backdropFilter: 'blur(4px)',
+        }}>
+          <Sparkles style={{ width: '10px', height: '10px' }} />
+          AI ENHANCED
         </div>
 
-        {/* RAW / BEFORE IMAGE (Clipped on top) */}
-        <div
-          className="absolute inset-0 overflow-hidden"
-          style={{ width: `${sliderPosition}%` }}
-        >
-          <img
-            src={originalUrl}
-            alt="Raw Artisan Photo"
-            className="absolute inset-0 w-full h-full object-contain max-w-none"
-            style={{ width: containerRef.current ? `${containerRef.current.clientWidth}px` : '100%' }}
-          />
+        {/* ── BEFORE / original image — clipped to left side ── */}
+        {showBoth && (
+          <div
+            style={{
+              position: 'absolute', inset: 0,
+              overflow: 'hidden',
+              /* The clip: only show the left `pos`% of the container */
+              clipPath: `inset(0 ${100 - pos}% 0 0)`,
+              pointerEvents: 'none',
+            }}
+          >
+            <img
+              src={originalUrl}
+              alt="Original Photo"
+              draggable="false"
+              style={{
+                position: 'absolute', inset: 0,
+                width: '100%', height: '100%',
+                objectFit: 'contain',
+              }}
+              onError={e => { e.target.src = 'https://placehold.co/400x340/2a2a2a/888?text=Original'; }}
+            />
 
-          {/* Raw / Before Badge */}
-          <div className="absolute top-3 left-3 bg-slate-900/90 backdrop-blur-md text-white text-xs font-bold px-2.5 py-1 rounded-md shadow-md flex items-center gap-1.5 border border-slate-700">
-            <Eye className="w-3.5 h-3.5" />
-            <span>ORIGINAL PHOTO</span>
+            {/* BEFORE badge */}
+            <div style={{
+              position: 'absolute', top: '10px', left: '10px', zIndex: 15,
+              background: 'rgba(0,0,0,0.80)',
+              color: '#fff', fontSize: '10px', fontWeight: 800,
+              padding: '3px 8px', borderRadius: '4px',
+              display: 'flex', alignItems: 'center', gap: '4px',
+              backdropFilter: 'blur(4px)',
+            }}>
+              <Eye style={{ width: '10px', height: '10px' }} />
+              ORIGINAL
+            </div>
           </div>
-        </div>
+        )}
 
-        {/* Vertical Divider Line & Draggable Handle */}
-        <div
-          className="absolute top-0 bottom-0 w-0.5 bg-white shadow-[0_0_10px_rgba(0,0,0,0.5)] z-20"
-          style={{ left: `${sliderPosition}%` }}
-        >
-          <div className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-8 h-8 rounded-full bg-white text-slate-800 shadow-lg border-2 border-terracotta-600 flex items-center justify-center hover:scale-110 active:scale-95 transition-transform">
-            <Sliders className="w-4 h-4 text-terracotta-700" />
+        {/* ── Divider line + drag handle ── */}
+        {showBoth && (
+          <div
+            style={{
+              position: 'absolute', top: 0, bottom: 0, zIndex: 20,
+              left: `${pos}%`,
+              transform: 'translateX(-50%)',
+              pointerEvents: 'none',
+            }}
+          >
+            {/* Vertical line */}
+            <div style={{
+              position: 'absolute', top: 0, bottom: 0, left: '50%',
+              width: '2px', background: '#fff',
+              boxShadow: '0 0 8px rgba(0,0,0,0.6)',
+              transform: 'translateX(-50%)',
+            }} />
+
+            {/* Circular handle */}
+            <div style={{
+              position: 'absolute', top: '50%', left: '50%',
+              transform: 'translate(-50%, -50%)',
+              width: '36px', height: '36px', borderRadius: '50%',
+              background: '#fff',
+              boxShadow: '0 2px 12px rgba(0,0,0,0.4)',
+              border: '2px solid #FF9900',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              transition: dragging ? 'none' : 'transform 0.1s ease',
+              /* Slightly scale up when dragging for feedback */
+              scale: dragging ? '1.12' : '1',
+            }}>
+              <MoveHorizontal style={{ width: '16px', height: '16px', color: '#FF9900' }} />
+            </div>
           </div>
-        </div>
+        )}
 
+        {/* Only one image — just show it without slider UI */}
+        {!showBoth && (
+          <div style={{ position: 'absolute', bottom: '10px', left: '50%', transform: 'translateX(-50%)', zIndex: 15,
+            background: 'rgba(0,0,0,0.7)', color: '#fff', fontSize: '11px', fontWeight: 600,
+            padding: '4px 10px', borderRadius: '6px', whiteSpace: 'nowrap', backdropFilter: 'blur(4px)' }}>
+            Upload an original photo to see the comparison
+          </div>
+        )}
       </div>
 
-      {/* Action Footer */}
-      <div className="mt-3.5 flex items-center justify-between text-xs text-slate-500 pt-2 border-t border-slate-100">
-        <div className="flex items-center gap-2">
-          <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-          <span>Background Isolated • Lighting Normalized • Studio Shadow Applied</span>
+      {/* Footer */}
+      <div style={{ padding: '10px 14px', borderTop: '1px solid #EAEDED', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11px', color: '#8D9096' }}>
+          <span style={{ width: '7px', height: '7px', borderRadius: '50%', background: '#1D7A3B', display: 'inline-block', animation: 'pulse 2s infinite' }} />
+          Background Isolated · Studio Lighting · Shadow Applied
         </div>
         {enhancedUrl && (
           <a
             href={enhancedUrl}
             target="_blank"
             rel="noreferrer"
-            className="inline-flex items-center gap-1 text-terracotta-700 hover:text-terracotta-900 font-bold"
+            style={{ fontSize: '11px', fontWeight: 700, color: '#007185', display: 'flex', alignItems: 'center', gap: '4px', textDecoration: 'none' }}
           >
-            <Download className="w-3.5 h-3.5" />
-            <span>Download Studio HD</span>
+            <Download style={{ width: '13px', height: '13px' }} />
+            Download HD
           </a>
         )}
       </div>

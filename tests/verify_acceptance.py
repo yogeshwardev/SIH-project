@@ -84,19 +84,33 @@ def run_acceptance_tests():
     transcript_text = ""
     detected_lang = ""
     try:
-        audio_bytes = io.BytesIO(b"RIFF....WAVEfmt ....data....")
-        res = client.post(
-            "/api/speech/transcribe",
-            files={"file": ("saree_artisan_speech.wav", audio_bytes, "audio/wav")},
-            data={"language_hint": "Hindi"}
-        )
-        assert res.status_code == 200
-        data = res.json()
-        transcript_text = data["transcript"]
-        detected_lang = data["detected_language"]
-        assert len(transcript_text) > 10
-        assert detected_lang in ["Hindi", "English"]
-        print(f"✓ Test 5: Speech-to-Text transcribed artisan audio ({detected_lang})")
+        real_audio = BASE_DIR / "backend" / "uploads" / "local_whisper_validation.wav"
+        if real_audio.exists():
+            with real_audio.open("rb") as audio_stream:
+                res = client.post(
+                    "/api/speech/transcribe",
+                    files={"file": ("voice-validation.wav", audio_stream, "audio/wav")},
+                    data={"language_hint": "English"},
+                )
+            assert res.status_code == 200
+            data = res.json()
+            transcript_text = data["transcript"]
+            detected_lang = data["detected_language"]
+            assert "material cost" in transcript_text.lower()
+            assert data["engine"].startswith("faster-whisper")
+            print(f"✓ Test 5: Local Speech-to-Text transcribed real audio ({detected_lang})")
+        else:
+            caps = client.get("/api/speech/capabilities")
+            assert caps.status_code == 200
+            assert caps.json()["local_transcription"] is True
+            silent = io.BytesIO(b"RIFF....WAVEfmt ....data....")
+            rejected = client.post(
+                "/api/speech/transcribe",
+                files={"file": ("silent.wav", silent, "audio/wav")},
+                data={"language_hint": "Hindi"},
+            )
+            assert rejected.status_code >= 400
+            print("✓ Test 5: Local Speech AI available and silent audio safely rejected")
         passed_tests += 1
     except Exception as e:
         print(f"✗ Test 5 Failed: {e}")

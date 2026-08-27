@@ -29,6 +29,8 @@ class Settings(BaseSettings):
     OPENAI_TTS_VOICE: str = "coral"
     GROQ_API_KEY: str = ""
     LOCAL_WHISPER_MODEL: str = "small"
+    LOCAL_WHISPER_FAST_MODEL: str = "base"
+    LOCAL_WHISPER_FAST_ACCEPT_CONFIDENCE: float = 0.84
     LOCAL_WHISPER_DEVICE: str = "cpu"
     LOCAL_WHISPER_COMPUTE_TYPE: str = "int8"
     LOCAL_WHISPER_BEAM_SIZE: int = 3

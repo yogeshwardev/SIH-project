@@ -16,6 +16,8 @@ class SpeechService:
         self._whisper_fast_model = None
         self._whisper_model = None
         self._whisper_lock = threading.Lock()
+        self._tts_cache: Dict[tuple[str, str], bytes] = {}
+        self._tts_cache_lock = threading.Lock()
 
     def transcribe_audio(self, audio_file_path: str, hint_language: Optional[str] = None) -> Dict[str, Any]:
         """
@@ -231,9 +233,64 @@ class SpeechService:
         return transcript, detected, 0.0, settings.OPENAI_TRANSCRIPTION_MODEL, {"provider_confidence_available": 0.0}
 
     def synthesize_speech(self, text: str, language: str = "hi-IN") -> bytes:
-        if not settings.OPENAI_API_KEY or settings.AI_PROVIDER.lower() != "openai":
-            raise RuntimeError("Cloud voiceover is not configured.")
-        language_code = str(language).lower()
+        clean_text = " ".join(str(text or "").split()).strip()[:4096]
+        if not clean_text:
+            raise ValueError("Voiceover text is empty.")
+        language_code = str(language or "en-IN").lower()
+        cache_key = (language_code, clean_text)
+        with self._tts_cache_lock:
+            cached = self._tts_cache.get(cache_key)
+        if cached:
+            return cached
+
+        if settings.OPENAI_API_KEY and settings.AI_PROVIDER.lower() == "openai":
+            audio = self._synthesize_with_openai(clean_text, language_code)
+        elif self.neural_voiceover_available():
+            audio = self._synthesize_with_edge(clean_text, language_code)
+        else:
+            raise RuntimeError("Neural voiceover is not configured.")
+
+        with self._tts_cache_lock:
+            self._tts_cache[cache_key] = audio
+            if len(self._tts_cache) > 64:
+                self._tts_cache.pop(next(iter(self._tts_cache)))
+        return audio
+
+    @staticmethod
+    def neural_voiceover_available() -> bool:
+        return importlib.util.find_spec("edge_tts") is not None
+
+    @staticmethod
+    def _synthesize_with_edge(text: str, language_code: str) -> bytes:
+        import edge_tts
+
+        voice_map = {
+            "te": "te-IN-ShrutiNeural",
+            "hi": "hi-IN-SwaraNeural",
+            "en": "en-IN-NeerjaNeural",
+            "ta": "ta-IN-PallaviNeural",
+            "bn": "bn-IN-TanishaaNeural",
+            "mr": "mr-IN-AarohiNeural",
+        }
+        voice = voice_map.get(language_code.split("-")[0], "en-IN-NeerjaNeural")
+        communication = edge_tts.Communicate(
+            text,
+            voice,
+            rate="-8%",
+            volume="+0%",
+            pitch="+2Hz",
+        )
+        chunks = [
+            chunk["data"]
+            for chunk in communication.stream_sync()
+            if chunk["type"] == "audio"
+        ]
+        if not chunks:
+            raise RuntimeError("Neural voice service returned no audio.")
+        return b"".join(chunks)
+
+    @staticmethod
+    def _synthesize_with_openai(text: str, language_code: str) -> bytes:
         if language_code.startswith("te"):
             instructions = "Speak warmly, slowly, and clearly in natural Telugu for a first-time digital user."
         elif language_code.startswith("hi"):

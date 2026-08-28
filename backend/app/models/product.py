@@ -59,11 +59,11 @@ class Product(Base):
     status = Column(String, default="Pending Approval", index=True)  # 'Pending Approval', 'Published', 'Rejected', 'Draft'
     admin_notes = Column(Text, nullable=True)
     admin_reviewed_at = Column(DateTime, nullable=True)
-    rating = Column(Float, default=4.9)
-    review_count = Column(Integer, default=18)
-    stock_quantity = Column(Integer, default=5)
+    rating = Column(Float, default=0.0)
+    review_count = Column(Integer, default=0)
+    stock_quantity = Column(Integer, default=0)
     is_featured = Column(Boolean, default=False)
-    badge = Column(String, default="GI Certified")  # "GI Certified", "Master Artisan", "Heritage", "Bestseller"
+    badge = Column(String, nullable=True)
 
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)

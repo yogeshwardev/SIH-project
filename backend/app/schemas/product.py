@@ -176,8 +176,8 @@ class ProductCreate(BaseModel):
     
     # E-commerce fields
     status: Optional[str] = "Pending Approval"
-    stock_quantity: Optional[int] = 5
-    badge: Optional[str] = "GI Certified"
+    stock_quantity: int = Field(default=1, ge=0, le=100000)
+    badge: Optional[str] = None
     is_featured: Optional[bool] = False
 
 class ProductUpdate(BaseModel):
@@ -271,11 +271,11 @@ class ProductResponse(BaseModel):
     status: str
     admin_notes: Optional[str] = None
     admin_reviewed_at: Optional[datetime] = None
-    rating: float = 4.9
-    review_count: int = 18
-    stock_quantity: int = 5
+    rating: float = 0.0
+    review_count: int = 0
+    stock_quantity: int = 0
     is_featured: bool = False
-    badge: Optional[str] = "GI Certified"
+    badge: Optional[str] = None
     
     created_at: datetime
     updated_at: datetime

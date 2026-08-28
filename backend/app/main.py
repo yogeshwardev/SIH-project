@@ -15,6 +15,8 @@ from backend.app.api.pricing import router as pricing_router
 from backend.app.api.dashboard import router as dashboard_router
 from backend.app.api.export import router as export_router
 from backend.app.api.admin import router as admin_router, inquiries_router
+from backend.app.api.artisans import router as artisans_router
+from backend.app.api.orders import router as orders_router
 from backend.app.services.image_service import image_service
 from backend.app.services.speech_service import speech_service
 
@@ -60,14 +62,14 @@ async def lifespan(_app: FastAPI):
 app = FastAPI(
     title=settings.PROJECT_NAME,
     version=settings.VERSION,
-    description="CraftLink AI — From Handmade to Market-Ready in Minutes. (SIH26090)",
+    description="CraftLink — Direct artisan marketplace and seller operations API.",
     lifespan=lifespan,
 )
 
 # CORS Configuration
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=[origin.strip() for origin in settings.CORS_ORIGINS.split(",") if origin.strip()],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -84,14 +86,14 @@ app.include_router(dashboard_router, prefix=settings.API_PREFIX)
 app.include_router(export_router, prefix=settings.API_PREFIX)
 app.include_router(admin_router, prefix=settings.API_PREFIX)
 app.include_router(inquiries_router, prefix=settings.API_PREFIX)
+app.include_router(artisans_router, prefix=settings.API_PREFIX)
+app.include_router(orders_router, prefix=settings.API_PREFIX)
 
 @app.get("/")
 def root():
     return {
         "project": "CraftLink AI",
-        "tagline": "From Handmade to Market-Ready — In Minutes.",
-        "sih_problem_code": "SIH26090",
-        "ministry": "Ministry of Social Justice and Empowerment",
+        "tagline": "Handmade products, directly from verified artisans.",
         "status": "operational",
         "api_docs": "/docs",
         "api_prefix": settings.API_PREFIX

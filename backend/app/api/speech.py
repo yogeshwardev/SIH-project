@@ -2,6 +2,7 @@ import uuid
 from pathlib import Path
 from typing import Optional
 from fastapi import APIRouter, UploadFile, File, Form, HTTPException, status, Response
+from starlette.concurrency import run_in_threadpool
 from backend.app.config import settings
 from backend.app.schemas.product import (
     ProductInterviewRequest,
@@ -70,7 +71,11 @@ async def transcribe_speech(
 @router.post("/synthesize")
 async def synthesize_speech(req: SpeechSynthesizeRequest):
     try:
-        audio = speech_service.synthesize_speech(req.text.strip(), req.language or "hi-IN")
+        audio = await run_in_threadpool(
+            speech_service.synthesize_speech,
+            req.text.strip(),
+            req.language or "hi-IN",
+        )
         return Response(content=audio, media_type="audio/mpeg", headers={"Cache-Control": "no-store"})
     except Exception as e:
         raise HTTPException(
@@ -105,6 +110,8 @@ async def speech_capabilities():
         "local_model_strategy": "fast-first-confidence-fallback",
         "local_fast_accept_confidence": settings.LOCAL_WHISPER_FAST_ACCEPT_CONFIDENCE,
         "cloud_voiceover": cloud_enabled,
+        "neural_voiceover": cloud_enabled or speech_service.neural_voiceover_available(),
+        "neural_voice_languages": ["Telugu", "Hindi", "English", "Tamil", "Bengali", "Marathi"],
         "browser_dictation_fallback": True,
         "browser_voiceover_fallback": True,
         "guided_product_interview": True,

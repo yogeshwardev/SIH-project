@@ -120,6 +120,7 @@ export const api = {
     if (params.status) query.append('status', params.status);
     if (params.min_price) query.append('min_price', params.min_price);
     if (params.max_price) query.append('max_price', params.max_price);
+    if (params.artisan_id) query.append('artisan_id', params.artisan_id);
 
     const res = await fetch(`${API_BASE}/products?${query.toString()}`);
     if (!res.ok) throw new Error('Failed to fetch products');
@@ -214,6 +215,21 @@ export const api = {
       method: 'PUT',
     });
     if (!res.ok) throw new Error('Failed to update inquiry status');
+    return res.json();
+  },
+
+  // Real seller profiles and fulfilment orders
+  async getArtisans() {
+    const res = await fetch(`${API_BASE}/artisans`);
+    if (!res.ok) throw new Error('Failed to load artisan profiles');
+    return res.json();
+  },
+
+  async getOrders(params = {}) {
+    const query = new URLSearchParams();
+    if (params.artisan_id) query.set('artisan_id', params.artisan_id);
+    const res = await fetch(`${API_BASE}/orders?${query.toString()}`);
+    if (!res.ok) throw new Error('Failed to load fulfilment orders');
     return res.json();
   },
 

@@ -1,221 +1,108 @@
-# 📋 CraftLink AI — Master Technical Handover Document
+# CraftLink AI — Engineering Handover
 
-**Project Name**: CraftLink AI  
-**Identity**: Commercial-grade Direct Artisan E-Commerce Marketplace & Enterprise Operating System  
-**Government Context**: Ministry of Social Justice and Empowerment (SIH Problem Statement SIH26090)  
-**Git Repository**: `https://github.com/yogeshwardev/SIH-project.git` (Branch: `main`)  
-**Handover Timestamp**: August 27, 2026
+Updated: 28 August 2026
 
----
+## Current state
 
-## 1. System Architecture & Tech Stack
+CraftLink now runs as a real persisted marketplace rather than a seeded presentation. The live SQLite database was cleaned of seed/test sellers, products, and inquiries after a recoverable backup was written to `backend/backups/craftlink-pre-production-cleanup-20260828.db`. A new installation and the current database both start with zero storefront records.
 
-```mermaid
-graph TD
-    subgraph Frontend ["React + Vite Frontend (Port 5173)"]
-        ConsumerStore["🛍️ Consumer E-Commerce Storefront"]
-        SellerCentral["🏢 Artisan Seller Central & Studio"]
-        AdminOps["🛡️ Admin Governance & Operations"]
-        Cart["🛒 Shopping Cart Drawer & Checkout"]
-        TTS["🔊 Neural Text-to-Speech Engine"]
-        WebSpeech["🎙️ Live Browser Speech Dictation"]
-    end
+The active UI has three connected surfaces:
 
-    subgraph Backend ["FastAPI Backend (Port 8000)"]
-        APIRouter["FastAPI Router (/api)"]
-        CVService["📸 U2NetP → BiRefNet / OpenVINO Studio"]
-        SpeechService["🎙️ Whisper base → small Transcriber"]
-        NLPService["🧠 Zero-Hallucination Entity Extractor"]
-        ListingService["🌐 Bilingual Generative Copywriter"]
-        MLPricing["📊 Ensemble ML Pricing Model (R² = 0.9824)"]
-    end
+1. Buyer marketplace: published products only, real stock, cart, server-calculated COD checkout, and order tracking.
+2. Seller workspace: explicit seller profile, AI listing flow, real inventory, seller-scoped orders, and fulfilment actions.
+3. Marketplace operations: manual listing approval, complete catalog, and valid order-state transitions.
 
-    subgraph Storage ["Database & File Storage"]
-        SQLite["🗄️ SQLite Database (craftlink.db)"]
-        Uploads["📁 /uploads Static Media Directory"]
-        ModelWeights["🤖 /saved_models/craft_pricing_rf.joblib"]
-    end
+## Active architecture
 
-    Frontend <-->|REST API + Proxy| APIRouter
-    APIRouter --> CVService & SpeechService & NLPService & ListingService & MLPricing
-    APIRouter --> SQLite & Uploads & ModelWeights
+```text
+React/Vite
+  ├─ BuyerDashboardPage → products, cart, checkout, tracking
+  ├─ SellerWorkspacePage → profiles, AI listing, inventory, orders
+  └─ AdminPortalPage → approvals, catalog, order operations
+          │
+          ▼ /api and /uploads
+FastAPI
+  ├─ products.py   image AI, extraction, listing, pricing, CRUD
+  ├─ speech.py     transcription, neural question voice, interview
+  ├─ artisans.py   seller profiles
+  ├─ orders.py     atomic checkout, tracking, status transitions
+  ├─ admin.py      manual listing review
+  ├─ dashboard.py  database-derived metrics
+  └─ export.py     database-derived CSV/JSON
+          │
+          ▼
+SQLite: artisans, products, orders, order_items
 ```
 
----
+Legacy inquiry endpoints, auto-approval, demo catalog modules, seed scripts, synthetic pricing data/model, and demonstration pages were removed from the active project.
 
-## 2. Directory Structure & File Map
+## Data guarantees
 
-```
-d:/sih/
-├── backend/
-│   ├── app/
-│   │   ├── api/
-│   │   │   ├── admin.py            # Admin approvals, product rejection, buyer order updates
-│   │   │   ├── products.py         # Product CRUD, multi-attribute filtering, search
-│   │   │   ├── speech.py           # Audio upload transcription & dialect detection
-│   │   │   ├── pricing.py          # Fair-trade cost calculator & ML recommendation API
-│   │   │   ├── dashboard.py        # Valuation, GMV, category & regional analytics
-│   │   │   └── export.py           # RFC4180 CSV & ONDC JSON export feeds
-│   │   ├── database/
-│   │   │   ├── database.py         # SQLAlchemy SQLite engine & session dependency
-│   │   │   └── seed.py             # Database reset & authentic craft clusters seeder
-│   │   ├── ml/
-│   │   │   ├── pricing_model.py    # Ensemble ML Regressor (Random Forest + Gradient Boosting)
-│   │   │   └── training.py         # Model training script on 150+ craft benchmarks
-│   │   ├── models/
-│   │   │   ├── artisan.py          # Artisan & Seller entity model
-│   │   │   ├── product.py          # Product model with e-commerce, media & pricing fields
-│   │   │   └── order_inquiry.py    # Customer orders & wholesale inquiry entity
-│   │   ├── schemas/
-│   │   │   ├── artisan.py          # Pydantic schemas for sellers
-│   │   │   └── product.py          # Pydantic schemas for listings, pricing, orders
-│   │   ├── services/
-│   │   │   ├── image_service.py    # Quality-gated U2NetP/BiRefNet segmentation & studio compositor
-│   │   │   ├── speech_service.py   # Fast-first multilingual Whisper cascade
-│   │   │   ├── product_intelligence.py # Zero-hallucination taxonomy parser
-│   │   │   ├── listing_service.py  # English, Hindi & Telugu catalog copywriter
-│   │   │   └── pricing_service.py  # Fair-trade cost economics calculator
-│   │   ├── utils/
-│   │   │   └── helpers.py          # JSON serialization helpers & string formatters
-│   │   ├── config.py               # BaseSettings, upload paths, and API configs
-│   │   └── main.py                 # FastAPI application entrypoint & static mounting
-│   ├── data/
-│   │   ├── categories.csv          # Master craft categories
-│   │   ├── crafts.csv              # Authentic Indian craft taxonomy
-│   │   └── reference_prices.csv    # 150+ craft cluster pricing dataset
-│   ├── saved_models/
-│   │   └── craft_pricing_rf.joblib # Serialized trained ensemble model
-│   ├── evaluation.py               # ML & NLP accuracy evaluation script
-│   └── requirements.txt            # Python dependencies
-│
-├── frontend/
-│   ├── src/
-│   │   ├── components/
-│   │   │   ├── Navbar.jsx          # Commercial header with portal tabs, cart counter & language
-│   │   │   ├── CartDrawer.jsx      # Slide-out shopping cart with item quantity controls
-│   │   │   ├── BeforeAfterSlider.jsx # Draggable split slider for raw vs studio photo inspection
-│   │   │   ├── VoiceRecorder.jsx   # Live Web Speech API dictation & audio recorder
-│   │   │   ├── PriceExplainerCard.jsx # Economic value bar & margin breakdown card
-│   │   │   ├── ProductCard.jsx     # E-commerce product card with ratings and GI badge
-│   │   │   └── Charts.jsx          # SVG bar charts and regional distribution meters
-│   │   ├── pages/
-│   │   │   ├── BuyerDashboardPage.jsx # Luxury consumer marketplace storefront
-│   │   │   ├── SellerPortalPage.jsx   # Artisan Seller Central (inventory, orders, payouts)
-│   │   │   ├── ArtisanStudioPage.jsx  # 5-Step AI Listing Creation Wizard
-│   │   │   ├── AdminPortalPage.jsx    # Admin Governance, approval queue & order fulfillment
-│   │   │   └── CatalogPage.jsx        # Legacy/direct artisan catalog view
-│   │   ├── services/
-│   │   │   ├── api.js              # Frontend REST API client for all backend endpoints
-│   │   │   └── voiceAssistant.js   # Web Speech API + SpeechSynthesis Text-to-Speech (TTS)
-│   │   ├── App.jsx                 # Root React component wiring portals and cart state
-│   │   └── index.css               # Tailwind CSS styles
-│   ├── package.json
-│   └── vite.config.js              # Vite server configuration with proxy to port 8000
-│
-├── tests/
-│   ├── test_backend.py             # Pytest suite (14 tests, including AI cascades)
-│   └── verify_acceptance.py        # 15-Point automated end-to-end acceptance suite
-└── README.md
-```
+- Product creation requires an existing `artisan_id` and exact `stock_quantity`.
+- New products are always `Pending Approval`; a client cannot publish directly.
+- Approval requires original and enhanced image URLs, a positive price, and a manual review note.
+- Buyer listing calls default to `Published` products.
+- Checkout reloads products on the server, rejects unpublished or insufficient-stock items, recalculates prices, saves the order and line-item snapshots, and deducts stock in one transaction.
+- Cancelling an eligible order restores stock. COD becomes paid only when delivered.
+- Tracking requires both order number and normalized checkout email.
+- Seller and operations metrics are calculated from persisted products and orders.
 
----
+## AI listing workflow
 
-## 3. The 3 Core Portals & Workflows
+The seller must select a real profile first. The listing sequence is:
 
-### Portal 1: 🛍️ Consumer Marketplace (`http://localhost:5173`)
-- **Storefront**: Hero promotions, GI origin filters (Varanasi, Jaipur, Barpeta, Bastar, Channapatna), categories, price range slider, and search.
-- **Product Details**: Image gallery with draggable Before/After slider, star ratings (4.9 ★★★★★), verified reviews, craft lineage story, bullet specs, and **"🔊 Listen to Craft Story" (AI Voiceover)**.
-- **Shopping Cart & Checkout**: Slide-out cart drawer, item counters, free cluster shipping, direct checkout with customer details registered in the Admin Orders Queue.
+1. Upload one real JPG/PNG/WebP product photo.
+2. Review original/enhanced comparison and choose Hindi, Telugu, or English.
+3. Answer one question at a time. Questions cover the seller's own description, material, production time, and per-unit material/labour/packaging costs.
+4. Use Previous/Next; answers can be spoken or typed. The assistant speaks each question through neural TTS when available and browser speech synthesis otherwise.
+5. Confirm extracted facts; edit any field; review English/Hindi/Telugu listing copy.
+6. Review the cost calculation and live comparable count, enter exact stock, then submit for manual approval.
 
-### Portal 2: 🏢 Artisan Seller Central (`http://localhost:5173` $\rightarrow$ Seller Central)
-- **Seller Dashboard**: Active catalog valuation, total settled payouts (₹48,950), pending orders, and 0% intermediary fee guarantee.
-- **AI Listing Studio**: 
-  1. *Photo Studio*: Upload raw photo $\rightarrow$ U2NetP handles clear objects, a calibrated quality gate escalates difficult images to OpenVINO-accelerated BiRefNet, and the compositor performs foreground-aware lighting correction with a grounding shadow.
-  2. *Interactive Voice Interview*: Choose Hindi, Telugu, or English, then answer six friendly questions one at a time. Each voice or typed answer is reviewed before **Save & Next**; immediate browser captions and the Faster Whisper `base` → `small` local cascade keep the interaction responsive.
-  3. *Evidence-Gated Extraction*: The AI retains confirmed product facts, reads them back for artisan confirmation, and prevents pricing until essential production and cost inputs have been supplied and verified.
-  4. *Multilingual Copywriting*: Generated English, Hindi, and Telugu titles and descriptions preserve the artisan's own words, with specifications, SEO tags, and localized voice playback.
-  5. *Algorithmic Pricing*: Direct raw materials + artisan labor days + packaging overhead + Ensemble ML reference price recommendation.
-  6. *Submit for Verification*: Submits craft to the Admin Approval Queue as `Pending Approval`.
+Confidence values are measured pipeline signals, not marketing guarantees. Image confidence comes from mask geometry/coherence/edge measurements. Audio confidence comes from word and language probabilities. Seller confirmation is a separate boolean and is not converted into a 99% accuracy badge.
 
-### Portal 3: 🛡️ Admin Operations & Governance (`http://localhost:5173` $\rightarrow$ Admin Operations)
-- **Pending Approvals Queue**: Inspect submitted crafts, view Raw vs Studio image, listen to the artisan transcript, inspect calibrated mask/acoustic confidence and the separate human-verified understanding score, then click **`Authorize & Publish to Store`** or **`Reject with Feedback`**.
-- **Live Marketplace Catalog**: Manage published listings, stock units, and pricing.
-- **Customer Orders & Inquiries**: Real-time table of incoming retail purchases with status management (`New`, `Contacted`, `Dispatched`, `Completed`).
-- **Impact & Financial Analytics**: Total catalog valuation, average artisan surplus (+34.7%), and **1-Click CSV & JSON downloads**.
+## Pricing
 
----
+The removed model was trained on generated reference rows and therefore could not support a production accuracy claim. The replacement is evidence-gated:
 
-## 4. Key AI & ML Models Specifications
+- required basis: seller-entered material, labour, and packaging cost;
+- cost target: transparent operating-margin calculation;
+- optional evidence: persisted published same-category prices, with exact sample count;
+- no evidence: clearly says no market-comparable claim is made;
+- fewer than three comparables: `requires_human_review=true`.
 
-| Subsystem | Model / Algorithm | Performance & Metric |
-| :--- | :--- | :--- |
-| **Computer Vision Studio** | U2NetP fast tier + calibrated gate + OpenVINO-accelerated BiRefNet-General-Lite + adaptive matte refinement | Measured mask confidence with per-signal breakdown, 1200 × 1200 catalog output, background preload, and GrabCut safety fallback |
-| **Interactive Voice Product Expert** | Web Speech API + local Faster Whisper `base` → `small` CPU/int8 cascade + optional cloud transcription + stateless interview policy | Low-latency multilingual turns, word-level confidence, uncertainty escalation, silence rejection, human confirmation, and evidence-gated pricing |
-| **AI Voiceover (TTS)** | Multilingual neural service + browser `SpeechSynthesis` fallback | Hindi (`hi-IN`), Telugu (`te-IN`), and Indian English (`en-IN`) prompts with localized controls and offline fallback |
-| **Product Intelligence (NLP)** | Evidence-gated parser + craft taxonomy + explicit seller confirmation | Missing facts remain unverified; complete product/cost understanding receives 99% only after human confirmation |
-| **Algorithmic Pricing Engine** | **Voting Ensemble**: Random Forest Regressor + Gradient Boosting Regressor + fair-trade cost floor | Suggested range plus benchmark sample count, similarity confidence, assumptions, and low-coverage human-review flag |
+See `docs/pricing_model.md`.
 
----
+## API additions
 
-## 5. Exact Commands to Run, Test, and Build
+- `GET/POST /api/artisans`
+- `POST /api/orders/checkout`
+- `GET /api/orders`
+- `GET /api/orders/track/{order_number}?email=...`
+- `PUT /api/orders/{order_number}/status`
 
-### Start Backend Server:
+Existing product, speech, review, dashboard, and export APIs remain under `/api`.
+
+## Verification
+
 ```powershell
-cd d:\sih
-.\backend\venv\Scripts\Activate.ps1
-uvicorn backend.app.main:app --host 0.0.0.0 --port 8000 --reload
+cd D:\sih
+.\backend\venv\Scripts\python.exe -m pytest tests\test_backend.py -q
+cd frontend
+npm run build
 ```
 
-### Start Frontend Dev Server:
-```powershell
-cd d:\sih\frontend
-npm run dev
-```
-Open **`http://localhost:5173`** in your browser.
+Tests run against an in-memory SQLite database. Browser verification should cover empty marketplace, seller profile creation, photo-first listing, spoken question playback, one-question layout, manual review, stock-aware checkout, tracking, and order progression.
 
-### Re-train Ensemble ML Model:
-```powershell
-cd d:\sih
-d:\sih\backend\venv\Scripts\python.exe -m backend.app.ml.training
-```
+## Deployment work still required
 
-### Run Evaluation Metrics:
-```powershell
-cd d:\sih
-d:\sih\backend\venv\Scripts\python.exe backend/evaluation.py
-```
+Do not describe the current local build as internet-production-ready. It lacks authenticated accounts and role authorization, so seller and operations identity is only a local workspace selection. Before public deployment add:
 
-### Run Pytest Test Suite:
-```powershell
-cd d:\sih
-d:\sih\backend\venv\Scripts\pytest.exe tests/test_backend.py -v
-```
+- authentication, sessions, password/account recovery, and admin RBAC;
+- PostgreSQL and schema migrations;
+- gateway-backed online payments and webhook reconciliation;
+- carrier rates, shipment labels, tracking events, tax rules, returns/refunds;
+- email/SMS/WhatsApp notification provider;
+- object storage, malware scanning, retention controls, backups, monitoring, and audit logs;
+- privacy/terms/returns content and accessibility/security review.
 
-### Run 15-Point Acceptance Test:
-```powershell
-cd d:\sih
-d:\sih\backend\venv\Scripts\python.exe tests/verify_acceptance.py
-```
-
-### Build Production Frontend:
-```powershell
-cd d:\sih\frontend
-npx vite build
-```
-
----
-
-## 6. Current Database State & Credentials
-
-- **Database Type**: SQLite file at `d:\sih\craftlink.db`
-- **Initial Seeded Clusters**: 5 master craft clusters (Sunita Devi / Banarasi Saree, Ramcharan Sharma / Blue Pottery, Birinchi Kalita / Assam Bamboo, Budhram Mandavi / Bastar Dhokra, Nagaraj Gowda / Channapatna Toy).
-- **Reset Database**: Run `python -m backend.app.database.seed` to re-seed all tables from scratch.
-- **Portals Auth**: Currently open-access role switching via top navigation tabs (`Explore Marketplace`, `Seller Central`, `Admin Operations`) for frictionless live demonstrations and evaluation.
-
----
-
-## 7. Immediate Next Steps / Roadmap for Incoming Agent
-
-1. **Payment Gateway Integration**: Hook up Razorpay / Stripe test mode keys in checkout.
-2. **ONDC Protocol Adapter**: Implement live Beckn protocol API endpoints for direct federated network search & orders.
-3. **SMS / WhatsApp Notification Webhook**: Send instant SMS/WhatsApp alerts to rural artisans when an admin approves their product or when a customer places an order.
+The UI deliberately labels unavailable integrations instead of simulating success.

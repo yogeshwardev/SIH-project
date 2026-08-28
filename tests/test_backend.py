@@ -10,6 +10,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(BASE_DIR))
 
 from backend.app.main import app
+from backend.app.config import settings
 from backend.app.database.database import Base, engine, SessionLocal
 from backend.app.models.artisan import Artisan
 from backend.app.models.product import Product
@@ -118,9 +119,30 @@ def test_speech_capabilities_are_explicit():
     assert response.json()["local_transcription_model"] == "small"
     assert response.json()["local_fast_model"] == "base"
     assert response.json()["local_model_strategy"] == "fast-first-confidence-fallback"
+    assert response.json()["neural_voiceover"] is True
+    assert "Telugu" in response.json()["neural_voice_languages"]
     assert response.json()["human_verified_understanding_confidence"] == 0.99
     assert response.json()["guided_product_interview"] is True
     assert response.json()["evidence_gated_pricing"] is True
+
+
+def test_neural_voiceover_reuses_cached_question_audio(monkeypatch):
+    service = SpeechService()
+    generated = []
+    monkeypatch.setattr(settings, "AI_PROVIDER", "local")
+    monkeypatch.setattr(settings, "OPENAI_API_KEY", "")
+    monkeypatch.setattr(service, "neural_voiceover_available", lambda: True)
+    monkeypatch.setattr(
+        service,
+        "_synthesize_with_edge",
+        lambda text, language: generated.append((text, language)) or b"ID3-natural-voice",
+    )
+
+    first = service.synthesize_speech("  Friendly   Telugu question  ", "te-IN")
+    second = service.synthesize_speech("Friendly Telugu question", "te-IN")
+
+    assert first == second == b"ID3-natural-voice"
+    assert generated == [("Friendly Telugu question", "te-in")]
 
 def test_local_speech_uses_fast_model_then_accuracy_fallback(monkeypatch, tmp_path):
     recording = tmp_path / "voice.wav"
@@ -374,7 +396,6 @@ def test_product_crud_lifecycle():
     # 5. Delete Product
     del_res = client.delete(f"/api/products/{product_id}")
     assert del_res.status_code == 200
-
 def test_dashboard_stats():
     response = client.get("/api/dashboard/stats")
     assert response.status_code == 200

@@ -54,6 +54,8 @@ const questionUiCopyFor = (language) => {
     placeholder: 'మీ భాషలో టైప్ చేయండి…',
     save: 'సేవ్ చేసి తర్వాత',
     back: 'ఫోటోకు తిరిగి వెళ్లండి',
+    previous: 'వెనుకకు',
+    next: 'తర్వాత',
     listenQuestion: 'ప్రశ్నను వినండి',
     stopQuestion: 'వాయిస్ ఆపండి',
   };
@@ -70,6 +72,8 @@ const questionUiCopyFor = (language) => {
     placeholder: 'अपनी भाषा में लिखें…',
     save: 'सहेजें और आगे जाएँ',
     back: 'फोटो पर वापस जाएँ',
+    previous: 'पिछला',
+    next: 'अगला',
     listenQuestion: 'सवाल सुनें',
     stopQuestion: 'आवाज़ रोकें',
   };
@@ -86,6 +90,8 @@ const questionUiCopyFor = (language) => {
     placeholder: 'Type in your own language…',
     save: 'Save & Next',
     back: 'Back to Photo',
+    previous: 'Previous',
+    next: 'Next',
     listenQuestion: 'Listen to question',
     stopQuestion: 'Stop voice',
   };
@@ -177,18 +183,26 @@ export default function SellerPortalPage({ onNavigateToAdmin, onNavigateToStore 
   const [activeTab, setActiveTab] = useState('dashboard');
   const [products, setProducts]   = useState([]);
   const [orders, setOrders]       = useState([]);
+  const [artisans, setArtisans]   = useState([]);
   const [loading, setLoading]     = useState(true);
   const [searchQ, setSearchQ]     = useState('');
 
   const fetchData = async () => {
     setLoading(true);
     try {
-      const [prods, inqs] = await Promise.all([
+      const [prods, fulfilmentOrders, artisanProfiles] = await Promise.all([
         api.getProducts({ status: 'All' }),
-        api.getInquiries(),
+        api.getOrders(),
+        api.getArtisans(),
       ]);
       setProducts(prods || []);
-      setOrders(inqs || []);
+      setOrders((fulfilmentOrders || []).map(order => ({
+        ...order,
+        buyer_city: order.city,
+        product_name: order.items?.map(item => item.product_name).join(', ') || 'Order items',
+        quantity: order.items?.reduce((sum, item) => sum + Number(item.quantity || 0), 0) || 0,
+      })));
+      setArtisans(artisanProfiles || []);
     } catch (e) { console.error(e); }
     finally { setLoading(false); }
   };
@@ -199,6 +213,7 @@ export default function SellerPortalPage({ onNavigateToAdmin, onNavigateToStore 
   const pending    = products.filter(p => p.status === 'Pending Approval');
   const totalGMV   = published.reduce((s, p) => s + (p.suggested_price || 0) * (p.stock_quantity || 1), 0);
   const totalPayout = orders.reduce((s, o) => s + (o.total_amount || 0), 0);
+  const activeArtisan = artisans[0] || null;
 
   const NAV = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -224,8 +239,8 @@ export default function SellerPortalPage({ onNavigateToAdmin, onNavigateToStore 
               A
             </div>
             <div className="min-w-0">
-              <div className="text-[13px] font-bold text-gray-900 truncate">Artisan Guild</div>
-              <div className="text-[11px] text-gray-500 truncate">Varanasi Weaver's Hub</div>
+              <div className="text-[13px] font-bold text-gray-900 truncate">{activeArtisan?.name || 'Artisan profile'}</div>
+              <div className="text-[11px] text-gray-500 truncate">{activeArtisan?.region || 'Profile loading…'}</div>
             </div>
           </div>
           {/* Seller Health Score */}
@@ -289,7 +304,7 @@ export default function SellerPortalPage({ onNavigateToAdmin, onNavigateToStore 
               {activeTab === 'analytics'  && 'Analytics & Insights'}
             </h1>
             <p className="text-[12px] text-gray-500 mt-0.5">
-              CraftLink Seller Central · Varanasi Master Weavers Guild
+              CraftLink Seller Central · {activeArtisan ? `${activeArtisan.name}, ${activeArtisan.region}` : 'Loading artisan profile…'}
             </p>
           </div>
 
@@ -549,6 +564,8 @@ export default function SellerPortalPage({ onNavigateToAdmin, onNavigateToStore 
             <AiListingStudio
               onProductCreated={() => { fetchData(); setActiveTab('inventory'); }}
               onNavigateToAdmin={onNavigateToAdmin}
+              artisanId={activeArtisan?.id || null}
+              artisanName={activeArtisan?.name || 'Artisan'}
             />
           )}
 
@@ -916,7 +933,7 @@ export default function SellerPortalPage({ onNavigateToAdmin, onNavigateToStore 
 // ═══════════════════════════════════════════════════════════════
 // AI LISTING STUDIO (EMBEDDED)
 // ═══════════════════════════════════════════════════════════════
-function AiListingStudio({ onProductCreated, onNavigateToAdmin }) {
+function AiListingStudio({ onProductCreated, onNavigateToAdmin, artisanId, artisanName }) {
   const [step, setStep]           = useState(1);
   const [loading, setLoading]     = useState(false);
   const [loadMsg, setLoadMsg]     = useState('');
@@ -931,9 +948,11 @@ function AiListingStudio({ onProductCreated, onNavigateToAdmin }) {
   const [listing, setListing]     = useState(null);
   const [listLang, setListLang]   = useState('en');
   const [pricing, setPricing]     = useState(null);
+  const [stockQuantity, setStockQuantity] = useState(1);
   const [costs, setCosts]         = useState({ material_cost: null, labor_cost: null, packaging_cost: null, production_time: '' });
   const [interview, setInterview] = useState(null);
   const [interviewTurns, setInterviewTurns] = useState([]);
+  const [questionHistory, setQuestionHistory] = useState([]);
   const [typedAnswer, setTypedAnswer] = useState('');
   const [pendingAnswer, setPendingAnswer] = useState(null);
   const [submitted, setSubmitted] = useState(false);
@@ -951,7 +970,19 @@ function AiListingStudio({ onProductCreated, onNavigateToAdmin }) {
   const clearQuestionFlow = () => {
     setTxt(''); setAttrs(null); setListing(null); setPricing(null);
     setCosts({ material_cost: null, labor_cost: null, packaging_cost: null, production_time: '' });
-    setInterview(null); setInterviewTurns([]); setTypedAnswer(''); setPendingAnswer(null);
+    setInterview(null); setInterviewTurns([]); setQuestionHistory([]); setTypedAnswer(''); setPendingAnswer(null);
+  };
+
+  const speakPrompt = async (message, language = detLang) => {
+    if (!message) return;
+    setSpeaking(true);
+    const started = await voiceAssistant.speak(
+      message,
+      speechCodeForLanguage(language),
+      () => setSpeaking(false),
+      { preferNeural: true },
+    );
+    if (!started) setSpeaking(false);
   };
 
   const loadPreset = (preset) => {
@@ -998,13 +1029,11 @@ function AiListingStudio({ onProductCreated, onNavigateToAdmin }) {
       setAttrs(result.attributes);
       setCosts({ ...result.cost_inputs, production_time: result.attributes.production_time || '' });
       setInterviewTurns([{ role: 'assistant', text: result.assistant_message }]);
+      setQuestionHistory([]);
+      setTypedAnswer('');
+      setPendingAnswer(null);
       setStep(2);
-      setSpeaking(true);
-      voiceAssistant.speak(
-        result.assistant_message,
-        speechCodeForLanguage(detLang),
-        () => setSpeaking(false),
-      );
+      speakPrompt(result.assistant_message, detLang);
     } catch (e) { setError(e.message); }
     finally { setLoading(false); setLoadMsg(''); }
   };
@@ -1052,6 +1081,15 @@ function AiListingStudio({ onProductCreated, onNavigateToAdmin }) {
         ...result.cost_inputs,
         production_time: result.attributes.production_time || result.cost_inputs.production_time || '',
       };
+      setQuestionHistory(history => [...history, {
+        interview,
+        attrs,
+        costs,
+        transcript: previousTranscript,
+        interviewTurns,
+        answer: text,
+        language: lang,
+      }]);
       setInterview(result);
       setAttrs(result.attributes);
       setCosts(mergedCosts);
@@ -1061,7 +1099,7 @@ function AiListingStudio({ onProductCreated, onNavigateToAdmin }) {
 
       if (result.status === 'ready_for_pricing') {
         setLoadMsg('Generating a verified bilingual marketplace listing...');
-        const l = await api.generateListing(result.attributes, 'Master Artisan');
+        const l = await api.generateListing(result.attributes, artisanName);
         setListing(l);
         setLoadMsg('Pricing AI: Blending confirmed costs with regional market benchmarks...');
         const pr = await api.calculatePrice({
@@ -1073,22 +1111,44 @@ function AiListingStudio({ onProductCreated, onNavigateToAdmin }) {
         setPricing(pr);
         setStep(3);
       } else {
-        setSpeaking(true);
-        voiceAssistant.speak(
-          result.assistant_message,
-          speechCodeForLanguage(lang),
-          () => setSpeaking(false),
-        );
+        speakPrompt(result.assistant_message, lang);
       }
     } catch (e) { setError(e.message); }
     finally { setLoading(false); setLoadMsg(''); }
   };
 
+  const goToPreviousQuestion = () => {
+    voiceAssistant.stopSpeaking();
+    setSpeaking(false);
+    const previous = questionHistory[questionHistory.length - 1];
+    if (!previous) {
+      clearQuestionFlow();
+      setStep(1);
+      return;
+    }
+    setQuestionHistory(history => history.slice(0, -1));
+    setInterview(previous.interview);
+    setAttrs(previous.attrs);
+    setCosts(previous.costs);
+    setTxt(previous.transcript);
+    setInterviewTurns(previous.interviewTurns);
+    setDetLang(previous.language || detLang);
+    setTypedAnswer(previous.answer || '');
+    setPendingAnswer(null);
+    setStep(2);
+    speakPrompt(previous.interview?.assistant_message, previous.language || detLang);
+  };
+
   const handleSubmit = async () => {
+    if (!artisanId) {
+      setError('No artisan profile is available. Create an artisan profile before submitting a listing.');
+      return;
+    }
     setLoading(true);
     setLoadMsg('Submitting to Admin Approval Queue...');
     try {
       const payload = {
+        artisan_id: artisanId,
         original_image: imgData?.original_image_url || '/uploads/banarasi_saree_raw.jpg',
         enhanced_image: imgData?.enhanced_image_url || '/uploads/banarasi_saree_studio_enhanced.png',
         transcript, detected_language: detLang,
@@ -1116,7 +1176,12 @@ function AiListingStudio({ onProductCreated, onNavigateToAdmin }) {
         labor_cost: costs.labor_cost,
         packaging_cost: costs.packaging_cost,
         total_cost: pricing?.total_cost || (costs.material_cost + costs.labor_cost + costs.packaging_cost),
+        minimum_price: pricing?.minimum_sustainable_price,
+        recommended_min_price: pricing?.recommended_min_price,
+        recommended_max_price: pricing?.recommended_max_price,
+        pricing_explanation: pricing,
         suggested_price: pricing?.suggested_price || 2499,
+        stock_quantity: stockQuantity,
         status: 'Pending Approval',
       };
       const result = await api.createProduct(payload);
@@ -1128,9 +1193,9 @@ function AiListingStudio({ onProductCreated, onNavigateToAdmin }) {
   };
 
   const reset = () => {
-    setStep(1); setImgData(null); setTxt(''); setAttrs(null); setListing(null); setPricing(null); setSubmitted(false); setProductId(null); setError(null);
+    setStep(1); setImgData(null); setTxt(''); setAttrs(null); setListing(null); setPricing(null); setStockQuantity(1); setSubmitted(false); setProductId(null); setError(null);
     setCosts({ material_cost: null, labor_cost: null, packaging_cost: null, production_time: '' });
-    setInterview(null); setInterviewTurns([]); setTypedAnswer(''); setPendingAnswer(null);
+    setInterview(null); setInterviewTurns([]); setQuestionHistory([]); setTypedAnswer(''); setPendingAnswer(null);
   };
 
   // Success Screen
@@ -1185,7 +1250,11 @@ function AiListingStudio({ onProductCreated, onNavigateToAdmin }) {
             return (
               <React.Fragment key={s.n}>
                 <button
-                  onClick={() => !loading && step > s.n && setStep(s.n)}
+                  onClick={() => {
+                    if (loading || step <= s.n) return;
+                    if (s.n === 2) goToPreviousQuestion();
+                    else setStep(s.n);
+                  }}
                   disabled={step < s.n || loading}
                   className={`flex items-center gap-2.5 px-3 py-2 rounded-xl whitespace-nowrap transition-all ${
                     cur  ? 'bg-orange-50 border border-orange-200 text-orange-700' :
@@ -1319,109 +1388,102 @@ function AiListingStudio({ onProductCreated, onNavigateToAdmin }) {
 
       {/* ── STEP 2: VOICE ────────────────────────── */}
       {step === 2 && !loading && (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-          {imgData && (
-            <div className="bg-gray-900 rounded-2xl overflow-hidden">
-              <BeforeAfterSlider originalUrl={imgData.original_image_url} enhancedUrl={imgData.enhanced_image_url} />
-            </div>
-          )}
-          <div className="space-y-4">
-            <div className="rounded-2xl border border-violet-200 bg-gradient-to-br from-violet-50 to-blue-50 p-4 shadow-sm">
-              <div className="flex items-start gap-3">
-                <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl bg-violet-600 text-white shadow-sm">
-                  <MessageSquare className="h-4 w-4" />
+        <div className="mx-auto max-w-3xl space-y-5" data-testid="guided-question-page">
+          <section className="rounded-3xl border border-violet-200 bg-white p-5 shadow-md sm:p-7" aria-live="polite">
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <div className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-2xl bg-violet-600 text-white shadow-sm">
+                  <MessageSquare className="h-5 w-5" />
                 </div>
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center justify-between gap-3">
-                    <div>
-                      <div className="text-[15px] font-black text-violet-950">{questionUi.heading}</div>
-                      <div className="text-[11px] font-semibold text-violet-600">
-                        {questionUi.question} {interview?.question_number || 1} {questionUi.of} {interview?.total_questions || 7}
-                      </div>
-                    </div>
-                    <span className="max-w-[190px] rounded-full bg-white px-2.5 py-1 text-right text-[10px] font-black text-violet-700 shadow-sm">
-                      {interview?.turn_summary || 'We save every answer before moving ahead.'}
-                    </span>
+                <div>
+                  <div className="text-[17px] font-black text-violet-950">{questionUi.heading}</div>
+                  <div className="text-[12px] font-bold text-violet-600">
+                    {questionUi.question} {interview?.question_number || 1} {questionUi.of} {interview?.total_questions || 7}
                   </div>
-                  <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-violet-100">
-                    <div className="h-full rounded-full bg-gradient-to-r from-violet-500 to-blue-500 transition-all duration-500" style={{ width: `${Math.max(4, (interview?.readiness_score || 0) * 100)}%` }} />
-                  </div>
-                  <div className="mt-3 rounded-xl border border-white/80 bg-white/90 p-3 text-[13px] font-semibold leading-relaxed text-slate-800">
-                    {interview?.assistant_message || 'Tell us about your product in your own words.'}
-                  </div>
-                  <button
-                    onClick={() => {
-                      if (speaking) {
-                        voiceAssistant.stopSpeaking();
-                        setSpeaking(false);
-                      } else {
-                        setSpeaking(true);
-                        voiceAssistant.speak(
-                          interview?.assistant_message,
-                          speechCodeForLanguage(detLang),
-                          () => setSpeaking(false),
-                        );
-                      }
-                    }}
-                    className="mt-3 flex w-full items-center justify-center gap-2 rounded-xl border border-violet-300 bg-white px-4 py-2.5 text-[13px] font-black text-violet-800 hover:bg-violet-50"
-                  >
-                    {speaking ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
-                    {speaking ? questionUi.stopQuestion : questionUi.listenQuestion}
-                  </button>
-                  {interview?.status === 'needs_confirmation' && (
-                    <button
-                      onClick={() => submitInterviewAnswer(confirmationAnswerForLanguage(detLang), detLang)}
-                      className="mt-3 w-full rounded-xl bg-emerald-600 px-4 py-3 text-[14px] font-black text-white shadow-sm hover:bg-emerald-700"
-                    >
-                      {questionUi.confirm}
-                    </button>
-                  )}
                 </div>
               </div>
+              <span className="hidden rounded-full bg-violet-50 px-3 py-1.5 text-[10px] font-black text-violet-700 sm:block">
+                {interview?.turn_summary || 'One answer at a time'}
+              </span>
             </div>
 
-            {!pendingAnswer && (
-              <VoiceRecorder
-                onAudioRecorded={captureVoiceAnswer}
-                isProcessing={loading}
-                initialLanguage={speechCodeForLanguage(detLang)}
-                onLanguageChange={(language) => setDetLang(language)}
-              />
-            )}
+            <div className="mt-5 h-2 overflow-hidden rounded-full bg-violet-100">
+              <div className="h-full rounded-full bg-violet-600 transition-all duration-500" style={{ width: `${Math.max(4, (interview?.readiness_score || 0) * 100)}%` }} />
+            </div>
 
-            {pendingAnswer ? (
-              <div className="rounded-2xl border-2 border-emerald-300 bg-white p-4 shadow-sm">
-                <div className="text-[12px] font-black uppercase tracking-wider text-emerald-700">{questionUi.heard}</div>
-                <p className="mt-2 rounded-xl bg-emerald-50 p-3 text-[14px] font-semibold leading-relaxed text-gray-900">“{pendingAnswer.text}”</p>
-                <p className="mt-2 text-[11px] text-gray-500">{questionUi.checkAnswer}</p>
-                <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
-                  <button onClick={() => setPendingAnswer(null)} className="rounded-xl border border-gray-300 px-4 py-3 text-[13px] font-bold text-gray-700">{questionUi.recordAgain}</button>
-                  <button onClick={() => submitInterviewAnswer()} className="flex items-center justify-center gap-2 rounded-xl bg-violet-600 px-4 py-3 text-[14px] font-black text-white">
-                    {questionUi.saveVoice} <ArrowRight className="h-4 w-4" />
-                  </button>
-                </div>
-              </div>
-            ) : (
-              <div className="rounded-2xl border border-gray-200 bg-white p-3 shadow-sm">
-                <label className="mb-1 block text-[11px] font-bold text-gray-500">{questionUi.orType}</label>
-                <div className="flex flex-col gap-2 sm:flex-row">
-                  <input
-                    value={typedAnswer}
-                    onChange={e => setTypedAnswer(e.target.value)}
-                    onKeyDown={e => { if (e.key === 'Enter') submitInterviewAnswer(); }}
-                    placeholder={questionUi.placeholder}
-                    className="min-w-0 flex-1 rounded-xl border border-gray-200 px-3 py-3 text-[14px] outline-none focus:border-violet-400"
-                  />
-                  <button onClick={() => submitInterviewAnswer()} disabled={!typedAnswer.trim()} className="flex items-center justify-center gap-2 rounded-xl bg-violet-600 px-5 py-3 text-[13px] font-black text-white disabled:opacity-40">
-                    {questionUi.save} <ArrowRight className="h-4 w-4" />
-                  </button>
-                </div>
-              </div>
-            )}
-            <button onClick={() => { clearQuestionFlow(); setStep(1); }} className="flex items-center gap-1.5 text-[12px] font-semibold text-gray-500 hover:text-gray-700">
-              <ArrowLeft className="w-4 h-4" /> {questionUi.back}
+            <div className="mt-6 rounded-2xl border border-violet-100 bg-violet-50 p-5 text-[17px] font-bold leading-relaxed text-slate-900 sm:text-[19px]" data-testid="current-question">
+              {interview?.assistant_message || 'Tell us about your product in your own words.'}
+            </div>
+
+            <button
+              onClick={() => {
+                if (speaking) {
+                  voiceAssistant.stopSpeaking();
+                  setSpeaking(false);
+                } else {
+                  speakPrompt(interview?.assistant_message, detLang);
+                }
+              }}
+              className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl border-2 border-violet-300 bg-white px-4 py-3 text-[14px] font-black text-violet-800 hover:bg-violet-50"
+            >
+              {speaking ? <VolumeX className="h-5 w-5" /> : <Volume2 className="h-5 w-5" />}
+              {speaking ? questionUi.stopQuestion : questionUi.listenQuestion}
             </button>
-          </div>
+          </section>
+
+          {interview?.status !== 'needs_confirmation' && !pendingAnswer && (
+            <VoiceRecorder
+              onAudioRecorded={captureVoiceAnswer}
+              isProcessing={loading}
+              initialLanguage={speechCodeForLanguage(detLang)}
+              onLanguageChange={(language) => setDetLang(language)}
+              onRecordingStart={() => setSpeaking(false)}
+            />
+          )}
+
+          {interview?.status !== 'needs_confirmation' && (pendingAnswer ? (
+            <div className="rounded-2xl border-2 border-emerald-300 bg-white p-4 shadow-sm">
+              <div className="text-[12px] font-black uppercase tracking-wider text-emerald-700">{questionUi.heard}</div>
+              <p className="mt-2 rounded-xl bg-emerald-50 p-3 text-[15px] font-semibold leading-relaxed text-gray-900">“{pendingAnswer.text}”</p>
+              <p className="mt-2 text-[12px] text-gray-500">{questionUi.checkAnswer}</p>
+              <button onClick={() => setPendingAnswer(null)} className="mt-3 rounded-xl border border-gray-300 px-4 py-2.5 text-[13px] font-bold text-gray-700">
+                {questionUi.recordAgain}
+              </button>
+            </div>
+          ) : (
+            <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
+              <label className="mb-2 block text-[12px] font-bold text-gray-600">{questionUi.orType}</label>
+              <input
+                value={typedAnswer}
+                onChange={e => setTypedAnswer(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Enter' && typedAnswer.trim()) submitInterviewAnswer(); }}
+                placeholder={questionUi.placeholder}
+                className="w-full rounded-xl border border-gray-300 px-4 py-3.5 text-[15px] outline-none focus:border-violet-500 focus:ring-2 focus:ring-violet-100"
+              />
+            </div>
+          ))}
+
+          <nav className="flex items-center justify-between gap-3 rounded-2xl border border-gray-200 bg-white p-3 shadow-sm" aria-label="Question navigation">
+            <button
+              onClick={goToPreviousQuestion}
+              className="flex min-w-[130px] items-center justify-center gap-2 rounded-xl border border-gray-300 px-5 py-3 text-[14px] font-black text-gray-700 hover:bg-gray-50"
+            >
+              <ArrowLeft className="h-5 w-5" /> {questionUi.previous}
+            </button>
+            <button
+              onClick={() => {
+                if (interview?.status === 'needs_confirmation') {
+                  submitInterviewAnswer(confirmationAnswerForLanguage(detLang), detLang);
+                } else {
+                  submitInterviewAnswer();
+                }
+              }}
+              disabled={interview?.status !== 'needs_confirmation' && !pendingAnswer?.text && !typedAnswer.trim()}
+              className="flex min-w-[130px] items-center justify-center gap-2 rounded-xl bg-violet-600 px-5 py-3 text-[14px] font-black text-white shadow-sm hover:bg-violet-700 disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              {questionUi.next} <ArrowRight className="h-5 w-5" />
+            </button>
+          </nav>
         </div>
       )}
 
@@ -1577,15 +1639,30 @@ function AiListingStudio({ onProductCreated, onNavigateToAdmin }) {
 
           {/* Smart Pricing */}
           {step === 4 && (
-            <PriceExplainerCard pricingData={pricing} onUpdateCost={async (c) => {
-              setCosts(c);
-              try { const pr = await api.calculatePrice({ ...c, category: attrs?.category, craft_type: attrs?.craft_type, material: attrs?.material }); setPricing(pr); } catch (e) {}
-            }} currentCosts={costs} />
+            <div className="space-y-4">
+              <PriceExplainerCard pricingData={pricing} onUpdateCost={async (c) => {
+                setCosts(c);
+                try { const pr = await api.calculatePrice({ ...c, category: attrs?.category, craft_type: attrs?.craft_type, material: attrs?.material }); setPricing(pr); } catch (e) {}
+              }} currentCosts={costs} />
+              <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+                <label htmlFor="listing-stock" className="block text-[12px] font-black text-slate-800">Units currently available for sale</label>
+                <p className="mt-1 text-[11px] text-slate-500">Orders cannot sell more than this real stock quantity.</p>
+                <input
+                  id="listing-stock"
+                  type="number"
+                  min="1"
+                  max="100000"
+                  value={stockQuantity}
+                  onChange={(event) => setStockQuantity(Math.max(1, Number(event.target.value || 1)))}
+                  className="mt-3 w-full rounded-xl border border-slate-300 px-4 py-3 text-[15px] font-black outline-none focus:border-amber-500"
+                />
+              </div>
+            </div>
           )}
 
           {/* Footer Actions */}
           <div className="flex items-center justify-between pt-4 border-t border-gray-200">
-            <button onClick={() => setStep(step === 4 ? 3 : 2)} className="flex items-center gap-1.5 px-5 py-2.5 rounded-xl border border-gray-200 text-[13px] font-semibold text-gray-700 hover:bg-gray-50 transition-colors">
+            <button onClick={() => { if (step === 4) setStep(3); else goToPreviousQuestion(); }} className="flex items-center gap-1.5 px-5 py-2.5 rounded-xl border border-gray-200 text-[13px] font-semibold text-gray-700 hover:bg-gray-50 transition-colors">
               <ArrowLeft className="w-4 h-4" /> {step === 4 ? 'Back to Details' : 'Back to Questions'}
             </button>
             {step === 3 ? (

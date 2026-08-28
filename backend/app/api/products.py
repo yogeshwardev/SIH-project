@@ -144,25 +144,12 @@ async def create_product(product_in: ProductCreate, db: Session = Depends(get_db
     Final Step:
     Persist confirmed product and its AI-generated attributes into SQLite database.
     """
-    # Create or assign artisan
-    artisan_id = product_in.artisan_id
-    if not artisan_id:
-        # Check or create default artisan
-        artisan = db.query(Artisan).first()
-        if not artisan:
-            artisan = Artisan(
-                name="Sunita Devi", 
-                region=product_in.region or "Varanasi, UP", 
-                language="Hindi", 
-                contact="+91 98765 43210"
-            )
-            db.add(artisan)
-            db.commit()
-            db.refresh(artisan)
-        artisan_id = artisan.id
+    artisan = db.query(Artisan).filter(Artisan.id == product_in.artisan_id).first()
+    if not artisan:
+        raise HTTPException(status_code=400, detail="Create or select a valid artisan profile before adding a listing.")
 
     db_product = Product(
-        artisan_id=artisan_id,
+        artisan_id=artisan.id,
         original_image=product_in.original_image,
         enhanced_image=product_in.enhanced_image,
         audio_file=product_in.audio_file,
@@ -199,7 +186,10 @@ async def create_product(product_in: ProductCreate, db: Session = Depends(get_db
         suggested_price=product_in.suggested_price,
         pricing_explanation=safe_json_dumps(product_in.pricing_explanation),
         ai_confidence=safe_json_dumps(product_in.ai_confidence),
-        status=product_in.status or "Published"
+        status="Pending Approval",
+        stock_quantity=product_in.stock_quantity,
+        badge=product_in.badge,
+        is_featured=False,
     )
 
     db.add(db_product)
@@ -217,6 +207,7 @@ async def list_products(
     status: Optional[str] = Query("Published", description="Filter by product status ('Published', 'Pending Approval', 'All')"),
     min_price: Optional[float] = Query(None, description="Minimum price filter"),
     max_price: Optional[float] = Query(None, description="Maximum price filter"),
+    artisan_id: Optional[int] = Query(None, description="Filter by seller/artisan profile"),
     db: Session = Depends(get_db)
 ):
     """List products with full multi-attribute filtering for Buyer and Artisan catalog views."""
@@ -250,6 +241,8 @@ async def list_products(
         query = query.filter(Product.suggested_price >= min_price)
     if max_price is not None:
         query = query.filter(Product.suggested_price <= max_price)
+    if artisan_id is not None:
+        query = query.filter(Product.artisan_id == artisan_id)
 
     products = query.order_by(Product.created_at.desc()).all()
     return [_format_product_response(p, db) for p in products]
@@ -297,7 +290,7 @@ def _format_product_response(p: Product, db: Session) -> ProductResponse:
     return ProductResponse(
         id=p.id,
         artisan_id=p.artisan_id,
-        artisan_name=artisan.name if artisan else "Master Artisan",
+        artisan_name=artisan.name if artisan else None,
         artisan_region=artisan.region if artisan else p.region,
         original_image=p.original_image,
         enhanced_image=p.enhanced_image,
@@ -338,11 +331,11 @@ def _format_product_response(p: Product, db: Session) -> ProductResponse:
         status=p.status or "Pending Approval",
         admin_notes=p.admin_notes,
         admin_reviewed_at=p.admin_reviewed_at,
-        rating=getattr(p, "rating", 4.9) or 4.9,
-        review_count=getattr(p, "review_count", 18) or 18,
-        stock_quantity=getattr(p, "stock_quantity", 5) or 5,
-        is_featured=getattr(p, "is_featured", False) or False,
-        badge=getattr(p, "badge", "GI Certified") or "GI Certified",
+        rating=float(p.rating or 0.0),
+        review_count=int(p.review_count or 0),
+        stock_quantity=int(p.stock_quantity or 0),
+        is_featured=bool(p.is_featured),
+        badge=p.badge,
         created_at=p.created_at,
         updated_at=p.updated_at
     )

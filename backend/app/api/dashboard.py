@@ -73,7 +73,7 @@ async def get_dashboard_stats(db: Session = Depends(get_db)) -> Dict[str, Any]:
     ]
 
     return {
-        "total_artisans": max(total_artisans, 1),
+        "total_artisans": total_artisans,
         "total_products": total_products,
         "published_products": published_products,
         "draft_products": draft_products,

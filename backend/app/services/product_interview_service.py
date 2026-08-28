@@ -23,30 +23,30 @@ class ProductInterviewService:
 
     QUESTIONS = {
         "en": {
-            "product_description": "Please tell me about your product in your own words. What is it called, what makes it special, and how is it used? There is no wrong answer.",
-            "material": "What is it made from? You can say the main material in simple words.",
-            "production_time": "About how long does one item take to make? Hours or days is fine.",
-            "material_cost": "About how much do the materials for one item cost, in rupees?",
-            "labor_cost": "How much should you be paid for your work on one item, in rupees?",
-            "packaging_cost": "How much does packing one item cost? Say zero if there is no cost.",
+            "product_description": "Hello! I am here to help you create your product listing. First, please describe your product in your own words. What is it called, what makes it special, and how is it used? There is no wrong answer.",
+            "material": "Thank you. What is your product made from? You can name the main material in simple words.",
+            "production_time": "Great. About how long does one item take you to make? You can answer in hours or days.",
+            "material_cost": "You are doing well. About how much do the materials for one item cost, in rupees?",
+            "labor_cost": "And how much should you be paid fairly for your work on one item, in rupees?",
+            "packaging_cost": "Just one more cost question. How much does packing one item cost? You can say zero if there is no cost.",
             "confirmation": "Is this information correct? Choose Yes to continue, or tell me what to change.",
         },
         "hi": {
-            "product_description": "अपने उत्पाद के बारे में अपने शब्दों में बताइए। इसका नाम क्या है, इसकी खास बात क्या है और इसका उपयोग कैसे होता है? जैसा आसान लगे वैसा बोलिए।",
-            "material": "यह किस चीज़ से बना है? मुख्य सामग्री का नाम आसान शब्दों में बताइए।",
-            "production_time": "एक उत्पाद बनाने में लगभग कितना समय लगता है? घंटे या दिन में बता सकते हैं।",
-            "material_cost": "एक उत्पाद की सामग्री पर लगभग कितने रुपये खर्च होते हैं?",
-            "labor_cost": "एक उत्पाद बनाने की आपकी मेहनत के कितने रुपये मिलने चाहिए?",
-            "packaging_cost": "एक उत्पाद की पैकिंग में कितने रुपये लगते हैं? खर्च नहीं है तो शून्य कहें।",
+            "product_description": "नमस्ते! मैं आपकी उत्पाद सूची बनाने में मदद करूँगी। सबसे पहले, अपने उत्पाद के बारे में अपने शब्दों में बताइए। इसका नाम क्या है, इसकी खास बात क्या है और इसका उपयोग कैसे होता है? जैसा आसान लगे वैसा बोलिए।",
+            "material": "धन्यवाद। आपका उत्पाद किस चीज़ से बना है? मुख्य सामग्री का नाम आसान शब्दों में बताइए।",
+            "production_time": "बहुत अच्छा। एक उत्पाद बनाने में लगभग कितना समय लगता है? घंटे या दिन में बता सकते हैं।",
+            "material_cost": "आप बहुत अच्छा कर रहे हैं। एक उत्पाद की सामग्री पर लगभग कितने रुपये खर्च होते हैं?",
+            "labor_cost": "एक उत्पाद बनाने की आपकी मेहनत के उचित कितने रुपये मिलने चाहिए?",
+            "packaging_cost": "खर्च से जुड़ा बस एक आखिरी सवाल। एक उत्पाद की पैकिंग में कितने रुपये लगते हैं? खर्च नहीं है तो शून्य कहें।",
             "confirmation": "क्या यह जानकारी सही है? आगे बढ़ने के लिए हाँ चुनें, या जो बदलना है वह बताइए।",
         },
         "te": {
-            "product_description": "మీ ఉత్పత్తి గురించి మీ మాటల్లో చెప్పండి. దాని పేరు ఏమిటి, దాని ప్రత్యేకత ఏమిటి, దాన్ని ఎలా ఉపయోగిస్తారు? మీకు సులభంగా అనిపించినట్లు చెప్పండి.",
-            "material": "ఇది దేనితో తయారైంది? ముఖ్యమైన పదార్థం పేరును సులభమైన మాటల్లో చెప్పండి.",
-            "production_time": "ఒక ఉత్పత్తి తయారు చేయడానికి సుమారుగా ఎంత సమయం పడుతుంది? గంటలు లేదా రోజుల్లో చెప్పవచ్చు.",
-            "material_cost": "ఒక ఉత్పత్తికి కావలసిన పదార్థాల ఖర్చు సుమారుగా ఎన్ని రూపాయలు?",
-            "labor_cost": "ఒక ఉత్పత్తి తయారుచేసిన మీ పనికి ఎన్ని రూపాయలు రావాలి?",
-            "packaging_cost": "ఒక ఉత్పత్తి ప్యాకింగ్‌కు ఎన్ని రూపాయలు ఖర్చవుతుంది? ఖర్చు లేకపోతే సున్నా అని చెప్పండి.",
+            "product_description": "నమస్కారం! మీ ఉత్పత్తి జాబితాను తయారు చేయడంలో నేను మీకు సహాయం చేస్తాను. ముందుగా, మీ ఉత్పత్తి గురించి మీ మాటల్లో చెప్పండి. దాని పేరు ఏమిటి, దాని ప్రత్యేకత ఏమిటి, దాన్ని ఎలా ఉపయోగిస్తారు? మీకు సులభంగా అనిపించినట్లు చెప్పండి.",
+            "material": "ధన్యవాదాలు. మీ ఉత్పత్తి దేనితో తయారైంది? ముఖ్యమైన పదార్థం పేరును సులభమైన మాటల్లో చెప్పండి.",
+            "production_time": "చాలా బాగుంది. ఒక ఉత్పత్తి తయారు చేయడానికి సుమారుగా ఎంత సమయం పడుతుంది? గంటలు లేదా రోజుల్లో చెప్పవచ్చు.",
+            "material_cost": "మీరు చాలా బాగా చేస్తున్నారు. ఒక ఉత్పత్తికి కావలసిన పదార్థాల ఖర్చు సుమారుగా ఎన్ని రూపాయలు?",
+            "labor_cost": "ఒక ఉత్పత్తి తయారుచేసిన మీ పనికి న్యాయంగా ఎన్ని రూపాయలు రావాలి?",
+            "packaging_cost": "ఖర్చుకు సంబంధించిన చివరి ప్రశ్న. ఒక ఉత్పత్తి ప్యాకింగ్‌కు ఎన్ని రూపాయలు ఖర్చవుతుంది? ఖర్చు లేకపోతే సున్నా అని చెప్పండి.",
             "confirmation": "ఈ సమాచారం సరైందా? ముందుకు వెళ్లడానికి అవును ఎంచుకోండి, లేదా మార్చాల్సింది చెప్పండి.",
         },
     }
@@ -285,7 +285,53 @@ class ProductInterviewService:
     @staticmethod
     def _first_amount(text: str) -> Optional[float]:
         match = re.search(r"(?:₹|rs\.?|inr|रुप(?:ये|या)?)?\s*(\d[\d,]*(?:\.\d+)?)", text, flags=re.IGNORECASE)
-        return float(match.group(1).replace(",", "")) if match else None
+        if match:
+            return float(match.group(1).replace(",", ""))
+
+        normalized = str(text or "").strip().lower().replace("-", " ")
+        if any(word in normalized for word in ("zero", "शून्य", "सिफर", "సున్నా", "శూన్యం")):
+            return 0.0
+
+        english_values = {
+            "one": 1, "two": 2, "three": 3, "four": 4, "five": 5,
+            "six": 6, "seven": 7, "eight": 8, "nine": 9, "ten": 10,
+            "eleven": 11, "twelve": 12, "thirteen": 13, "fourteen": 14,
+            "fifteen": 15, "sixteen": 16, "seventeen": 17, "eighteen": 18,
+            "nineteen": 19, "twenty": 20, "thirty": 30, "forty": 40,
+            "fifty": 50, "sixty": 60, "seventy": 70, "eighty": 80, "ninety": 90,
+        }
+        current = 0
+        total = 0
+        found = False
+        for token in re.findall(r"[a-z]+", normalized):
+            if token in english_values:
+                current += english_values[token]
+                found = True
+            elif token == "hundred" and found:
+                current = max(1, current) * 100
+            elif token == "thousand" and found:
+                total += max(1, current) * 1000
+                current = 0
+        if found:
+            return float(total + current)
+
+        simple_numbers = {
+            "एक": 1, "दो": 2, "तीन": 3, "चार": 4, "पांच": 5, "पाँच": 5,
+            "छह": 6, "सात": 7, "आठ": 8, "नौ": 9, "दस": 10,
+            "ఒకటి": 1, "ఒక": 1, "రెండు": 2, "మూడు": 3, "నాలుగు": 4,
+            "ఐదు": 5, "ఆరు": 6, "ఏడు": 7, "ఎనిమిది": 8, "తొమ్మిది": 9, "పది": 10,
+        }
+        base = next((
+            value for word, value in sorted(simple_numbers.items(), key=lambda item: len(item[0]), reverse=True)
+            if word in normalized
+        ), None)
+        if base is not None:
+            if any(word in normalized for word in ("हजार", "వెయ్యి", "వేలు")):
+                return float(base * 1000)
+            if any(word in normalized for word in ("सौ", "వంద")):
+                return float(base * 100)
+            return float(base)
+        return None
 
     @staticmethod
     def _looks_like_currency_only(text: str) -> bool:
@@ -298,20 +344,47 @@ class ProductInterviewService:
 
     @staticmethod
     def _duration(text: str) -> Optional[str]:
-        match = re.search(
-            r"(\d+(?:\.\d+)?)\s*(hours?|hrs?|days?|weeks?|घंटे?|दिन|सप्ताह|గంటలు?|రోజులు?|వారాలు?)",
-            text,
-            flags=re.IGNORECASE,
-        )
-        if not match:
+        unit_pattern = r"hours?|hrs?|days?|weeks?|घंटे?|घंटा|दिन|सप्ताह|గంటలు?|గంట|రోజులు?|రోజు|వారాలు?|వారం"
+        match = re.search(rf"(\d+(?:\.\d+)?)\s*({unit_pattern})", text, flags=re.IGNORECASE)
+        amount: Optional[float] = float(match.group(1)) if match else None
+        unit = match.group(2).lower() if match else None
+
+        if amount is None:
+            unit_match = re.search(unit_pattern, text, flags=re.IGNORECASE)
+            if not unit_match:
+                return None
+            unit = unit_match.group(0).lower()
+            prefix = text[:unit_match.start()].strip().lower()
+            if any(value in prefix for value in ("half", "आधा", "అర")):
+                amount = 0.5
+            else:
+                spoken_numbers = {
+                    "one": 1, "two": 2, "three": 3, "four": 4,
+                    "five": 5, "six": 6, "seven": 7, "eight": 8, "nine": 9, "ten": 10,
+                    "एक": 1, "दो": 2, "तीन": 3, "चार": 4, "पांच": 5, "पाँच": 5,
+                    "छह": 6, "सात": 7, "आठ": 8, "नौ": 9, "दस": 10,
+                    "ఒక": 1, "ఒకటి": 1, "రెండు": 2, "మూడు": 3, "నాలుగు": 4,
+                    "ఐదు": 5, "ఆరు": 6, "ఏడు": 7, "ఎనిమిది": 8, "తొమ్మిది": 9, "పది": 10,
+                }
+                amount = next((
+                    float(value)
+                    for word, value in sorted(spoken_numbers.items(), key=lambda item: len(item[0]), reverse=True)
+                    if word in prefix
+                ), None)
+                if amount is None and re.search(r"\b(?:a|an)\s*$", prefix):
+                    amount = 1.0
+                if amount is not None and re.search(r"\b(?:and a half|and half)\b", prefix):
+                    amount += 0.5
+
+        if amount is None or unit is None:
             return None
-        unit = match.group(2).lower()
         normalized = (
             "hours" if unit.startswith(("hour", "hr", "घंट", "గంట"))
             else "weeks" if unit.startswith(("week", "सप्त", "వార"))
             else "days"
         )
-        return f"{match.group(1)} {normalized}"
+        amount_text = str(int(amount)) if amount.is_integer() else str(amount)
+        return f"{amount_text} {normalized}"
 
     @staticmethod
     def _locale(language: str) -> str:

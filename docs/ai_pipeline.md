@@ -1,87 +1,29 @@
-# CraftLink AI — Deep Dive AI Pipeline (SIH26090)
+# CraftLink AI — Image and Voice Pipeline
 
-CraftLink AI integrates five foundational AI/ML modules designed to run reliably on resource-constrained hardware while delivering enterprise-grade output for rural artisans.
+## Image transformation
 
----
+The image endpoint validates type and size, writes a unique upload, segments the foreground, scores mask geometry/coherence/edges, refines the mask, performs conservative colour/lighting correction, and composites the product on a clean background. It returns both image URLs, the engine used, measured confidence components, and per-stage latency.
 
-## 1. Computer Vision: Studio Product Transformation
+Fast-path acceptance is a threshold for avoiding a slower second model, not a hardcoded displayed score. If segmentation quality is weak, the service falls back to the more accurate path. The original is always retained for manual comparison.
 
-### Pipeline Flow
-```
-Raw Photograph 
-  → Resolution Validation (< 2400px Lanczos Resampling)
-  → U2NetP Low-Latency Segmentation
-  → Calibrated Quality Gate (accept ≥ 0.95; otherwise escalate)
-  → BiRefNet-General-Lite Accurate Segmentation (Intel OpenVINO on Windows)
-  → Mask Refinement (bilateral smoothing, adaptive morphology, component cleanup)
-  → Foreground-Aware LAB Exposure and Color Correction
-  → Masked Dominant-Palette Extraction
-  → 1200 × 1200 Studio Backdrop with Gaussian Ground Shadow
-  → Edge-Preserving Sharpening & Transparent-Matte Compositing
-```
+## Voice interaction
 
-### Key Technical Details
-- **Neural Background Removal**: U2NetP handles clear product photos first. Images with clutter, uncertain edges, or fragmented masks automatically escalate to BiRefNet-General-Lite. The service refines thin and elongated crafts separately so handles, pens, reeds, jewelry, and narrow edges survive cleanup. GrabCut remains an automatic offline fallback if the neural runtime is unavailable.
-- **CPU Acceleration**: Both segmentation sessions are preloaded in the background. Windows/Intel installations use the OpenVINO ONNX Runtime provider when available, with automatic standard-CPU fallback.
-- **Shadow Lifting & Texture Preservation**: Exposure and local contrast correction run only inside the foreground mask, preventing a white wall or paper background from skewing product color. This preserves weave, carving, paint, and metal detail without contaminating the object boundary.
-- **Quality Guardrail**: Confidence is calibrated from component coherence, geometry, and edge certainty—not hard-coded. The fast mask must be valid and score at least 0.95; otherwise it is rejected and the accurate tier runs.
+The browser starts immediate speech recognition captions where supported while recording the real microphone stream. Recorded audio is sent to the backend. Local Faster Whisper uses a fast model first and runs the accuracy model only when probability-based checks fail; a configured cloud provider is optional.
 
----
+Question audio uses neural TTS with caching when available, with browser speech synthesis as a fallback. The interface separately exposes a replay button and automatically speaks the next question after a user gesture has unlocked audio.
 
-## 2. Speech AI: Multilingual Speech-to-Text
+## Guided interview
 
-### Capabilities
-- **Supported Formats**: WAV, MP3, M4A, WebM (HTML5 `MediaRecorder` direct browser microphone recording), OGG.
-- **Language Detection**: Identifies whether the artisan is speaking in Hindi, English, Bengali, Tamil, Telugu, Marathi, or Gujarati.
-- **Phonetic Entity Matching**: Tailored for Indian craft vocabulary (e.g., *Zari*, *Katan Silk*, *Lost-Wax*, *Terracotta*, *Channapatna*, *Dokra*, *Pattachitra*).
-- **Resilient Recognition**: Browser live captions are the immediate path and cloud transcription is used when configured. Local recorded audio runs Faster Whisper `base` with CPU int8 first; results below the calibrated mean-word threshold or with too many uncertain words escalate to `small`. Voice-activity checks reject silent or unclear recordings instead of generating product claims.
-- **Latency Reporting**: The API reports processing time, audio duration, real-time factor, selected engine, mean/median word probability, low-confidence word ratio, and whether the accuracy fallback ran.
+The interview is stateless on the server: each request contains prior confirmed attributes and costs. Only one friendly question is shown at a time. The flow supports Hindi, Telugu, and English and retains Previous/Next navigation. Missing values stay missing; visual guesses cannot silently answer seller questions.
 
-### Guided Product Interview
-- Each voice or typed response is processed as an independent, resumable turn; the client sends only the current user's confirmed state, preventing cross-artisan conversation leakage.
-- After the photo is ready, the artisan chooses Hindi, Telugu, or English and taps **Next**. The assistant then asks exactly six friendly questions, one screen at a time: the artisan's own product description, material, production time, material cost, fair labor, and packaging cost.
-- Every answer is shown or typed before the artisan deliberately taps **Save & Next**. Image-derived guesses can enrich the listing but never silently skip an unanswered assisted-flow question.
-- Pricing remains locked until all six answers are explicitly evidenced.
-- Once all required facts exist, the AI reads them back for a final human confirmation. Only that confirmation produces the 0.99 product-understanding score; raw acoustic confidence remains separate and honest.
-- Invalid formats are answered with a friendly localized retry instead of moving forward. A visible progress meter shows the current question without exposing a confusing technical conversation log.
+Required facts are seller description, material, production time, and the three unit-cost inputs. A final seller confirmation is stored independently from transcription/model confidence. Listing copy is generated only after the required evidence is present.
 
----
+## Confidence semantics
 
-## 3. Product Intelligence: Zero-Hallucination Entity Extraction
+- Image score: mask-quality measurements.
+- Transcription score: decoder word/language probabilities.
+- Interview readiness: percentage of required questions completed.
+- Human confirmation: explicit boolean.
+- Pricing score: cost-input completeness plus count of real persisted comparables.
 
-### Anti-Hallucination Policy
-Generative models frequently hallucinate missing details (e.g., assuming a saree is pure silk even if not stated). CraftLink AI enforces a strict constraint:
-
-$$\text{Attribute}(x) = \begin{cases} \text{Extracted Value} & \text{if explicitly stated in transcript or detected via visual cues} \\ \text{"Not specified (Needs Confirmation)"} & \text{otherwise} \end{cases}$$
-
-### Confidence Scoring
-- **HIGH**: Explicitly stated in speech (e.g., *"इसे बनाने में 6 दिन लगे"* $\rightarrow$ `production_time: "6 days"`).
-- **MEDIUM**: Inferred from craft cluster taxonomy (e.g., Banarasi craft $\rightarrow$ `region: "Varanasi, UP"`).
-- **NEEDS_CONFIRMATION**: Missing attributes flagged with an interactive badge for artisan confirmation.
-
----
-
-## 4. Generative AI: Multilingual Listing Studio
-
-Generates full e-commerce listings in **English, Hindi, and Telugu**. The artisan's original product description is preserved verbatim at the start of every full-language description:
-- **Professional Title**: SEO-optimized product title with regional lineage.
-- **Short Summary**: 2-line punchy marketplace listing snippet.
-- **Rich Story Description**: Heritage narrative highlighting the artisan's manual labor, ethical sourcing, and cultural significance.
-- **Bulleted Specifications**: Structured technical dimensions, materials, and care notes.
-- **SEO Keywords**: Comma-separated search discovery tags.
-
----
-
-## 5. Machine Learning Smart Pricing Engine
-
-The ensemble recommendation includes a benchmark-coverage confidence score, comparable-record count, craft similarity, explicit calculation assumptions, and a mandatory human-review flag for low-coverage inputs. Confidence measures data coverage; it is not presented as a guarantee of the future selling price.
-
-### Architecture
-- **Model**: Scikit-Learn `RandomForestRegressor(n_estimators=100, max_depth=8, random_state=42)`.
-- **Input Features**: Category, Craft Type, Material, Production Hours, Material Cost, Labor Cost, Packaging Cost, Total Cost.
-- **Training Benchmark**: Trained on authentic Indian artisan guild and cluster surveys (`reference_prices.csv`).
-- **Evaluation Metrics**:
-  - Mean Absolute Error (MAE): ₹207.20
-  - Root Mean Squared Error (RMSE): ₹601.57
-  - Mean Absolute Percentage Error (MAPE): 2.68%
-  - $R^2$ Score: 0.9688
+None of these is a universal product-quality or business-accuracy guarantee.

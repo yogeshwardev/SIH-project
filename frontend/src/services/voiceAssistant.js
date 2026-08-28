@@ -105,9 +105,9 @@ class VoiceAssistant {
     const speechToken = this.speechToken;
     this.prepareSpeech();
 
-    // Questions should begin immediately and work offline. Neural server voice
-    // remains available when a caller explicitly asks for it.
-    if (!options.preferNeural && this._speakInBrowser(cleanText, lang, onEnd, speechToken)) {
+    // Use the server's natural neural voice by default. Browser speech remains
+    // an offline fallback, or can be requested explicitly with preferNeural:false.
+    if (options.preferNeural === false && this._speakInBrowser(cleanText, lang, onEnd, speechToken)) {
       return true;
     }
 
@@ -129,13 +129,9 @@ class VoiceAssistant {
     } catch (_) {
       // Browser speech keeps voiceover available offline.
     }
-    if (options.preferNeural) {
-      const browserStarted = this._speakInBrowser(cleanText, lang, onEnd, speechToken);
-      if (!browserStarted && speechToken === this.speechToken) onEnd?.();
-      return browserStarted;
-    }
-    if (speechToken === this.speechToken) onEnd?.();
-    return false;
+    const browserStarted = this._speakInBrowser(cleanText, lang, onEnd, speechToken);
+    if (!browserStarted && speechToken === this.speechToken) onEnd?.();
+    return browserStarted;
   }
 
   _speakInBrowser(text, lang, onEnd, speechToken = this.speechToken) {
@@ -156,8 +152,8 @@ class VoiceAssistant {
               : 'en-IN';
     const utterance = new SpeechSynthesisUtterance(text);
     utterance.lang = locale;
-    utterance.rate = 0.88;
-    utterance.pitch = 1;
+    utterance.rate = 0.84;
+    utterance.pitch = 1.04;
     const voices = this.synth.getVoices();
     utterance.voice = voices.find((voice) => voice.lang.toLowerCase() === locale.toLowerCase())
       || voices.find((voice) => voice.lang.toLowerCase().startsWith(locale.slice(0, 2).toLowerCase()))

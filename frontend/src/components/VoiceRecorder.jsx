@@ -19,6 +19,7 @@ export default function VoiceRecorder({
   samplePresets = [],
   initialLanguage = 'hi-IN',
   onLanguageChange,
+  onRecordingStart,
 }) {
   const [isRecording, setIsRecording] = useState(false);
   const [liveTranscript, setLiveTranscript] = useState('');
@@ -110,6 +111,9 @@ export default function VoiceRecorder({
 
   // Start Voice Dictation & Audio Capture
   const handleStartRecording = async () => {
+    voiceAssistant.stopSpeaking();
+    setIsPlayingVoiceover(false);
+    onRecordingStart?.();
     setLiveTranscript('');
     transcriptRef.current = '';
     setRecorderError('');

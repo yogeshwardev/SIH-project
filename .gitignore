@@ -7,7 +7,8 @@ __pycache__/
 backend/venv/
 backend/env/
 backend/saved_models/whisper/
-backend/uploads/local_whisper_validation.wav
+backend/uploads/*
+!backend/uploads/.gitkeep
 .pytest_cache/
 
 # Node

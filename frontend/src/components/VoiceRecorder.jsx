@@ -2,13 +2,9 @@ import React, { useState, useRef, useEffect } from 'react';
 import { 
   Mic, 
   Square, 
-  Play, 
-  RotateCcw, 
   Volume2, 
   Sparkles, 
   Globe, 
-  Radio, 
-  CheckCircle2,
   VolumeX
 } from 'lucide-react';
 import { voiceAssistant } from '../services/voiceAssistant';
@@ -60,6 +56,11 @@ export default function VoiceRecorder({
     captionsStopped: 'వెంటనే మాటలు చూపడం ఆగింది. రికార్డ్ చేసిన వాయిస్‌ను ఇంకా చదవవచ్చు.',
     micFailed: 'మైక్ అనుమతి ఇవ్వండి, తర్వాత మళ్లీ ప్రయత్నించండి.',
     noRecording: 'వాయిస్ రికార్డ్ కాలేదు. మైక్ అనుమతి ఇచ్చి మళ్లీ ప్రయత్నించండి.',
+    language: 'మీ భాష',
+    languages: '6 భాషలు',
+    startRecording: 'వాయిస్ సమాధానం రికార్డ్ చేయడం ప్రారంభించండి',
+    stopRecording: 'రికార్డింగ్ ఆపి సమాధానాన్ని సేవ్ చేయండి',
+    processing: 'మీ సమాధానాన్ని సిద్ధం చేస్తున్నాం…',
   } : primaryLanguage === 'hi' ? {
     title: 'आवाज़ में जवाब दें',
     instruction: 'अपनी भाषा चुनें, माइक दबाकर बोलें और पूरा होने पर लाल बटन दबाएँ।',
@@ -76,6 +77,11 @@ export default function VoiceRecorder({
     captionsStopped: 'तुरंत शब्द दिखना रुक गया। रिकॉर्ड की गई आवाज़ अभी भी पढ़ी जा सकती है।',
     micFailed: 'माइक की अनुमति दें और फिर कोशिश करें।',
     noRecording: 'आवाज़ रिकॉर्ड नहीं हुई। माइक की अनुमति देकर फिर कोशिश करें।',
+    language: 'आपकी भाषा',
+    languages: '6 भाषाएँ',
+    startRecording: 'आवाज़ में जवाब रिकॉर्ड करना शुरू करें',
+    stopRecording: 'रिकॉर्डिंग रोकें और जवाब सहेजें',
+    processing: 'आपका जवाब तैयार हो रहा है…',
   } : {
     title: 'Answer by Voice',
     instruction: 'Choose your language, tap the microphone, speak, then tap the red button.',
@@ -92,6 +98,11 @@ export default function VoiceRecorder({
     captionsStopped: 'Live captions stopped. The recorded audio can still be transcribed.',
     micFailed: 'Allow microphone permission and try again.',
     noRecording: 'No voice was recorded. Allow microphone permission and try again.',
+    language: 'Your language',
+    languages: '6 languages',
+    startRecording: 'Start recording your voice answer',
+    stopRecording: 'Stop recording and save your answer',
+    processing: 'Preparing your answer…',
   };
 
   useEffect(() => {
@@ -235,9 +246,8 @@ export default function VoiceRecorder({
               <h3 className="text-base font-extrabold text-slate-900">
                 {copy.title}
               </h3>
-              <span className="text-[10px] font-bold bg-amber-100 text-amber-900 border border-amber-300 px-2 py-0.5 rounded-full flex items-center gap-1">
-                <Radio className="w-2.5 h-2.5 text-amber-600 animate-pulse" />
-                Hindi • English • తెలుగు
+              <span className="rounded-full border border-amber-300 bg-amber-100 px-2 py-0.5 text-[10px] font-bold text-amber-900">
+                {copy.languages}
               </span>
             </div>
             <p className="text-xs text-slate-500 mt-0.5">
@@ -247,9 +257,11 @@ export default function VoiceRecorder({
         </div>
 
         {/* Spoken Language Dropdown */}
-        <div className="flex items-center gap-2 bg-artisan-50 border border-artisan-200 rounded-xl px-3 py-1.5 self-start sm:self-auto">
+        <label className="flex items-center gap-2 bg-artisan-50 border border-artisan-200 rounded-xl px-3 py-2 self-start sm:self-auto focus-within:ring-4 focus-within:ring-orange-100">
           <Globe className="w-3.5 h-3.5 text-slate-500" />
+          <span className="sr-only">{copy.language}</span>
           <select
+            aria-label={copy.language}
             value={selectedLang}
             onChange={(e) => {
               const code = e.target.value;
@@ -257,7 +269,7 @@ export default function VoiceRecorder({
               onLanguageChange?.(languageOptions.find((item) => item.code === code)?.name || 'Hindi', code);
             }}
             disabled={isRecording}
-            className="bg-transparent text-xs font-bold text-slate-700 outline-none cursor-pointer"
+            className="cursor-pointer bg-transparent text-xs font-bold text-slate-700 outline-none"
           >
             {languageOptions.map((opt) => (
               <option key={opt.code} value={opt.code}>
@@ -265,7 +277,7 @@ export default function VoiceRecorder({
               </option>
             ))}
           </select>
-        </div>
+        </label>
       </div>
 
       {/* Main Microphone Interaction Circle */}
@@ -273,17 +285,21 @@ export default function VoiceRecorder({
         
         {!isRecording ? (
           <button
+            type="button"
+            aria-label={copy.startRecording}
             onClick={handleStartRecording}
             disabled={isProcessing}
-            className="group relative w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-gradient-to-tr from-terracotta-600 to-terracotta-500 text-white shadow-xl shadow-terracotta-600/30 flex items-center justify-center hover:scale-105 active:scale-95 transition-all duration-200 focus:outline-none"
+            className="group relative flex h-20 w-20 items-center justify-center rounded-full bg-gradient-to-tr from-terracotta-600 to-terracotta-500 text-white shadow-xl shadow-terracotta-600/30 transition-all duration-200 hover:scale-105 active:scale-95 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-orange-300 disabled:cursor-not-allowed disabled:opacity-50 sm:h-24 sm:w-24"
           >
             <div className="absolute inset-0 rounded-full bg-terracotta-400 animate-ping opacity-20 group-hover:opacity-35"></div>
             <Mic className="w-9 h-9 sm:w-10 sm:h-10 text-white" />
           </button>
         ) : (
           <button
+            type="button"
+            aria-label={copy.stopRecording}
             onClick={handleStopRecording}
-            className="group relative w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-red-600 text-white shadow-xl shadow-red-600/40 flex items-center justify-center hover:scale-105 active:scale-95 transition-transform"
+            className="group relative flex h-20 w-20 items-center justify-center rounded-full bg-red-600 text-white shadow-xl shadow-red-600/40 transition-transform hover:scale-105 active:scale-95 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-red-300 sm:h-24 sm:w-24"
           >
             <div className="absolute inset-0 rounded-full bg-red-400 animate-ping opacity-40"></div>
             <Square className="w-8 h-8 fill-current text-white" />
@@ -292,7 +308,7 @@ export default function VoiceRecorder({
 
         <div className="mt-4 text-center">
           <p className="text-sm font-bold text-slate-900">
-            {isRecording ? copy.listening : copy.tapMic}
+            {isProcessing ? copy.processing : isRecording ? copy.listening : copy.tapMic}
           </p>
           <div className="flex items-center justify-center gap-2 mt-1">
             {isRecording ? (
@@ -320,8 +336,11 @@ export default function VoiceRecorder({
               {/* Voiceover Listen Button */}
               {liveTranscript && (
                 <button
+                  type="button"
+                  aria-label={isPlayingVoiceover ? copy.stopVoice : copy.listen}
+                  aria-pressed={isPlayingVoiceover}
                   onClick={() => handlePlayVoiceover(liveTranscript)}
-                  className="flex items-center gap-1 text-[11px] font-bold text-emerald-700 hover:text-emerald-900 bg-emerald-50 px-2 py-0.5 rounded-md transition-colors"
+                  className="flex items-center gap-1 rounded-md bg-emerald-50 px-2 py-1 text-[11px] font-bold text-emerald-700 transition-colors hover:text-emerald-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300"
                 >
                   {isPlayingVoiceover ? <VolumeX className="w-3 h-3 text-red-600" /> : <Volume2 className="w-3 h-3" />}
                   <span>{isPlayingVoiceover ? copy.stopVoice : `🔊 ${copy.listen}`}</span>
@@ -352,9 +371,10 @@ export default function VoiceRecorder({
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
             {samplePresets.map((preset) => (
               <button
+                type="button"
                 key={preset.id}
                 onClick={() => handleSelectSample(preset)}
-                className="text-left p-3 rounded-xl border border-artisan-200 bg-white hover:border-terracotta-400 hover:bg-terracotta-50/50 transition-all text-xs group flex items-start gap-2.5 shadow-sm"
+                className="group flex items-start gap-2.5 rounded-xl border border-artisan-200 bg-white p-3 text-left text-xs shadow-sm transition-all hover:border-terracotta-400 hover:bg-terracotta-50/50 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-orange-100"
               >
                 <div className="w-7 h-7 rounded-lg bg-artisan-100 text-terracotta-700 flex items-center justify-center flex-shrink-0 group-hover:bg-terracotta-600 group-hover:text-white transition-colors">
                   <Volume2 className="w-4 h-4" />

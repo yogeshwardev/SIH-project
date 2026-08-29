@@ -107,17 +107,18 @@ export default function AmazonHeader({
           </button>
 
           {/* SEARCH BAR */}
-          <div className="flex-1 min-w-0">
+          <div className="flex-1 min-w-0 mx-2 lg:mx-4">
             <form
               onSubmit={e => { e.preventDefault(); onSearch?.(); }}
-              className="flex h-[42px] rounded-lg overflow-hidden search-bar-wrapper"
+              className="flex h-[40px] bg-white rounded flex-1 focus-within:ring-[3px] focus-within:ring-[#FF9900]/50 overflow-hidden border-2 border-transparent focus-within:border-[#FF9900]"
+              style={{ borderRadius: '4px' }}
             >
               {/* Category Dropdown */}
-              <div className="hidden sm:flex items-center bg-[#f3f4f6] border-r border-gray-300 flex-shrink-0">
+              <div className="hidden sm:flex items-center bg-[#f3f4f6] border-r border-gray-300 flex-shrink-0 hover:bg-gray-200 cursor-pointer">
                 <select
                   value={localCat}
                   onChange={e => { setLocalCat(e.target.value); setSelectedCategory?.(e.target.value); }}
-                  className="h-full bg-transparent text-[12px] font-semibold text-gray-700 pl-2 pr-6 outline-none cursor-pointer"
+                  className="h-full bg-transparent text-[12px] font-semibold text-gray-700 pl-3 pr-6 outline-none cursor-pointer"
                   style={{ appearance: 'auto' }}
                 >
                   {CATEGORIES.map(c => (
@@ -129,16 +130,16 @@ export default function AmazonHeader({
               {/* Input */}
               <input
                 type="text"
-                value={searchTerm}
+                value={searchTerm || ''}
                 onChange={e => setSearchTerm?.(e.target.value)}
-                placeholder="Search for Banarasi silk, blue pottery, wooden toys, tribal art..."
-                className="flex-1 px-3 text-[13px] text-gray-900 placeholder-gray-400 bg-white outline-none min-w-0"
+                placeholder="Search for Banarasi silk, blue pottery, wooden toys..."
+                className="flex-1 px-3 text-[15px] text-gray-900 placeholder-gray-500 bg-white outline-none min-w-0"
               />
 
               {/* Search Button */}
               <button
                 type="submit"
-                className="w-[50px] bg-amber-400 hover:bg-amber-500 flex items-center justify-center flex-shrink-0 transition-colors"
+                className="w-[45px] bg-[#FF9900] hover:bg-[#F3A847] flex items-center justify-center flex-shrink-0 transition-colors"
               >
                 <Search className="w-5 h-5 text-gray-900 stroke-[2.5]" />
               </button>

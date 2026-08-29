@@ -110,92 +110,84 @@ export default function AdminPortalPage({ onNavigateToMarketplace }) {
   };
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-      
-      {/* Top Admin Executive Header */}
-      <div className="bg-slate-900 text-white rounded-3xl p-6 sm:p-7 shadow-xl mb-6 relative overflow-hidden">
-        <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-4">
-          
-          <div>
-            <div className="flex items-center gap-2 mb-2">
-              <span className="bg-terracotta-600 text-white text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-md flex items-center gap-1">
-                <ShieldCheck className="w-3.5 h-3.5" />
-                ADMINISTRATOR GOVERNANCE PORTAL
-              </span>
-              <span className="text-xs text-slate-400">
-                National Handicrafts & Handloom Governance Directorate
-              </span>
-            </div>
-            <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight">
-              Artisan Verification & E-Commerce Control Center
-            </h1>
-            <p className="text-xs sm:text-sm text-slate-300 mt-1 max-w-2xl">
-              Review AI-generated listings, verify fair-trade pricing algorithms, authorize e-commerce marketplace publications, and manage buyer orders.
-            </p>
+    <div className="min-h-screen bg-[#F0F2F2]" style={{ fontFamily: "'Inter', sans-serif" }}>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+
+      {/* Top Admin Header */}
+      <div className="bg-white border border-[#D5D9D9] rounded-lg p-5 mb-5 flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <div className="flex items-center gap-2 mb-1.5">
+            <ShieldCheck className="w-5 h-5 text-[#007600]" />
+            <span className="text-[11px] font-bold text-[#007600] uppercase tracking-wider">Administrator Governance Portal</span>
+            <span className="text-[11px] text-[#565959] ml-1">· National Handicrafts & Handloom Directorate</span>
           </div>
+          <h1 className="text-[20px] font-bold text-[#0F1111]">
+            Artisan Verification & Marketplace Control Center
+          </h1>
+          <p className="text-[12px] text-[#565959] mt-0.5">
+            Review AI-generated listings, verify pricing, authorize marketplace publications, and manage buyer orders.
+          </p>
+        </div>
 
-          {/* Quick Actions */}
-          <div className="flex flex-wrap items-center gap-2">
-            <button
-              onClick={handleAutoApproveAll}
-              disabled={pendingProducts.length === 0}
-              className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold bg-emerald-600 hover:bg-emerald-500 text-white shadow-md transition-all active:scale-95 disabled:opacity-50"
-              title="Fast-track approve all pending items"
-            >
-              <Zap className="w-4 h-4 text-emerald-200" />
-              <span>Auto-Approve All ({pendingProducts.length})</span>
-            </button>
+        <div className="flex items-center gap-2 flex-shrink-0">
+          <button
+            onClick={handleAutoApproveAll}
+            disabled={pendingProducts.length === 0}
+            className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-[12px] font-bold bg-[#FF9900] hover:bg-[#F7CA00] text-[#0F1111] border border-[#e68900] transition-colors disabled:opacity-50"
+            title="Fast-track approve all pending items"
+          >
+            <Zap className="w-4 h-4" />
+            <span>Approve All ({pendingProducts.length})</span>
+          </button>
 
-            <button
-              onClick={fetchAdminData}
-              className="p-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 transition-colors"
-              title="Refresh Queue"
-            >
-              <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-            </button>
-          </div>
-
+          <button
+            onClick={fetchAdminData}
+            className="p-2 rounded-lg bg-white border border-[#D5D9D9] hover:bg-[#F7F8F8] text-[#565959] transition-colors"
+            title="Refresh Queue"
+          >
+            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+          </button>
         </div>
       </div>
 
       {/* Success Notification Banner */}
       {actionSuccessMessage && (
-        <div className="mb-6 p-4 rounded-2xl bg-emerald-50 border border-emerald-300 text-emerald-900 text-xs font-bold flex items-center justify-between shadow-sm animate-fadeIn">
+        <div className="mb-5 p-3 rounded-lg bg-[#EAF7EE] border border-[#B7DFC4] text-[#007600] text-[12px] font-semibold flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <CheckCircle2 className="w-5 h-5 text-emerald-700 flex-shrink-0" />
+            <CheckCircle2 className="w-4 h-4 flex-shrink-0" />
             <span>{actionSuccessMessage}</span>
           </div>
-          <button onClick={() => setActionSuccessMessage(null)} className="text-emerald-700 hover:text-emerald-900">
+          <button onClick={() => setActionSuccessMessage(null)} className="text-[#007600] hover:text-[#005900]">
             <X className="w-4 h-4" />
           </button>
         </div>
       )}
 
       {/* Navigation Sub-Tabs */}
-      <div className="flex items-center gap-2 overflow-x-auto pb-2 sm:pb-0 mb-6 bg-white p-1.5 rounded-2xl border border-artisan-200 shadow-sm">
+      <div className="flex items-center gap-0 mb-5 bg-white border border-[#D5D9D9] rounded-lg overflow-hidden">
         {[
-          { id: 'pending', label: 'Pending Approval Queue', count: pendingProducts.length, icon: Clock },
-          { id: 'catalog', label: 'Live Marketplace Catalog', count: publishedProducts.length, icon: Package },
-          { id: 'orders', label: 'Buyer Orders & Inquiries', count: inquiries.length, icon: ShoppingBag },
-          { id: 'analytics', label: 'Impact & Economics Analytics', count: null, icon: TrendingUp }
-        ].map((tab) => {
+          { id: 'pending', label: 'Pending Approval', count: pendingProducts.length, icon: Clock },
+          { id: 'catalog', label: 'Live Catalog', count: publishedProducts.length, icon: Package },
+          { id: 'orders', label: 'Orders & Inquiries', count: inquiries.length, icon: ShoppingBag },
+          { id: 'analytics', label: 'Analytics', count: null, icon: TrendingUp }
+        ].map((tab, idx) => {
           const Icon = tab.icon;
           const isActive = adminTab === tab.id;
           return (
             <button
               key={tab.id}
               onClick={() => setAdminTab(tab.id)}
-              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap ${
+              className={`flex items-center gap-2 px-5 py-3 text-[12px] font-semibold transition-all whitespace-nowrap border-b-2 flex-1 justify-center ${
                 isActive
-                  ? 'bg-slate-900 text-white shadow-md'
-                  : 'text-slate-600 hover:text-slate-900 hover:bg-artisan-50'
-              }`}
+                  ? 'border-[#FF9900] text-[#0F1111] bg-[#FEF9EE]'
+                  : 'border-transparent text-[#565959] hover:text-[#0F1111] hover:bg-[#F7F8F8]'
+              } ${idx > 0 ? 'border-l border-[#D5D9D9]' : ''}`}
             >
-              <Icon className={`w-4 h-4 ${isActive ? 'text-amber-400' : 'text-slate-400'}`} />
+              <Icon className={`w-4 h-4 ${isActive ? 'text-[#FF9900]' : 'text-[#8D9096]'}`} />
               <span>{tab.label}</span>
-              {tab.count !== null && (
-                <span className={`text-[10px] px-2 py-0.5 rounded-full font-extrabold ${
-                  isActive ? 'bg-terracotta-600 text-white' : 'bg-slate-100 text-slate-700'
+              {tab.count !== null && tab.count > 0 && (
+                <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-bold ${
+                  isActive ? 'bg-[#FF9900] text-[#0F1111]' : 'bg-[#EAEDED] text-[#565959]'
                 }`}>
                   {tab.count}
                 </span>
@@ -638,6 +630,7 @@ export default function AdminPortalPage({ onNavigateToMarketplace }) {
         </div>
       )}
 
+      </div>
     </div>
   );
 }

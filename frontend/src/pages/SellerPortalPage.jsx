@@ -14,7 +14,6 @@ import { voiceAssistant } from '../services/voiceAssistant';
 import BeforeAfterSlider from '../components/BeforeAfterSlider';
 import VoiceRecorder from '../components/VoiceRecorder';
 import PriceExplainerCard from '../components/PriceExplainerCard';
-import { DEMO_PRESETS } from '../components/LiveDemoBar';
 
 const SELLER_LANGUAGE_OPTIONS = [
   { name: 'Hindi', code: 'hi-IN', label: 'हिन्दी' },
@@ -59,6 +58,10 @@ const questionUiCopyFor = (language) => {
     listenQuestion: 'ప్రశ్నను వినండి',
     stopQuestion: 'వాయిస్ ఆపండి',
     preparingVoice: 'సహజమైన వాయిస్ సిద్ధమవుతోంది…',
+    questionHelp: 'ఈ ప్రశ్నను సహజమైన వాయిస్‌లో చదువుతాం. మళ్లీ వినాలంటే కింద ఉన్న బటన్ నొక్కండి.',
+    answerChoice: 'మాట్లాడండి లేదా టైప్ చేయండి — మీకు సులభమైనది ఎంచుకోండి.',
+    confirmationHelp: 'వివరాలను ఒకసారి చూసుకోండి. అన్నీ సరైతే నిర్ధారించి తర్వాత నొక్కండి. ఏదైనా మార్చాలంటే వెనుకకు నొక్కండి.',
+    languageLabel: 'సమాధానం చెప్పే భాష',
   };
   if (code === 'hi-IN') return {
     heading: 'एक आसान सवाल',
@@ -78,6 +81,10 @@ const questionUiCopyFor = (language) => {
     listenQuestion: 'सवाल सुनें',
     stopQuestion: 'आवाज़ रोकें',
     preparingVoice: 'स्वाभाविक आवाज़ तैयार हो रही है…',
+    questionHelp: 'यह सवाल स्वाभाविक आवाज़ में अपने-आप पढ़ा जाएगा। दोबारा सुनने के लिए नीचे का बटन दबाएँ।',
+    answerChoice: 'बोलें या लिखें — जो आपके लिए आसान हो उसे चुनें।',
+    confirmationHelp: 'जानकारी एक बार देख लें। सब सही है तो पुष्टि करके आगे बढ़ें। बदलने के लिए पिछला दबाएँ।',
+    languageLabel: 'जवाब की भाषा',
   };
   return {
     heading: 'One simple question',
@@ -97,27 +104,26 @@ const questionUiCopyFor = (language) => {
     listenQuestion: 'Listen to question',
     stopQuestion: 'Stop voice',
     preparingVoice: 'Preparing natural voice…',
+    questionHelp: 'The assistant reads this aloud automatically. Tap below whenever you want to hear it again.',
+    answerChoice: 'Speak or type — choose whichever is easier for you.',
+    confirmationHelp: 'Check the details once. If everything is correct, confirm and continue. Use Previous to change an answer.',
+    languageLabel: 'Answer language',
   };
 };
 
 // ── KPI Cards data ────────────────────────────────
-function StatCard({ icon: Icon, iconBg, label, value, sub, trend }) {
+function StatCard({ borderColor, label, value, sub, trend }) {
   return (
-    <div className="bg-white rounded-2xl border border-gray-200 p-5 flex items-start gap-4 shadow-sm hover:shadow-md transition-shadow">
-      <div className={`w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 ${iconBg}`}>
-        <Icon className="w-6 h-6 text-white" />
-      </div>
-      <div className="flex-1 min-w-0">
-        <div className="text-[12px] text-gray-500 font-medium mb-0.5">{label}</div>
-        <div className="text-[22px] font-black text-gray-900 leading-none">{value}</div>
-        {sub && <div className="text-[11px] text-gray-400 mt-1">{sub}</div>}
-        {trend && (
-          <div className={`text-[11px] font-bold mt-1 flex items-center gap-1 ${trend.up ? 'text-green-600' : 'text-red-500'}`}>
-            <TrendingUp className={`w-3 h-3 ${!trend.up && 'rotate-180'}`} />
-            {trend.label}
-          </div>
-        )}
-      </div>
+    <div className={`bg-white border border-[#D5D9D9] rounded-lg p-4 border-l-4 ${borderColor} shadow-sm`}>
+      <div className="text-[11px] text-[#565959] font-medium uppercase tracking-wider mb-1">{label}</div>
+      <div className="text-[28px] font-black text-[#0F1111] leading-none mb-1">{value}</div>
+      {sub && <div className="text-[11px] text-[#8D9096]">{sub}</div>}
+      {trend && (
+        <div className={`text-[11px] font-semibold mt-1.5 flex items-center gap-1 ${trend.up ? 'text-[#007600]' : 'text-[#CC0C39]'}`}>
+          <TrendingUp className={`w-3 h-3 ${!trend.up && 'rotate-180'}`} />
+          {trend.label}
+        </div>
+      )}
     </div>
   );
 }
@@ -127,17 +133,17 @@ function SideNavItem({ icon: Icon, label, active, count, onClick }) {
   return (
     <button
       onClick={onClick}
-      className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-[13px] font-semibold transition-all text-left ${
+      className={`w-full flex items-center gap-3 px-3 py-2.5 text-[13px] font-medium transition-all text-left relative ${
         active
-          ? 'bg-orange-500 text-white shadow-sm'
-          : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
+          ? 'border-l-[3px] border-[#FF9900] bg-[#FEF9EE] text-[#0F1111] font-semibold pl-[9px]'
+          : 'text-[#565959] hover:bg-[#F7F8F8] border-l-[3px] border-transparent'
       }`}
     >
-      <Icon className={`w-4.5 h-4.5 flex-shrink-0 ${active ? 'text-white' : 'text-gray-400'}`} />
+      <Icon className={`w-4 h-4 flex-shrink-0 ${active ? 'text-[#FF9900]' : 'text-[#8D9096]'}`} />
       <span className="flex-1">{label}</span>
-      {count !== undefined && (
-        <span className={`text-[10px] font-black px-1.5 py-0.5 rounded-full min-w-[20px] text-center ${
-          active ? 'bg-white/20 text-white' : 'bg-gray-200 text-gray-600'
+      {count !== undefined && count > 0 && (
+        <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[18px] text-center ${
+          active ? 'bg-[#FF9900] text-[#0F1111]' : 'bg-[#EAEDED] text-[#565959]'
         }`}>
           {count}
         </span>
@@ -149,14 +155,14 @@ function SideNavItem({ icon: Icon, label, active, count, onClick }) {
 // ── Status Badge ──────────────────────────────────
 function StatusBadge({ status }) {
   const cfg = {
-    'Published':       'bg-green-100 text-green-800 border-green-200',
-    'Pending Approval': 'bg-amber-100 text-amber-800 border-amber-200',
-    'Rejected':        'bg-red-100 text-red-800 border-red-200',
-    'Processing':      'bg-blue-100 text-blue-800 border-blue-200',
+    'Published':       'bg-[#EAF7EE] text-[#007600] border-[#B7DFC4]',
+    'Pending Approval': 'bg-[#FFF8E7] text-[#B45309] border-[#FCD34D]',
+    'Rejected':        'bg-[#FEF2F2] text-[#CC0C39] border-[#FECACA]',
+    'Processing':      'bg-[#FFF8E7] text-[#B45309] border-[#FCD34D]',
+    'Delivered':       'bg-[#EAF7EE] text-[#007600] border-[#B7DFC4]',
   };
   return (
-    <span className={`inline-flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-full border ${cfg[status] || 'bg-gray-100 text-gray-600 border-gray-200'}`}>
-      <span className="w-1.5 h-1.5 rounded-full bg-current inline-block" />
+    <span className={`inline-flex items-center text-[11px] font-bold px-2 py-0.5 rounded-full border ${cfg[status] || 'bg-[#F7F8F8] text-[#565959] border-[#D5D9D9]'}`}>
       {status}
     </span>
   );
@@ -239,25 +245,25 @@ export default function SellerPortalPage({
   const totalPayout = orders.reduce((s, o) => s + (o.total_amount || 0), 0);
 
   return (
-    <div className="flex h-screen bg-gray-100 overflow-hidden" style={{ fontFamily: "'Inter', sans-serif" }}>
+    <div className="flex h-screen bg-[#F0F2F2] overflow-hidden" style={{ fontFamily: "'Inter', sans-serif" }}>
 
       {/* ════════════════════════════
           LEFT SIDEBAR
       ════════════════════════════ */}
-      <aside className="w-[240px] flex-shrink-0 bg-white border-r border-gray-200 flex flex-col h-full overflow-y-auto">
+      <aside className="w-[240px] flex-shrink-0 bg-white border-r border-[#D5D9D9] flex flex-col h-full overflow-y-auto">
 
-        {/* Seller Profile & Store Switcher */}
-        <div className="p-4 border-b border-gray-200">
+        {/* Seller Profile & Store Switcher */}\n        <div className="px-4 pt-4 pb-2 text-[18px] font-black text-[#131921]">CraftLink</div>
+        <div className="p-4 border-b border-[#D5D9D9]">
           <div className="flex items-center gap-3 mb-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-orange-500 to-amber-500 flex items-center justify-center text-white font-black text-[15px] flex-shrink-0 shadow">
+            <div className="w-10 h-10 rounded bg-[#FF9900] flex items-center justify-center text-white font-black text-[15px] flex-shrink-0 shadow">
               {activeArtisan?.store_name ? activeArtisan.store_name.charAt(0).toUpperCase() : 'S'}
             </div>
             <div className="min-w-0 flex-1">
               <div className="text-[13px] font-bold text-gray-900 truncate">
-                {activeArtisan?.store_name || activeArtisan?.name || 'Varanasi Weavers'}
+                {activeArtisan?.store_name || activeArtisan?.name || 'Your Store'}
               </div>
               <div className="text-[11px] text-gray-500 truncate">
-                {activeArtisan?.region || 'Varanasi, Uttar Pradesh'}
+                {activeArtisan?.region || ''}
               </div>
             </div>
           </div>
@@ -269,7 +275,7 @@ export default function SellerPortalPage({
               <select
                 value={selectedArtisanId || ''}
                 onChange={(e) => setSelectedArtisanId(Number(e.target.value))}
-                className="w-full text-xs font-semibold bg-gray-50 border border-gray-200 rounded-lg p-1.5 outline-none focus:border-orange-500 text-gray-800"
+                className="w-full text-xs font-semibold bg-gray-50 border border-[#D5D9D9] rounded-lg p-1.5 outline-none focus:border-orange-500 text-gray-800"
               >
                 {artisans.map(a => (
                   <option key={a.id} value={a.id}>
@@ -291,21 +297,12 @@ export default function SellerPortalPage({
             </button>
           )}
 
-          {/* Seller Health Score */}
-          <div className="bg-green-50 border border-green-200 rounded-xl p-2.5">
-            <div className="flex items-center justify-between mb-1">
-              <span className="text-[11px] font-bold text-green-800">Producer Health</span>
-              <span className="text-[11px] font-black text-green-800">98/100 · Verified</span>
-            </div>
-            <div className="bg-green-200 rounded-full h-1.5 overflow-hidden">
-              <div className="bg-green-600 h-full rounded-full" style={{ width: '98%' }} />
-            </div>
-          </div>
+          
         </div>
 
         {/* Navigation */}
         <nav className="flex-1 p-3 space-y-0.5">
-          <div className="text-[10px] font-black text-gray-400 uppercase tracking-widest px-3 pb-1 pt-2">Main Menu</div>
+          <div className="text-[10px] font-bold text-[#8D9096] uppercase tracking-widest px-3 pb-1 pt-3">Main Menu</div>
           {NAV.map(item => (
             <SideNavItem
               key={item.id}
@@ -317,17 +314,17 @@ export default function SellerPortalPage({
             />
           ))}
 
-          <div className="text-[10px] font-black text-gray-400 uppercase tracking-widest px-3 pb-1 pt-4">Account</div>
+          <div className="text-[10px] font-bold text-[#8D9096] uppercase tracking-widest px-3 pb-1 pt-3">Account</div>
           <SideNavItem icon={Settings} label="Account Settings" active={false} onClick={() => {}} />
           <SideNavItem icon={HelpCircle} label="Help & Support" active={false} onClick={() => {}} />
           <SideNavItem icon={ShieldCheck} label="Admin Portal" active={false} onClick={onNavigateToAdmin} />
         </nav>
 
         {/* Sidebar Footer */}
-        <div className="p-4 border-t border-gray-200">
+        <div className="p-4 border-t border-[#D5D9D9]">
           <button
             onClick={onNavigateToStore}
-            className="w-full flex items-center gap-2 text-[12px] font-semibold text-gray-600 hover:text-gray-900 py-2 px-3 rounded-xl hover:bg-gray-50 transition-colors"
+            className="w-full flex items-center gap-2 text-[12px] font-semibold text-gray-600 hover:text-gray-900 py-2 px-3 rounded border-b border-[#EAEDED] hover:bg-[#FAFAFA] transition-colors"
           >
             <Eye className="w-4 h-4" />
             View Your Storefront
@@ -341,9 +338,9 @@ export default function SellerPortalPage({
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
 
         {/* Top Header Bar */}
-        <header className="bg-white border-b border-gray-200 px-6 py-3 flex items-center justify-between flex-shrink-0">
+        <header className="bg-white border-b border-[#D5D9D9] px-6 py-3 flex items-center justify-between flex-shrink-0">
           <div>
-            <h1 className="text-[16px] font-black text-gray-900" style={{ fontFamily: "'Outfit', sans-serif" }}>
+            <h1 className="text-[#0F1111] font-bold text-[15px]" style={{ fontFamily: "'Outfit', sans-serif" }}>
               {activeTab === 'dashboard'  && 'Seller Dashboard'}
               {activeTab === 'addproduct' && 'AI Listing Studio'}
               {activeTab === 'inventory'  && 'My Inventory & Catalog'}
@@ -351,14 +348,14 @@ export default function SellerPortalPage({
               {activeTab === 'payments'   && 'Payments & Payouts'}
               {activeTab === 'analytics'  && 'Analytics & Insights'}
             </h1>
-            <p className="text-[12px] text-gray-500 mt-0.5">
+            <p className="text-[12px] text-[#565959] mt-0.5">
               CraftLink Seller Central · {activeArtisan ? `${activeArtisan.name}, ${activeArtisan.region}` : 'Loading artisan profile…'}
             </p>
           </div>
 
           <div className="flex items-center gap-3">
             {/* Search */}
-            <div className="hidden md:flex items-center gap-2 bg-gray-100 rounded-xl px-3 py-2 w-[220px]">
+            <div className="hidden md:flex items-center gap-2 bg-gray-100 rounded px-3 py-2 w-[220px]">
               <Search className="w-4 h-4 text-gray-400" />
               <input
                 type="text"
@@ -370,7 +367,7 @@ export default function SellerPortalPage({
             </div>
 
             {/* Notifications */}
-            <button className="relative w-9 h-9 rounded-xl bg-gray-100 flex items-center justify-center text-gray-500 hover:bg-gray-200 transition-colors">
+            <button className="relative w-9 h-9 rounded bg-gray-100 flex items-center justify-center text-gray-500 hover:bg-gray-200 transition-colors">
               <Bell className="w-4 h-4" />
               {pending.length > 0 && (
                 <span className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-red-500 text-white text-[9px] font-black rounded-full flex items-center justify-center">
@@ -382,8 +379,7 @@ export default function SellerPortalPage({
             {/* Add product CTA */}
             <button
               onClick={() => setActiveTab('addproduct')}
-              className="flex items-center gap-2 px-4 py-2 rounded-xl text-[13px] font-bold text-white transition-all active:scale-95"
-              style={{ background: 'linear-gradient(135deg, #f97316, #ef4444)' }}
+              className="flex items-center gap-2 px-4 py-2 rounded text-[13px] bg-[#FF9900] hover:bg-[#F7CA00] text-[#0F1111] font-bold border border-[#e68900] transition-all active:scale-95"
             >
               <Plus className="w-4 h-4" />
               Add Listing
@@ -402,8 +398,8 @@ export default function SellerPortalPage({
 
               {/* Welcome Banner — flat, professional */}
               <div
-                className="rounded-xl p-5"
-                style={{ background: '#fff', border: '1px solid #D5D9D9' }}
+                className="bg-white border border-[#D5D9D9] rounded-lg p-5"
+                
               >
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                   <div>
@@ -412,8 +408,8 @@ export default function SellerPortalPage({
                         ✓ Verified Artisan Guild · Level 3 Seller
                       </span>
                     </div>
-                    <h2 className="text-[20px] font-black text-gray-900 leading-tight mb-1" style={{ fontFamily: "'Outfit', sans-serif" }}>
-                      Good Morning, Varanasi Weavers 👋
+                    <h2 className="text-[18px] font-bold text-[#0F1111] mb-1" style={{ fontFamily: "'Outfit', sans-serif" }}>
+                      Welcome back, {activeArtisan?.store_name || currentUser?.store_name || currentUser?.name || 'Your Store'}
                     </h2>
                     <p className="text-[13px] text-gray-500">
                       You have <strong className="text-gray-900">{orders.length} new orders</strong> awaiting fulfillment and <strong className="text-gray-900">{pending.length} listings</strong> pending admin review.
@@ -433,45 +429,17 @@ export default function SellerPortalPage({
 
               {/* KPI Cards Row */}
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                <StatCard
-                  icon={Package}
-                  iconBg="bg-blue-500"
-                  label="Active Listings"
-                  value={published.length}
-                  sub={`${pending.length} pending review`}
-                  trend={{ up: true, label: '+2 this week' }}
-                />
-                <StatCard
-                  icon={IndianRupee}
-                  iconBg="bg-green-500"
-                  label="Catalog GMV"
-                  value={`₹${totalGMV.toLocaleString('en-IN')}`}
-                  sub="Gross merchandise value"
-                  trend={{ up: true, label: '+12% vs last month' }}
-                />
-                <StatCard
-                  icon={ShoppingBag}
-                  iconBg="bg-orange-500"
-                  label="Total Orders"
-                  value={orders.length}
-                  sub="Direct buyer orders"
-                  trend={{ up: true, label: `${orders.length} active` }}
-                />
-                <StatCard
-                  icon={Banknote}
-                  iconBg="bg-purple-500"
-                  label="Settled Payouts"
-                  value={`₹${totalPayout.toLocaleString('en-IN')}`}
-                  sub="Direct NEFT to bank"
-                  trend={{ up: true, label: '0% platform fee' }}
-                />
+                <StatCard borderColor="border-[#007185]" label="Active Listings" value={published.length} sub={`${pending.length} pending review`} trend={{ up: true, label: '+2 this week' }} />
+                <StatCard borderColor="border-[#007600]" label="Catalog GMV" value={`₹${totalGMV.toLocaleString('en-IN')}`} sub="Gross merchandise value" trend={{ up: true, label: '+12% vs last month' }} />
+                <StatCard borderColor="border-[#FF9900]" label="Total Orders" value={orders.length} sub="Direct buyer orders" trend={{ up: true, label: `${orders.length} active` }} />
+                <StatCard borderColor="border-[#8B5CF6]" label="Settled Payouts" value={`₹${totalPayout.toLocaleString('en-IN')}`} sub="Direct NEFT to bank" trend={{ up: true, label: '0% platform fee' }} />
               </div>
 
               {/* Second Row: Chart + Top Products + Pending Actions */}
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
 
                 {/* Sales Chart Card */}
-                <div className="lg:col-span-2 bg-white rounded-2xl border border-gray-200 shadow-sm p-5">
+                <div className="lg:col-span-2 bg-white border border-[#D5D9D9] rounded-lg p-5 shadow-sm">
                   <div className="flex items-center justify-between mb-4">
                     <div>
                       <h3 className="text-[14px] font-bold text-gray-900">Revenue Overview</h3>
@@ -499,7 +467,7 @@ export default function SellerPortalPage({
                             className="w-full rounded-t-lg transition-all hover:opacity-80 cursor-pointer"
                             style={{
                               height: `${(v / max) * 80}px`,
-                              background: i === 3 ? 'linear-gradient(180deg, #f97316, #ef4444)' : '#e5e7eb',
+                              background: i === 3 ? '#FF9900' : '#EAEDED',
                             }}
                           />
                           <span className="text-[9px] text-gray-400">{days[i]}</span>
@@ -508,26 +476,26 @@ export default function SellerPortalPage({
                     })}
                   </div>
                   <div className="pt-3 border-t border-gray-100 flex items-center justify-between text-[12px] text-gray-500">
-                    <span>Total this week: <strong className="text-gray-900">₹1,21,800</strong></span>
+                    <span>Total this week: <strong className="text-[#0F1111]">₹{totalPayout.toLocaleString('en-IN')}</strong></span>
                     <button className="text-blue-600 hover:underline font-semibold">View full report →</button>
                   </div>
                 </div>
 
                 {/* Pending Actions */}
-                <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-5 flex flex-col">
+                <div className="bg-white border border-[#D5D9D9] rounded-lg p-5 shadow-sm flex flex-col">
                   <h3 className="text-[14px] font-bold text-gray-900 mb-3">Action Required</h3>
                   <div className="space-y-3 flex-1">
                     {[
-                      { icon: Clock, color: 'text-amber-600 bg-amber-50', title: 'Pending Review', desc: `${pending.length} listings waiting admin`, action: () => setActiveTab('inventory') },
-                      { icon: Truck, color: 'text-blue-600 bg-blue-50', title: 'Pack & Ship', desc: `${orders.length} orders to fulfill`, action: () => setActiveTab('orders') },
-                      { icon: Zap, color: 'text-purple-600 bg-purple-50', title: 'New AI Feature', desc: 'Try the multilingual voice lister', action: () => setActiveTab('addproduct') },
+                      { icon: Clock, color: 'text-[#B45309]', title: 'Pending Review', desc: `${pending.length} listings waiting admin`, action: () => setActiveTab('inventory') },
+                      { icon: Truck, color: 'text-[#007185]', title: 'Pack & Ship', desc: `${orders.length} orders to fulfill`, action: () => setActiveTab('orders') },
+                      { icon: Zap, color: 'text-[#8B5CF6]', title: 'New AI Feature', desc: 'Try the multilingual voice lister', action: () => setActiveTab('addproduct') },
                     ].map((item, i) => (
                       <button
                         key={i}
                         onClick={item.action}
-                        className="w-full flex items-center gap-3 p-3 rounded-xl border border-gray-100 hover:border-gray-300 hover:bg-gray-50 transition-all text-left group"
+                        className="w-full flex items-center gap-3 p-3 rounded border border-gray-100 hover:border-gray-300 hover:bg-gray-50 transition-all text-left group"
                       >
-                        <div className={`w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 ${item.color}`}>
+                        <div className={`flex-shrink-0 ${item.color}`}>
                           <item.icon className="w-4 h-4" />
                         </div>
                         <div className="flex-1 min-w-0">
@@ -540,7 +508,7 @@ export default function SellerPortalPage({
                   </div>
 
                   {/* Trust badge */}
-                  <div className="mt-4 pt-3 border-t border-gray-100 bg-green-50 rounded-xl p-3 flex items-center gap-2.5">
+                  <div className="mt-4 pt-3 border-t border-gray-100 bg-green-50 rounded p-3 flex items-center gap-2.5">
                     <ShieldCheck className="w-5 h-5 text-green-600 flex-shrink-0" />
                     <div className="text-[11px] text-green-800 font-semibold leading-snug">
                       0% Platform Fee · 100% Earnings<br />
@@ -551,7 +519,7 @@ export default function SellerPortalPage({
               </div>
 
               {/* Recent Products Preview */}
-              <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+              <div className="bg-white border border-[#D5D9D9] rounded-lg shadow-sm overflow-hidden">
                 <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
                   <h3 className="text-[14px] font-bold text-gray-900">Recent Listings</h3>
                   <button onClick={() => setActiveTab('inventory')} className="text-[12px] text-blue-600 hover:underline font-semibold">
@@ -560,7 +528,7 @@ export default function SellerPortalPage({
                 </div>
                 <div className="overflow-x-auto">
                   <table className="w-full text-[13px]">
-                    <thead className="bg-gray-50 text-[11px] text-gray-500 uppercase font-bold tracking-wider">
+                    <thead className="bg-[#F7F8F8] text-[#565959] text-xs uppercase font-semibold tracking-wider">
                       <tr>
                         <th className="px-5 py-3 text-left">Product</th>
                         <th className="px-5 py-3 text-left">Category</th>
@@ -571,7 +539,7 @@ export default function SellerPortalPage({
                     </thead>
                     <tbody className="divide-y divide-gray-100">
                       {products.slice(0, 5).map(p => (
-                        <tr key={p.id} className="hover:bg-gray-50 transition-colors">
+                        <tr key={p.id} className="border-b border-[#EAEDED] hover:bg-[#FAFAFA] transition-colors">
                           <td className="px-5 py-3">
                             <div className="flex items-center gap-3">
                               <div className="w-10 h-10 rounded-lg bg-gray-100 flex items-center justify-center overflow-hidden flex-shrink-0">
@@ -624,9 +592,9 @@ export default function SellerPortalPage({
             <div className="space-y-4 animate-fade-in">
 
               {/* Toolbar */}
-              <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-4 flex flex-wrap items-center justify-between gap-3">
+              <div className="bg-white rounded-lg border border-[#D5D9D9] shadow-sm p-4 flex flex-wrap items-center justify-between gap-3">
                 <div className="flex items-center gap-2">
-                  <div className="flex items-center gap-2 bg-gray-100 rounded-xl px-3 py-2">
+                  <div className="flex items-center gap-2 bg-gray-100 rounded px-3 py-2">
                     <Search className="w-4 h-4 text-gray-400" />
                     <input
                       type="text"
@@ -634,20 +602,19 @@ export default function SellerPortalPage({
                       className="bg-transparent text-[13px] text-gray-700 placeholder-gray-400 outline-none w-48"
                     />
                   </div>
-                  <button className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-gray-200 text-[12px] font-semibold text-gray-600 hover:bg-gray-50">
+                  <button className="flex items-center gap-1.5 px-3 py-2 rounded border border-[#D5D9D9] text-[12px] font-semibold text-gray-600 hover:bg-gray-50">
                     <Filter className="w-3.5 h-3.5" />
                     Filter
                   </button>
                 </div>
                 <div className="flex items-center gap-2">
-                  <button className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-gray-200 text-[12px] font-semibold text-gray-600 hover:bg-gray-50">
+                  <button className="flex items-center gap-1.5 px-3 py-2 rounded border border-[#D5D9D9] text-[12px] font-semibold text-gray-600 hover:bg-gray-50">
                     <Download className="w-3.5 h-3.5" />
                     Export CSV
                   </button>
                   <button
                     onClick={() => setActiveTab('addproduct')}
-                    className="flex items-center gap-2 px-4 py-2 rounded-xl text-[13px] font-bold text-white"
-                    style={{ background: 'linear-gradient(135deg, #f97316, #ef4444)' }}
+                    className="flex items-center gap-2 px-4 py-2 rounded text-[13px] bg-[#FF9900] hover:bg-[#F7CA00] text-[#0F1111] font-bold border border-[#e68900] transition-all active:scale-95"
                   >
                     <Plus className="w-4 h-4" />
                     Add Product
@@ -662,7 +629,7 @@ export default function SellerPortalPage({
                   { label: 'Live on Marketplace', value: published.length, color: 'text-green-600' },
                   { label: 'Pending Review', value: pending.length, color: 'text-amber-600' },
                 ].map(s => (
-                  <div key={s.label} className="bg-white rounded-xl border border-gray-200 shadow-sm p-4 text-center">
+                  <div key={s.label} className="bg-white rounded border border-[#D5D9D9] shadow-sm p-4 text-center">
                     <div className={`text-[24px] font-black ${s.color}`}>{s.value}</div>
                     <div className="text-[11px] text-gray-500 font-medium mt-0.5">{s.label}</div>
                   </div>
@@ -670,10 +637,10 @@ export default function SellerPortalPage({
               </div>
 
               {/* Inventory Table */}
-              <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+              <div className="bg-white border border-[#D5D9D9] rounded-lg shadow-sm overflow-hidden">
                 <div className="overflow-x-auto">
                   <table className="w-full text-[13px]">
-                    <thead className="bg-gray-50 text-[11px] text-gray-500 uppercase font-bold tracking-wider border-b border-gray-200">
+                    <thead className="bg-[#F7F8F8] text-[#565959] text-xs uppercase font-semibold tracking-wider border-b border-[#D5D9D9]">
                       <tr>
                         <th className="px-5 py-3.5 text-left">Product</th>
                         <th className="px-5 py-3.5 text-left">Category</th>
@@ -693,8 +660,7 @@ export default function SellerPortalPage({
                             <p className="text-[14px] font-semibold text-gray-500 mb-3">No products in your catalog yet</p>
                             <button
                               onClick={() => setActiveTab('addproduct')}
-                              className="px-6 py-2.5 rounded-xl font-bold text-white text-[13px]"
-                              style={{ background: 'linear-gradient(135deg, #f97316, #ef4444)' }}
+                              className="flex items-center gap-2 px-4 py-2 rounded text-[13px] bg-[#FF9900] hover:bg-[#F7CA00] text-[#0F1111] font-bold border border-[#e68900] transition-all active:scale-95"
                             >
                               + Create Your First Listing with AI
                             </button>
@@ -705,10 +671,10 @@ export default function SellerPortalPage({
                         const price = (p.suggested_price || 0);
                         const margin = cost > 0 ? Math.round(((price - cost) / price) * 100) : 0;
                         return (
-                          <tr key={p.id} className="hover:bg-orange-50/30 transition-colors group">
+                          <tr key={p.id} className="border-b border-[#EAEDED] hover:bg-[#FAFAFA] transition-colors group">
                             <td className="px-5 py-3.5">
                               <div className="flex items-center gap-3">
-                                <div className="w-12 h-12 rounded-xl bg-gray-100 border border-gray-200 flex items-center justify-center overflow-hidden flex-shrink-0">
+                                <div className="w-12 h-12 rounded bg-gray-100 border border-[#D5D9D9] flex items-center justify-center overflow-hidden flex-shrink-0">
                                   <img
                                     src={p.enhanced_image || p.original_image || 'https://placehold.co/48x48/f3f4f6/9ca3af?text=?'}
                                     alt=""
@@ -764,6 +730,14 @@ export default function SellerPortalPage({
           ══════════════════════════ */}
           {activeTab === 'orders' && (
             <div className="space-y-4 animate-fade-in">
+              {/* Order Status Filters */}
+              <div className="flex items-center gap-6 border-b border-[#D5D9D9] mb-4">
+                {['All', 'New', 'Processing', 'Shipped', 'Delivered'].map(status => (
+                  <button key={status} className={`pb-2 text-[13px] font-bold ${status === 'All' ? 'text-[#0F1111] border-b-2 border-[#FF9900]' : 'text-[#565959] hover:text-[#0F1111]'}`}>
+                    {status}
+                  </button>
+                ))}
+              </div>
               <div className="grid grid-cols-4 gap-3">
                 {[
                   { label: 'Total Orders', value: orders.length, icon: ShoppingBag, color: 'bg-blue-500' },
@@ -771,8 +745,8 @@ export default function SellerPortalPage({
                   { label: 'Delivered', value: orders.filter(o => o.status === 'Delivered').length, icon: CheckCircle2, color: 'bg-green-500' },
                   { label: 'Revenue', value: `₹${orders.reduce((s, o) => s + (o.total_amount || 0), 0).toLocaleString('en-IN')}`, icon: IndianRupee, color: 'bg-purple-500' },
                 ].map(s => (
-                  <div key={s.label} className="bg-white rounded-2xl border border-gray-200 shadow-sm p-4 flex items-center gap-3">
-                    <div className={`w-10 h-10 rounded-xl ${s.color} flex items-center justify-center flex-shrink-0`}>
+                  <div key={s.label} className="bg-white rounded-lg border border-[#D5D9D9] shadow-sm p-4 flex items-center gap-3">
+                    <div className={`w-10 h-10 rounded ${s.color} flex items-center justify-center flex-shrink-0`}>
                       <s.icon className="w-5 h-5 text-white" />
                     </div>
                     <div>
@@ -783,10 +757,10 @@ export default function SellerPortalPage({
                 ))}
               </div>
 
-              <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+              <div className="bg-white border border-[#D5D9D9] rounded-lg shadow-sm overflow-hidden">
                 <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
                   <h3 className="text-[14px] font-bold text-gray-900">Customer Orders</h3>
-                  <button className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-gray-200 text-[12px] font-semibold text-gray-600 hover:bg-gray-50">
+                  <button className="flex items-center gap-1.5 px-3 py-1.5 rounded border border-[#D5D9D9] text-[12px] font-semibold text-gray-600 hover:bg-gray-50">
                     <Download className="w-3.5 h-3.5" />
                     Export
                   </button>
@@ -801,7 +775,7 @@ export default function SellerPortalPage({
                 ) : (
                   <div className="overflow-x-auto">
                     <table className="w-full text-[13px]">
-                      <thead className="bg-gray-50 text-[11px] text-gray-500 uppercase font-bold tracking-wider border-b border-gray-100">
+                      <thead className="bg-[#F7F8F8] text-[#565959] text-xs uppercase font-semibold tracking-wider border-b border-gray-100">
                         <tr>
                           <th className="px-5 py-3.5 text-left">Order ID</th>
                           <th className="px-5 py-3.5 text-left">Customer</th>
@@ -814,7 +788,7 @@ export default function SellerPortalPage({
                       </thead>
                       <tbody className="divide-y divide-gray-100">
                         {orders.map(o => (
-                          <tr key={o.id} className="hover:bg-gray-50 transition-colors">
+                          <tr key={o.id} className="border-b border-[#EAEDED] hover:bg-[#FAFAFA] transition-colors">
                             <td className="px-5 py-3.5 font-bold text-gray-900">#CRF-{o.id}</td>
                             <td className="px-5 py-3.5">
                               <div className="font-semibold text-gray-900">{o.buyer_name}</div>
@@ -846,10 +820,10 @@ export default function SellerPortalPage({
                   { label: 'In Escrow', value: '₹9,850', sub: 'Clearing in 2 business days', icon: Clock, color: 'bg-amber-500', trend: 'Releasing Friday' },
                   { label: 'Platform Fee', value: '₹0 (Zero)', sub: '100% goes to your bank', icon: ShieldCheck, color: 'bg-blue-500', trend: 'Fair trade guarantee' },
                 ].map(c => (
-                  <div key={c.label} className="bg-white rounded-2xl border border-gray-200 shadow-sm p-5">
+                  <div key={c.label} className="bg-white border border-[#D5D9D9] rounded-lg p-5 shadow-sm">
                     <div className="flex items-center justify-between mb-3">
                       <span className="text-[12px] font-semibold text-gray-500">{c.label}</span>
-                      <div className={`w-9 h-9 rounded-xl ${c.color} flex items-center justify-center`}>
+                      <div className={`w-9 h-9 rounded ${c.color} flex items-center justify-center`}>
                         <c.icon className="w-4 h-4 text-white" />
                       </div>
                     </div>
@@ -861,15 +835,15 @@ export default function SellerPortalPage({
               </div>
 
               {/* Bank Account */}
-              <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-5">
+              <div className="bg-white border border-[#D5D9D9] rounded-lg p-5 shadow-sm">
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="text-[14px] font-bold text-gray-900">Bank Settlement Account</h3>
                   <span className="text-[11px] font-bold text-green-700 bg-green-100 px-2 py-0.5 rounded-full border border-green-200">
                     ✓ Verified KYC
                   </span>
                 </div>
-                <div className="flex items-center gap-4 p-4 bg-gray-50 rounded-xl border border-gray-200">
-                  <div className="w-12 h-12 rounded-xl bg-blue-600 flex items-center justify-center text-white font-black text-lg">
+                <div className="flex items-center gap-4 p-4 bg-gray-50 rounded border border-[#D5D9D9]">
+                  <div className="w-12 h-12 rounded bg-blue-600 flex items-center justify-center text-white font-black text-lg">
                     SBI
                   </div>
                   <div>
@@ -882,18 +856,16 @@ export default function SellerPortalPage({
               </div>
 
               {/* Settlement History Table */}
-              <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+              <div className="bg-white border border-[#D5D9D9] rounded-lg shadow-sm overflow-hidden">
                 <div className="px-5 py-4 border-b border-gray-100">
                   <h3 className="text-[14px] font-bold text-gray-900">Settlement History</h3>
                 </div>
                 <table className="w-full text-[13px]">
-                  <thead className="bg-gray-50 text-[11px] text-gray-500 uppercase font-bold tracking-wider">
+                  <thead className="bg-[#F7F8F8] text-[#565959] text-xs uppercase font-semibold tracking-wider">
                     <tr>
                       <th className="px-5 py-3.5 text-left">Date</th>
-                      <th className="px-5 py-3.5 text-left">Orders</th>
-                      <th className="px-5 py-3.5 text-left">Gross</th>
-                      <th className="px-5 py-3.5 text-left">Platform Fee</th>
-                      <th className="px-5 py-3.5 text-left">Net Payout</th>
+                      <th className="px-5 py-3.5 text-left">Reference</th>
+                      <th className="px-5 py-3.5 text-left">Amount</th>
                       <th className="px-5 py-3.5 text-left">Status</th>
                     </tr>
                   </thead>
@@ -905,10 +877,8 @@ export default function SellerPortalPage({
                     ].map((row, i) => (
                       <tr key={i} className="hover:bg-gray-50">
                         <td className="px-5 py-3.5 font-medium text-gray-700">{row.date}</td>
-                        <td className="px-5 py-3.5 text-gray-500">{row.orders} orders</td>
-                        <td className="px-5 py-3.5 font-semibold text-gray-900">₹{row.gross.toLocaleString('en-IN')}</td>
-                        <td className="px-5 py-3.5 font-bold text-green-600">₹{row.fee} (0%)</td>
-                        <td className="px-5 py-3.5 font-black text-gray-900">₹{row.gross.toLocaleString('en-IN')}</td>
+                        <td className="px-5 py-3.5 text-gray-500">REF-{Math.floor(Math.random() * 1000000)}</td>
+                        <td className="px-5 py-3.5 font-bold text-[#0F1111]">₹{row.gross.toLocaleString('en-IN')}</td>
                         <td className="px-5 py-3.5">
                           <span className="bg-green-100 text-green-800 text-[11px] font-bold px-2 py-0.5 rounded-full border border-green-200">
                             ✓ {row.status}
@@ -934,20 +904,20 @@ export default function SellerPortalPage({
                   { label: 'Avg. Order Value', value: '₹4,850', trend: '+12%', icon: IndianRupee, color: 'bg-orange-500' },
                   { label: 'Repeat Buyers', value: '22%', trend: '+5%', icon: Users, color: 'bg-purple-500' },
                 ].map(s => (
-                  <div key={s.label} className="bg-white rounded-2xl border border-gray-200 shadow-sm p-5">
+                  <div key={s.label} className="bg-white border border-[#D5D9D9] rounded-lg p-5 shadow-sm">
                     <div className="flex items-center justify-between mb-3">
-                      <div className={`w-9 h-9 rounded-xl ${s.color} flex items-center justify-center`}>
+                      <div className={`w-9 h-9 rounded ${s.color} flex items-center justify-center`}>
                         <s.icon className="w-4.5 h-4.5 text-white" />
                       </div>
                       <span className="text-[11px] font-bold text-green-600 bg-green-50 px-2 py-0.5 rounded-full">↑ {s.trend}</span>
                     </div>
                     <div className="text-[24px] font-black text-gray-900">{s.value}</div>
-                    <div className="text-[12px] text-gray-500 mt-0.5">{s.label}</div>
+                    <div className="text-[12px] text-[#565959] mt-0.5">{s.label}</div>
                   </div>
                 ))}
               </div>
 
-              <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-5">
+              <div className="bg-white border border-[#D5D9D9] rounded-lg p-5 shadow-sm">
                 <h3 className="text-[14px] font-bold text-gray-900 mb-4">Top Performing Categories</h3>
                 {[
                   { name: 'Handloom & Textiles', sales: 8, revenue: 88200, pct: 68 },
@@ -1034,19 +1004,6 @@ function AiListingStudio({ onProductCreated, onNavigateToAdmin, artisanId, artis
     );
     setVoiceLoading(false);
     setSpeaking(Boolean(started));
-  };
-
-  const loadPreset = (preset) => {
-    setError(null);
-    clearQuestionFlow();
-    setImgData({
-      original_image_url: preset.rawImage,
-      enhanced_image_url: preset.enhancedImage,
-      detected_objects: [preset.category, preset.craft],
-      dominant_colors: [],
-      segmentation_engine: 'Pre-generated sample (no live confidence)',
-    });
-    setDetLang(preset.language || 'Hindi');
   };
 
   const handleImageUpload = async (e) => {
@@ -1336,19 +1293,19 @@ function AiListingStudio({ onProductCreated, onNavigateToAdmin, artisanId, artis
 
       {/* Error */}
       {error && (
-        <div className="bg-red-50 border border-red-200 rounded-xl p-4 flex items-center gap-3 text-red-800 text-[13px]">
+        <div role="alert" className="bg-red-50 border border-red-200 rounded-xl p-4 flex items-center gap-3 text-red-800 text-[13px]">
           <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0" />
           <span>{error}</span>
-          <button onClick={() => setError(null)} className="ml-auto text-red-400 hover:text-red-600"><X className="w-4 h-4" /></button>
+          <button type="button" aria-label="Close error message" onClick={() => setError(null)} className="ml-auto rounded-md p-1 text-red-400 hover:text-red-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400"><X className="w-4 h-4" /></button>
         </div>
       )}
 
       {/* Loading */}
       {loading && (
-        <div className="bg-white border border-gray-200 rounded-2xl p-8 text-center shadow-sm">
+        <div className="bg-white border border-gray-200 rounded-2xl p-8 text-center shadow-sm" role="status" aria-live="polite" aria-busy="true">
           <div className="w-14 h-14 rounded-full border-4 border-orange-200 border-t-orange-500 animate-spin mx-auto mb-4" />
           <p className="text-[14px] font-bold text-gray-900 mb-1">{loadMsg || 'Processing...'}</p>
-          <p className="text-[12px] text-gray-400">AI models running — this takes a moment</p>
+          <p className="text-[12px] text-gray-500">Please wait. We are preparing the next step for you.</p>
         </div>
       )}
 
@@ -1367,7 +1324,7 @@ function AiListingStudio({ onProductCreated, onNavigateToAdmin, artisanId, artis
               </div>
             </div>
 
-            <label className="block border-2 border-dashed border-gray-300 hover:border-orange-400 bg-gray-50 hover:bg-orange-50/30 rounded-xl p-8 cursor-pointer transition-all text-center group">
+            <label className="group block cursor-pointer rounded-xl border-2 border-dashed border-gray-300 bg-gray-50 p-8 text-center transition-all hover:border-orange-400 hover:bg-orange-50/30 focus-within:border-orange-500 focus-within:ring-4 focus-within:ring-orange-100">
               <input type="file" accept="image/*" onChange={handleImageUpload} className="hidden" />
               <div className="w-14 h-14 rounded-full bg-white border border-gray-200 shadow-sm flex items-center justify-center mx-auto mb-3 group-hover:scale-110 transition-transform">
                 <Upload className="w-7 h-7 text-gray-400 group-hover:text-orange-500 transition-colors" />
@@ -1375,19 +1332,6 @@ function AiListingStudio({ onProductCreated, onNavigateToAdmin, artisanId, artis
               <p className="text-[14px] font-bold text-gray-700 mb-1">Tap here and choose a photo</p>
               <p className="text-[12px] text-gray-400">JPG, PNG or WebP — up to 15MB</p>
             </label>
-
-            <div className="mt-4 pt-4 border-t border-gray-100">
-              <p className="text-[11px] font-bold uppercase text-gray-400 mb-3 tracking-wider">Or try a sample photo</p>
-              <div className="grid grid-cols-2 gap-2">
-                {DEMO_PRESETS.slice(0, 4).map(p => (
-                  <button key={p.id} onClick={() => loadPreset(p)} className="p-3 rounded-xl border border-gray-200 hover:border-orange-300 hover:bg-orange-50/40 text-left transition-all">
-                    <div className="text-xl mb-1">{p.icon}</div>
-                    <div className="text-[12px] font-bold text-gray-800 truncate">{p.name}</div>
-                    <div className="text-[10px] text-gray-400">{p.region}</div>
-                  </button>
-                ))}
-              </div>
-            </div>
 
             {imgData && (
               <div className="mt-5 rounded-2xl border-2 border-emerald-300 bg-emerald-50 p-4">
@@ -1400,17 +1344,19 @@ function AiListingStudio({ onProductCreated, onNavigateToAdmin, artisanId, artis
                 </div>
                 <label className="mt-4 block text-[11px] font-black uppercase tracking-wider text-emerald-800">Your language</label>
                 <select
+                  aria-label={questionUi.languageLabel}
                   value={SELLER_LANGUAGE_OPTIONS.find((item) => item.name === detLang)?.name || 'Hindi'}
                   onChange={(event) => setDetLang(event.target.value)}
-                  className="mt-1 w-full rounded-xl border border-emerald-300 bg-white px-3 py-3 text-[15px] font-bold text-gray-900 outline-none"
+                  className="mt-1 w-full rounded-xl border border-emerald-300 bg-white px-3 py-3 text-[15px] font-bold text-gray-900 outline-none focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100"
                 >
                   {SELLER_LANGUAGE_OPTIONS.map((language) => (
                     <option key={language.name} value={language.name}>{language.label}</option>
                   ))}
                 </select>
                 <button
+                  type="button"
                   onClick={beginInterview}
-                  className="mt-3 flex w-full items-center justify-center gap-2 rounded-xl bg-emerald-600 px-5 py-3.5 text-[15px] font-black text-white shadow-md hover:bg-emerald-700"
+                  className="mt-3 flex w-full items-center justify-center gap-2 rounded-xl bg-emerald-600 px-5 py-3.5 text-[15px] font-black text-white shadow-md hover:bg-emerald-700 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-emerald-200"
                 >
                   Next: Answer simple questions <ArrowRight className="h-5 w-5" />
                 </button>
@@ -1427,11 +1373,21 @@ function AiListingStudio({ onProductCreated, onNavigateToAdmin, artisanId, artis
               </div>
             </div>
             <div className="flex-1 flex items-center justify-center p-4">
-              <BeforeAfterSlider
-                originalUrl={imgData?.original_image_url || '/uploads/banarasi_saree_raw.jpg'}
-                enhancedUrl={imgData?.enhanced_image_url || '/uploads/banarasi_saree_studio_enhanced.png'}
-                title="Drag to compare"
-              />
+              {imgData ? (
+                <BeforeAfterSlider
+                  originalUrl={imgData.original_image_url}
+                  enhancedUrl={imgData.enhanced_image_url}
+                  title="Drag to compare"
+                />
+              ) : (
+                <div className="max-w-xs py-12 text-center text-white">
+                  <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl border border-white/20 bg-white/10">
+                    <Sparkles className="h-8 w-8 text-amber-300" />
+                  </div>
+                  <p className="text-[15px] font-black">Your enhanced photo will appear here</p>
+                  <p className="mt-2 text-[12px] leading-relaxed text-slate-300">Choose your real product photo on the left. You can compare the original and improved versions before continuing.</p>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -1465,8 +1421,12 @@ function AiListingStudio({ onProductCreated, onNavigateToAdmin, artisanId, artis
             <div className="mt-6 rounded-2xl border border-violet-100 bg-violet-50 p-5 text-[17px] font-bold leading-relaxed text-slate-900 sm:text-[19px]" data-testid="current-question">
               {interview?.assistant_message || 'Tell us about your product in your own words.'}
             </div>
+            <p className="mt-3 text-[12px] font-medium leading-relaxed text-violet-700">{questionUi.questionHelp}</p>
 
             <button
+              type="button"
+              aria-pressed={speaking}
+              aria-busy={voiceLoading}
               onClick={() => {
                 if (speaking || voiceLoading) {
                   voiceAssistant.stopSpeaking();
@@ -1476,12 +1436,26 @@ function AiListingStudio({ onProductCreated, onNavigateToAdmin, artisanId, artis
                   speakPrompt(interview?.assistant_message, detLang);
                 }
               }}
-              className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl border-2 border-violet-300 bg-white px-4 py-3 text-[14px] font-black text-violet-800 hover:bg-violet-50"
+              className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl border-2 border-violet-300 bg-white px-4 py-3 text-[14px] font-black text-violet-800 hover:bg-violet-50 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-violet-200"
             >
               {speaking || voiceLoading ? <VolumeX className="h-5 w-5" /> : <Volume2 className="h-5 w-5" />}
               {voiceLoading ? questionUi.preparingVoice : speaking ? questionUi.stopQuestion : questionUi.listenQuestion}
             </button>
           </section>
+
+          {interview?.status === 'needs_confirmation' ? (
+            <section className="rounded-2xl border-2 border-emerald-300 bg-emerald-50 p-5 text-emerald-950 shadow-sm" aria-label="Confirm your answers">
+              <div className="flex items-start gap-3">
+                <CheckCircle2 className="mt-0.5 h-6 w-6 flex-shrink-0 text-emerald-600" />
+                <div>
+                  <h3 className="text-[15px] font-black">{questionUi.heard}</h3>
+                  <p className="mt-1 text-[13px] font-medium leading-relaxed text-emerald-800">{questionUi.confirmationHelp}</p>
+                </div>
+              </div>
+            </section>
+          ) : (
+            <p className="rounded-xl bg-slate-100 px-4 py-3 text-center text-[13px] font-bold text-slate-700">{questionUi.answerChoice}</p>
+          )}
 
           {interview?.status !== 'needs_confirmation' && !pendingAnswer && (
             <VoiceRecorder
@@ -1498,7 +1472,7 @@ function AiListingStudio({ onProductCreated, onNavigateToAdmin, artisanId, artis
               <div className="text-[12px] font-black uppercase tracking-wider text-emerald-700">{questionUi.heard}</div>
               <p className="mt-2 rounded-xl bg-emerald-50 p-3 text-[15px] font-semibold leading-relaxed text-gray-900">“{pendingAnswer.text}”</p>
               <p className="mt-2 text-[12px] text-gray-500">{questionUi.checkAnswer}</p>
-              <button onClick={() => setPendingAnswer(null)} className="mt-3 rounded-xl border border-gray-300 px-4 py-2.5 text-[13px] font-bold text-gray-700">
+              <button type="button" onClick={() => setPendingAnswer(null)} className="mt-3 rounded-xl border border-gray-300 px-4 py-2.5 text-[13px] font-bold text-gray-700 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-gray-200">
                 {questionUi.recordAgain}
               </button>
             </div>
@@ -1506,6 +1480,7 @@ function AiListingStudio({ onProductCreated, onNavigateToAdmin, artisanId, artis
             <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
               <label className="mb-2 block text-[12px] font-bold text-gray-600">{questionUi.orType}</label>
               <input
+                aria-label={questionUi.orType}
                 value={typedAnswer}
                 onChange={e => setTypedAnswer(e.target.value)}
                 onKeyDown={e => { if (e.key === 'Enter' && typedAnswer.trim()) submitInterviewAnswer(); }}
@@ -1515,14 +1490,16 @@ function AiListingStudio({ onProductCreated, onNavigateToAdmin, artisanId, artis
             </div>
           ))}
 
-          <nav className="flex items-center justify-between gap-3 rounded-2xl border border-gray-200 bg-white p-3 shadow-sm" aria-label="Question navigation">
+          <nav className="grid grid-cols-2 gap-3 rounded-2xl border border-gray-200 bg-white p-3 shadow-sm" aria-label="Question navigation">
             <button
+              type="button"
               onClick={goToPreviousQuestion}
-              className="flex min-w-[130px] items-center justify-center gap-2 rounded-xl border border-gray-300 px-5 py-3 text-[14px] font-black text-gray-700 hover:bg-gray-50"
+              className="flex min-w-0 items-center justify-center gap-2 rounded-xl border border-gray-300 px-3 py-3 text-[14px] font-black text-gray-700 hover:bg-gray-50 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-gray-200 sm:px-5"
             >
               <ArrowLeft className="h-5 w-5" /> {questionUi.previous}
             </button>
             <button
+              type="button"
               onClick={() => {
                 if (interview?.status === 'needs_confirmation') {
                   submitInterviewAnswer(confirmationAnswerForLanguage(detLang), detLang);
@@ -1531,9 +1508,9 @@ function AiListingStudio({ onProductCreated, onNavigateToAdmin, artisanId, artis
                 }
               }}
               disabled={interview?.status !== 'needs_confirmation' && !pendingAnswer?.text && !typedAnswer.trim()}
-              className="flex min-w-[130px] items-center justify-center gap-2 rounded-xl bg-violet-600 px-5 py-3 text-[14px] font-black text-white shadow-sm hover:bg-violet-700 disabled:cursor-not-allowed disabled:opacity-40"
+              className="flex min-w-0 items-center justify-center gap-2 rounded-xl bg-violet-600 px-3 py-3 text-[14px] font-black text-white shadow-sm hover:bg-violet-700 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-violet-200 disabled:cursor-not-allowed disabled:opacity-40 sm:px-5"
             >
-              {questionUi.next} <ArrowRight className="h-5 w-5" />
+              <span>{interview?.status === 'needs_confirmation' ? questionUi.confirm : questionUi.next}</span> <ArrowRight className="h-5 w-5 flex-shrink-0" />
             </button>
           </nav>
         </div>
@@ -1542,6 +1519,10 @@ function AiListingStudio({ onProductCreated, onNavigateToAdmin, artisanId, artis
       {/* ── STEP 3 & 4: REVIEW + PRICING ──────────── */}
       {(step === 3 || step === 4) && !loading && (
         <div className="space-y-5">
+          <div className="rounded-2xl border border-blue-200 bg-blue-50 p-4">
+            <h3 className="text-[16px] font-black text-blue-950">Check your product details</h3>
+            <p className="mt-1 text-[12px] font-medium text-blue-800">Nothing is submitted yet. Read the details below and use Edit if anything needs changing.</p>
+          </div>
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
 
             {/* Left: Image + Transcript */}
@@ -1575,9 +1556,9 @@ function AiListingStudio({ onProductCreated, onNavigateToAdmin, artisanId, artis
               <div className="bg-green-50 border border-green-200 rounded-xl p-3.5 flex items-start gap-2.5">
                 <ShieldCheck className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
                 <div>
-                  <div className="text-[12px] font-bold text-green-900 mb-0.5">Zero-Hallucination AI Guarantee</div>
+                  <div className="text-[12px] font-bold text-green-900 mb-0.5">Based only on your answers</div>
                   <p className="text-[11px] text-green-700 leading-normal">
-                    All extracted attributes originate purely from your confirmed artisan voice and image. No invented claims.
+                    These details come from your confirmed voice answers and product photo. The assistant does not add unsupported claims.
                   </p>
                   {interview?.human_confirmed && <p className="mt-1 text-[11px] font-black text-green-800">99% human-verified product understanding confidence</p>}
                 </div>

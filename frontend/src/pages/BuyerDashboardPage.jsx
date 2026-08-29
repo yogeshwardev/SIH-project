@@ -290,7 +290,7 @@ export default function BuyerDashboardPage({ onAddToCart, onBuyNow }) {
           </div>
 
           {/* Deal grid */}
-          <div style={{ padding: '12px', display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '10px' }}>
+          <div style={{ padding: '0', display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '1px', background: '#D5D9D9' }}>
             {products.slice(0, 5).map(p => {
               const price = p.price || p.suggested_price || 2499;
               const mrp   = p.mrp || Math.round(price * 1.45);
@@ -301,17 +301,17 @@ export default function BuyerDashboardPage({ onAddToCart, onBuyNow }) {
                   key={p._catalogKey || p.id}
                   onClick={() => setPdp(p)}
                   style={{
-                    background: '#FAFAFA',
-                    border: '1px solid #D5D9D9',
-                    borderRadius: '8px',
+                    background: '#fff',
+                    border: 'none',
+                    borderRadius: '0px',
                     overflow: 'hidden',
                     cursor: 'pointer',
                     textAlign: 'left',
-                    transition: 'border-color 0.15s, box-shadow 0.15s',
-                    padding: 0,
+                    transition: 'background 0.15s',
+                    padding: '12px',
                   }}
-                  onMouseOver={e => { e.currentTarget.style.borderColor = '#FF9900'; e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.10)'; }}
-                  onMouseOut={e => { e.currentTarget.style.borderColor = '#D5D9D9'; e.currentTarget.style.boxShadow = 'none'; }}
+                  onMouseOver={e => e.currentTarget.style.background = '#f7f7f7'}
+                  onMouseOut={e => e.currentTarget.style.background = '#fff'}
                 >
                   <div style={{ aspectRatio: '1', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '10px', background: '#fff' }}>
                     <img

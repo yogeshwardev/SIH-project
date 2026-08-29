@@ -376,6 +376,16 @@ export default function SellerPortalPage({
               )}
             </button>
 
+            {/* View Storefront CTA */}
+            <button
+              onClick={onNavigateToStore}
+              className="flex items-center gap-1.5 px-3 py-2 rounded text-[13px] bg-white hover:bg-gray-50 text-[#0F1111] font-semibold border border-[#D5D9D9] transition-all"
+              title="Open Consumer Marketplace"
+            >
+              <Eye className="w-4 h-4 text-[#565959]" />
+              <span className="hidden sm:inline">Storefront</span>
+            </button>
+
             {/* Add product CTA */}
             <button
               onClick={() => setActiveTab('addproduct')}

@@ -142,28 +142,30 @@ export default function App() {
   return (
     <div className="min-h-screen flex flex-col" style={{ fontFamily: "'Inter', sans-serif", backgroundColor: '#f3f4f6' }}>
 
-      {/* HEADER */}
-      <AmazonHeader
-        activeTab={activeTab}
-        setActiveTab={setActiveTab}
-        cartCount={cartCount}
-        cartTotal={cartTotal}
-        onOpenCart={() => setIsCartOpen(true)}
-        onOpenOrders={() => setIsOrdersOpen(true)}
-        searchTerm={searchTerm}
-        setSearchTerm={setSearchTerm}
-        onSearch={() => setActiveTab('buyer')}
-        selectedCategory={selectedCategory}
-        setSelectedCategory={setSelectedCategory}
-        userPincode={userPincode}
-        onOpenPincodeModal={() => setShowPincodeModal(true)}
-        pendingAdminCount={pendingAdminCount}
-        currentUser={currentUser}
-        currentRole={currentRole}
-        onOpenAuthModal={handleOpenAuth}
-        onOpenAccountModal={() => setIsAccountModalOpen(true)}
-        onSignOut={handleSignOut}
-      />
+      {/* HEADER - Only on Consumer Marketplace */}
+      {activeTab === 'buyer' && (
+        <AmazonHeader
+          activeTab={activeTab}
+          setActiveTab={setActiveTab}
+          cartCount={cartCount}
+          cartTotal={cartTotal}
+          onOpenCart={() => setIsCartOpen(true)}
+          onOpenOrders={() => setIsOrdersOpen(true)}
+          searchTerm={searchTerm}
+          setSearchTerm={setSearchTerm}
+          onSearch={() => setActiveTab('buyer')}
+          selectedCategory={selectedCategory}
+          setSelectedCategory={setSelectedCategory}
+          userPincode={userPincode}
+          onOpenPincodeModal={() => setShowPincodeModal(true)}
+          pendingAdminCount={pendingAdminCount}
+          currentUser={currentUser}
+          currentRole={currentRole}
+          onOpenAuthModal={handleOpenAuth}
+          onOpenAccountModal={() => setIsAccountModalOpen(true)}
+          onSignOut={handleSignOut}
+        />
+      )}
 
       {/* MAIN CONTENT ROUTER */}
       <main className="flex-1">
@@ -228,99 +230,103 @@ export default function App() {
         )}
       </main>
 
-      {/* ═══ FOOTER ══════════════════════ */}
-      <footer style={{ fontFamily: "'Inter', sans-serif" }}>
+      {/* ═══ FOOTER - Only on Consumer Marketplace ══════════════════════ */}
+      {activeTab === 'buyer' && (
+        <footer style={{ fontFamily: "'Inter', sans-serif" }}>
 
-        {/* Back to Top */}
-        <button
-          onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-          className="w-full bg-[#37475a] hover:bg-[#485769] text-white text-[13px] font-semibold py-3 transition-colors"
-        >
-          Back to top
-        </button>
+          {/* Back to Top */}
+          <button
+            onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+            className="w-full bg-[#37475a] hover:bg-[#485769] text-white text-[13px] font-semibold py-3 transition-colors"
+          >
+            Back to top
+          </button>
 
-        {/* 4-Col Footer Links */}
-        <div className="bg-[#232f3e] text-white">
-          <div className="max-w-[1400px] mx-auto px-6 py-10 grid grid-cols-2 md:grid-cols-4 gap-8">
+          {/* 4-Col Footer Links */}
+          <div className="bg-[#232f3e] text-white">
+            <div className="max-w-[1400px] mx-auto px-6 py-10 grid grid-cols-2 md:grid-cols-4 gap-8">
 
-            <div>
-              <h5 className="font-bold text-[14px] mb-4 text-white">Get to Know Us</h5>
-              <ul className="space-y-2 text-[13px] text-gray-300">
-                <li className="hover:text-white cursor-pointer">About CraftLink India</li>
-                <li className="hover:text-white cursor-pointer">Master Artisan Network</li>
-                <li className="hover:text-white cursor-pointer">GI Certification Standard</li>
-                <li className="hover:text-white cursor-pointer">National Handloom Directorate</li>
-                <li className="hover:text-white cursor-pointer">Press & Media Releases</li>
-              </ul>
+              <div>
+                <h5 className="font-bold text-[14px] mb-4 text-white">Get to Know Us</h5>
+                <ul className="space-y-2 text-[13px] text-gray-300">
+                  <li className="hover:text-white cursor-pointer">About CraftLink India</li>
+                  <li className="hover:text-white cursor-pointer">Master Artisan Network</li>
+                  <li className="hover:text-white cursor-pointer">GI Certification Standard</li>
+                  <li className="hover:text-white cursor-pointer">National Handloom Directorate</li>
+                </ul>
+              </div>
+
+              <div>
+                <h5 className="font-bold text-[14px] mb-4 text-white">Sell on CraftLink</h5>
+                <ul className="space-y-2 text-[13px] text-gray-300">
+                  <li
+                    onClick={() => {
+                      if (currentUser && (currentUser.role === 'seller' || currentUser.role === 'admin')) {
+                        setActiveTab('seller');
+                      } else {
+                        handleOpenAuth('seller');
+                      }
+                    }}
+                    className="hover:text-amber-400 cursor-pointer font-semibold text-amber-300"
+                  >
+                    Sell on CraftLink (0% Fee)
+                  </li>
+                  <li
+                    onClick={() => setActiveTab('seller-onboarding')}
+                    className="hover:text-white cursor-pointer"
+                  >
+                    Register as Master Artisan
+                  </li>
+                  <li className="hover:text-white cursor-pointer">AI Voice Cataloging Studio</li>
+                  <li className="hover:text-white cursor-pointer">NEFT Direct Payouts</li>
+                </ul>
+              </div>
+
+              <div>
+                <h5 className="font-bold text-[14px] mb-4 text-white">Artisan Clusters</h5>
+                <ul className="space-y-2 text-[13px] text-gray-300">
+                  <li className="hover:text-white cursor-pointer">Varanasi Handloom Silk</li>
+                  <li className="hover:text-white cursor-pointer">Jaipur Cobalt Blue Pottery</li>
+                  <li className="hover:text-white cursor-pointer">Bastar Dhokra Bell Metal</li>
+                  <li className="hover:text-white cursor-pointer">Channapatna Wooden Toys</li>
+                </ul>
+              </div>
+
+              <div>
+                <h5 className="font-bold text-[14px] mb-4 text-white">Governance & Help</h5>
+                <ul className="space-y-2 text-[13px] text-gray-300">
+                  <li
+                    onClick={() => setActiveTab('admin')}
+                    className="hover:text-emerald-400 cursor-pointer font-semibold text-emerald-300"
+                  >
+                    Admin Governance Portal
+                  </li>
+                  <li onClick={() => setIsOrdersOpen(true)} className="hover:text-white cursor-pointer">Track Orders</li>
+                  <li className="hover:text-white cursor-pointer">Fair-Trade Wage Guarantee</li>
+                  <li className="hover:text-white cursor-pointer">Artisan Helpline (Toll Free)</li>
+                </ul>
+              </div>
+
             </div>
 
-            <div>
-              <h5 className="font-bold text-[14px] mb-4 text-white">Sell on CraftLink</h5>
-              <ul className="space-y-2 text-[13px] text-gray-300">
-                <li
-                  onClick={() => setActiveTab('seller-onboarding')}
-                  className="hover:text-amber-400 cursor-pointer font-semibold text-amber-300"
-                >
-                  Register Master Artisan Store (0% Commission)
-                </li>
-                <li
-                  onClick={() => setActiveTab('seller')}
-                  className="hover:text-white cursor-pointer"
-                >
-                  Seller Central Dashboard
-                </li>
-                <li className="hover:text-white cursor-pointer">AI Voice Cataloging Studio</li>
-                <li className="hover:text-white cursor-pointer">Artisan Pehchan Benefits</li>
-                <li className="hover:text-white cursor-pointer">NEFT Direct Payouts</li>
-              </ul>
+            {/* Bottom strip */}
+            <div className="border-t border-gray-700 py-6 text-center text-[12px] text-gray-400">
+              <div className="flex items-center justify-center gap-6 mb-2">
+                <span className="flex items-center gap-1.5 text-white font-semibold">
+                  <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+                  CraftLink.in
+                </span>
+                <span>•</span>
+                <span>100% Direct Producer Revenue</span>
+                <span>•</span>
+                <span>Zero Intermediary Exploitation</span>
+              </div>
+              <p>© 2026 CraftLink India Enterprise. All rights reserved. Registered National Handloom & Handicraft Marketplace.</p>
             </div>
-
-            <div>
-              <h5 className="font-bold text-[14px] mb-4 text-white">Artisan Clusters</h5>
-              <ul className="space-y-2 text-[13px] text-gray-300">
-                <li className="hover:text-white cursor-pointer">Varanasi Handloom Silk</li>
-                <li className="hover:text-white cursor-pointer">Jaipur Cobalt Blue Pottery</li>
-                <li className="hover:text-white cursor-pointer">Bastar Dhokra Bell Metal</li>
-                <li className="hover:text-white cursor-pointer">Channapatna Wooden Toys</li>
-                <li className="hover:text-white cursor-pointer">Assam Golden Muga & Cane</li>
-              </ul>
-            </div>
-
-            <div>
-              <h5 className="font-bold text-[14px] mb-4 text-white">Governance & Help</h5>
-              <ul className="space-y-2 text-[13px] text-gray-300">
-                <li
-                  onClick={() => setActiveTab('admin')}
-                  className="hover:text-emerald-400 cursor-pointer font-semibold text-emerald-300"
-                >
-                  Admin Governance Portal
-                </li>
-                <li className="hover:text-white cursor-pointer">Buyer Protection & Returns</li>
-                <li className="hover:text-white cursor-pointer">Fair-Trade Wage Guarantee</li>
-                <li className="hover:text-white cursor-pointer">Track Consignments</li>
-                <li className="hover:text-white cursor-pointer">Artisan Helpline (Toll Free)</li>
-              </ul>
-            </div>
-
           </div>
 
-          {/* Bottom strip */}
-          <div className="border-t border-gray-700 py-6 text-center text-[12px] text-gray-400">
-            <div className="flex items-center justify-center gap-6 mb-2">
-              <span className="flex items-center gap-1.5 text-white font-semibold">
-                <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-                CraftLink.in
-              </span>
-              <span>•</span>
-              <span>100% Direct Producer Revenue</span>
-              <span>•</span>
-              <span>Zero Intermediary Exploitation</span>
-            </div>
-            <p>© 2026 CraftLink India Enterprise. All rights reserved. Registered National Handloom & Handicraft Marketplace.</p>
-          </div>
-        </div>
-
-      </footer>
+        </footer>
+      )}
 
       {/* ═══ OVERLAYS & MODALS ════════════════════════ */}
 

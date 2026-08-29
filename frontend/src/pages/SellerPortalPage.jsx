@@ -58,6 +58,7 @@ const questionUiCopyFor = (language) => {
     next: 'తర్వాత',
     listenQuestion: 'ప్రశ్నను వినండి',
     stopQuestion: 'వాయిస్ ఆపండి',
+    preparingVoice: 'సహజమైన వాయిస్ సిద్ధమవుతోంది…',
   };
   if (code === 'hi-IN') return {
     heading: 'एक आसान सवाल',
@@ -76,6 +77,7 @@ const questionUiCopyFor = (language) => {
     next: 'अगला',
     listenQuestion: 'सवाल सुनें',
     stopQuestion: 'आवाज़ रोकें',
+    preparingVoice: 'स्वाभाविक आवाज़ तैयार हो रही है…',
   };
   return {
     heading: 'One simple question',
@@ -94,6 +96,7 @@ const questionUiCopyFor = (language) => {
     next: 'Next',
     listenQuestion: 'Listen to question',
     stopQuestion: 'Stop voice',
+    preparingVoice: 'Preparing natural voice…',
   };
 };
 
@@ -984,6 +987,7 @@ function AiListingStudio({ onProductCreated, onNavigateToAdmin, artisanId, artis
   const [loadMsg, setLoadMsg]     = useState('');
   const [error, setError]         = useState(null);
   const [speaking, setSpeaking]   = useState(false);
+  const [voiceLoading, setVoiceLoading] = useState(false);
 
   const [imgData, setImgData]     = useState(null);
   const [transcript, setTxt]      = useState('');
@@ -1020,14 +1024,16 @@ function AiListingStudio({ onProductCreated, onNavigateToAdmin, artisanId, artis
 
   const speakPrompt = async (message, language = detLang) => {
     if (!message) return;
-    setSpeaking(true);
+    setVoiceLoading(true);
+    setSpeaking(false);
     const started = await voiceAssistant.speak(
       message,
       speechCodeForLanguage(language),
-      () => setSpeaking(false),
+      () => { setSpeaking(false); setVoiceLoading(false); },
       { preferNeural: true },
     );
-    if (!started) setSpeaking(false);
+    setVoiceLoading(false);
+    setSpeaking(Boolean(started));
   };
 
   const loadPreset = (preset) => {
@@ -1462,17 +1468,18 @@ function AiListingStudio({ onProductCreated, onNavigateToAdmin, artisanId, artis
 
             <button
               onClick={() => {
-                if (speaking) {
+                if (speaking || voiceLoading) {
                   voiceAssistant.stopSpeaking();
                   setSpeaking(false);
+                  setVoiceLoading(false);
                 } else {
                   speakPrompt(interview?.assistant_message, detLang);
                 }
               }}
               className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl border-2 border-violet-300 bg-white px-4 py-3 text-[14px] font-black text-violet-800 hover:bg-violet-50"
             >
-              {speaking ? <VolumeX className="h-5 w-5" /> : <Volume2 className="h-5 w-5" />}
-              {speaking ? questionUi.stopQuestion : questionUi.listenQuestion}
+              {speaking || voiceLoading ? <VolumeX className="h-5 w-5" /> : <Volume2 className="h-5 w-5" />}
+              {voiceLoading ? questionUi.preparingVoice : speaking ? questionUi.stopQuestion : questionUi.listenQuestion}
             </button>
           </section>
 
@@ -1482,7 +1489,7 @@ function AiListingStudio({ onProductCreated, onNavigateToAdmin, artisanId, artis
               isProcessing={loading}
               initialLanguage={speechCodeForLanguage(detLang)}
               onLanguageChange={(language) => setDetLang(language)}
-              onRecordingStart={() => setSpeaking(false)}
+              onRecordingStart={() => { setSpeaking(false); setVoiceLoading(false); }}
             />
           )}
 

@@ -8,6 +8,8 @@ class VoiceAssistant {
     this.recognition = null;
     this.audio = null;
     this.audioUrl = null;
+    this.audioContext = null;
+    this.audioSource = null;
     this.speechToken = 0;
     this.isListening = false;
     this.shouldListen = false;
@@ -90,9 +92,21 @@ class VoiceAssistant {
   }
 
   prepareSpeech() {
-    // Resume while the user gesture is still active. This avoids browsers
-    // blocking a prompt that is spoken only after an API request finishes.
+    // Unlock both browser speech and Web Audio while a real button click is
+    // still active. The neural MP3 arrives after an API call, when a normal
+    // HTMLAudioElement may otherwise be blocked by autoplay protection.
     try { this.synth?.resume(); } catch (_) { /* unsupported browser */ }
+    if (typeof window === 'undefined') return;
+    const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+    if (!AudioContextClass) return;
+    try {
+      if (!this.audioContext || this.audioContext.state === 'closed') {
+        this.audioContext = new AudioContextClass();
+      }
+      if (this.audioContext.state === 'suspended') {
+        this.audioContext.resume().catch(() => {});
+      }
+    } catch (_) { /* HTML audio and browser speech remain available */ }
   }
 
   async speak(text, lang = 'hi-IN', onEnd = null, options = {}) {
@@ -119,6 +133,21 @@ class VoiceAssistant {
       });
       if (response.ok) {
         const blob = await response.blob();
+        if (this.audioContext && this.audioContext.state !== 'closed') {
+          if (this.audioContext.state === 'suspended') await this.audioContext.resume();
+          const audioBuffer = await this.audioContext.decodeAudioData(await blob.arrayBuffer());
+          if (speechToken !== this.speechToken) return false;
+          const source = this.audioContext.createBufferSource();
+          source.buffer = audioBuffer;
+          source.connect(this.audioContext.destination);
+          source.onended = () => {
+            if (this.audioSource === source) this.audioSource = null;
+            this._finishSpeech(onEnd, speechToken);
+          };
+          this.audioSource = source;
+          source.start(0);
+          return true;
+        }
         this.audioUrl = URL.createObjectURL(blob);
         this.audio = new Audio(this.audioUrl);
         this.audio.onended = () => this._finishSpeech(onEnd, speechToken);
@@ -175,6 +204,11 @@ class VoiceAssistant {
 
   stopSpeaking() {
     this.speechToken += 1;
+    if (this.audioSource) {
+      try { this.audioSource.onended = null; this.audioSource.stop(0); } catch (_) { /* already stopped */ }
+      try { this.audioSource.disconnect(); } catch (_) { /* already disconnected */ }
+    }
+    this.audioSource = null;
     if (this.audio) {
       this.audio.pause();
       this.audio.currentTime = 0;

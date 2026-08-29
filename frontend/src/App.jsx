@@ -22,23 +22,27 @@ export default function App() {
   const [currentUser, setCurrentUser] = useState(() => {
     try {
       const saved = localStorage.getItem('craftlink_user');
-      return saved ? JSON.parse(saved) : {
-        id: 1,
-        name: 'Master Weaver Ramesh',
-        store_name: 'Varanasi Master Weavers Guild',
-        email: 'ramesh.varanasi@craftlink.in',
-        phone: '+91 98765 11223',
-        role: 'seller',
-        craft_category: 'Handloom & Textiles',
-        region: 'Varanasi, Uttar Pradesh',
-        kyc_status: 'Verified'
-      };
+      if (!saved) return null;
+      const parsed = JSON.parse(saved);
+      // Purge stale demo/hardcoded users that should never have been persisted
+      const DEMO_NAMES = ['Master Weaver Ramesh', 'Varanasi Master Weavers Guild'];
+      if (DEMO_NAMES.includes(parsed?.name) || DEMO_NAMES.includes(parsed?.store_name)) {
+        localStorage.removeItem('craftlink_user');
+        return null;
+      }
+      return parsed;
     } catch {
       return null;
     }
   });
 
-  const [currentRole, setCurrentRole] = useState(() => currentUser?.role || 'seller');
+  const [currentRole, setCurrentRole] = useState(() => {
+    try {
+      const saved = localStorage.getItem('craftlink_user');
+      if (saved) return JSON.parse(saved)?.role || 'buyer';
+    } catch {}
+    return 'buyer';
+  });
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [authModalTab, setAuthModalTab] = useState('buyer');
   const [isAccountModalOpen, setIsAccountModalOpen] = useState(false);
@@ -172,31 +176,55 @@ export default function App() {
         )}
 
         {activeTab === 'seller' && (
-          <SellerPortalPage
-            currentUser={currentUser}
-            onNavigateToAdmin={() => setActiveTab('admin')}
-            onNavigateToStore={() => setActiveTab('buyer')}
-            onNavigateToOnboarding={() => setActiveTab('seller-onboarding')}
-            onOpenAuthModal={handleOpenAuth}
-          />
+          currentUser && (currentUser.role === 'seller' || currentUser.role === 'admin')
+            ? (
+              <SellerPortalPage
+                currentUser={currentUser}
+                onNavigateToAdmin={() => setActiveTab('admin')}
+                onNavigateToStore={() => setActiveTab('buyer')}
+                onNavigateToOnboarding={() => setActiveTab('seller-onboarding')}
+                onOpenAuthModal={handleOpenAuth}
+              />
+            ) : (
+              // Not logged in - show auth modal and redirect back to buyer
+              (() => {
+                setTimeout(() => {
+                  handleOpenAuth('seller');
+                  setActiveTab('buyer');
+                }, 0);
+                return null;
+              })()
+          )
         )}
 
         {activeTab === 'seller-onboarding' && (
           <SellerOnboardingPage
+            currentUser={currentUser}
             onCompleteOnboarding={(newSeller) => {
               handleLoginSuccess(newSeller, 'seller');
               setActiveTab('seller');
             }}
-            onCancel={() => setActiveTab('seller')}
+            onCancel={() => setActiveTab(currentUser ? 'seller' : 'buyer')}
           />
         )}
 
         {activeTab === 'admin' && (
-          <AdminPortalPage
-            currentUser={currentUser}
-            onNavigateToMarketplace={() => setActiveTab('buyer')}
-            onOpenAuthModal={handleOpenAuth}
-          />
+          currentUser && currentUser.role === 'admin'
+            ? (
+              <AdminPortalPage
+                currentUser={currentUser}
+                onNavigateToMarketplace={() => setActiveTab('buyer')}
+                onOpenAuthModal={handleOpenAuth}
+              />
+            ) : (
+              (() => {
+                setTimeout(() => {
+                  handleOpenAuth('admin');
+                  setActiveTab('buyer');
+                }, 0);
+                return null;
+              })()
+            )
         )}
       </main>
 

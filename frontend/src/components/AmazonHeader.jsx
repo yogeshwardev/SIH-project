@@ -225,20 +225,29 @@ export default function AmazonHeader({
                         <div className="font-bold text-gray-900 px-2 py-1 text-[11px] uppercase tracking-wider text-gray-400">Producer & Admin</div>
                         
                         <button
-                          onClick={() => { setAccountMenuOpen(false); setActiveTab('seller'); }}
+                          onClick={() => {
+                            setAccountMenuOpen(false);
+                            if (currentUser && (currentUser.role === 'seller' || currentUser.role === 'admin')) {
+                              setActiveTab('seller');
+                            } else {
+                              onOpenAuthModal('seller');
+                            }
+                          }}
                           className="w-full text-left px-2 py-1.5 rounded hover:bg-orange-50 text-orange-800 font-bold flex items-center justify-between"
                         >
                           <span>Seller Central</span>
                           <Store className="w-3.5 h-3.5 text-orange-600" />
                         </button>
 
-                        <button
-                          onClick={() => { setAccountMenuOpen(false); setActiveTab('admin'); }}
-                          className="w-full text-left px-2 py-1.5 rounded hover:bg-emerald-50 text-emerald-800 font-bold flex items-center justify-between"
-                        >
-                          <span>Admin Governance</span>
-                          <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
-                        </button>
+                        {currentUser && currentUser.role === 'admin' && (
+                          <button
+                            onClick={() => { setAccountMenuOpen(false); setActiveTab('admin'); }}
+                            className="w-full text-left px-2 py-1.5 rounded hover:bg-emerald-50 text-emerald-800 font-bold flex items-center justify-between"
+                          >
+                            <span>Admin Governance</span>
+                            <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
+                          </button>
+                        )}
                       </div>
 
                       {currentUser && (
@@ -269,7 +278,13 @@ export default function AmazonHeader({
 
             {/* Seller Central Button */}
             <button
-              onClick={() => setActiveTab('seller')}
+              onClick={() => {
+                if (currentUser && (currentUser.role === 'seller' || currentUser.role === 'admin')) {
+                  setActiveTab('seller');
+                } else {
+                  onOpenAuthModal('seller');
+                }
+              }}
               className={`hidden lg:flex flex-col items-start border-2 rounded px-2 py-1.5 transition-colors ${
                 activeTab === 'seller'
                   ? 'border-amber-400 bg-amber-400/10'
@@ -282,23 +297,25 @@ export default function AmazonHeader({
               </span>
             </button>
 
-            {/* Admin Portal Button */}
-            <button
-              onClick={() => setActiveTab('admin')}
-              className={`relative flex items-center gap-1 border-2 rounded px-2 py-2 transition-colors ${
-                activeTab === 'admin'
-                  ? 'border-green-400 text-green-400'
-                  : 'border-transparent text-slate-300 hover:border-white/40 hover:text-white'
-              }`}
-              title="Admin Governance Portal"
-            >
-              <ShieldCheck className="w-5 h-5" />
-              {pendingAdminCount > 0 && (
-                <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white text-[9px] font-black rounded-full flex items-center justify-center">
-                  {pendingAdminCount}
-                </span>
-              )}
-            </button>
+            {/* Admin Portal Button - only show for admins */}
+            {currentUser?.role === 'admin' && (
+              <button
+                onClick={() => setActiveTab('admin')}
+                className={`relative flex items-center gap-1 border-2 rounded px-2 py-2 transition-colors ${
+                  activeTab === 'admin'
+                    ? 'border-green-400 text-green-400'
+                    : 'border-transparent text-slate-300 hover:border-white/40 hover:text-white'
+                }`}
+                title="Admin Governance Portal"
+              >
+                <ShieldCheck className="w-5 h-5" />
+                {pendingAdminCount > 0 && (
+                  <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white text-[9px] font-black rounded-full flex items-center justify-center">
+                    {pendingAdminCount}
+                  </span>
+                )}
+              </button>
+            )}
 
             {/* CART */}
             <button
@@ -393,7 +410,14 @@ export default function AmazonHeader({
           )}
 
           <button
-            onClick={() => { setActiveTab('seller'); setMobileMenuOpen(false); }}
+            onClick={() => {
+              setMobileMenuOpen(false);
+              if (currentUser && (currentUser.role === 'seller' || currentUser.role === 'admin')) {
+                setActiveTab('seller');
+              } else {
+                onOpenAuthModal('seller');
+              }
+            }}
             className="w-full text-left px-4 py-2.5 rounded-lg bg-amber-50 border border-amber-200 text-amber-900 font-bold text-sm flex items-center justify-between"
           >
             <span>🏪 Seller Central (0% Commission)</span>

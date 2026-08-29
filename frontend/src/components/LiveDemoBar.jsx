@@ -1,5 +1,5 @@
 import React from 'react';
-import { Zap, Sparkles, ArrowRight } from 'lucide-react';
+import { Sparkles, ArrowRight, Layers } from 'lucide-react';
 
 export const DEMO_PRESETS = [
   {
@@ -59,63 +59,70 @@ export const DEMO_PRESETS = [
     icon: '🪆',
     rawImage: '/uploads/dhokra_figurine_raw.jpg',
     enhancedImage: '/uploads/dhokra_figurine_studio_enhanced.png',
-    voiceText: 'यह पारंपरिक ढोकरा बेल मेटल की मूर्ति है जिसे प्राचीन लॉस्ट-वैक्स कास्टिंग तकनीक से बनाया गया है। इसमें बस्तर के जनजातीय संगीतकार की आकृति है।',
-    language: 'Hindi',
-    materialCost: 480,
+    voiceText: 'This is an authentic Bastar tribal lost-wax cast Dhokra horse figurine made from recycled brass and bell metal alloy. Handcrafted over 4 days.',
+    language: 'English',
+    materialCost: 450,
     laborCost: 1950,
-    packagingCost: 150,
+    packagingCost: 180,
     productionTime: '4 days'
   },
   {
     id: 'channapatna_toy',
     name: 'Channapatna Wooden Toy',
     category: 'Woodcraft & Carving',
-    craft: 'Channapatna Wooden Toys',
-    region: 'Channapatna, Karnataka',
+    craft: 'Channapatna Lacquerware',
+    region: 'Ramanagara, Karnataka',
     icon: '🪵',
     rawImage: '/uploads/channapatna_toy_raw.jpg',
     enhancedImage: '/uploads/channapatna_toy_studio_enhanced.png',
-    voiceText: 'This is an authentic Channapatna wooden stacker toy crafted with Ivory wood and polished with non-toxic natural vegetable dyes. Child-safe and completely handmade.',
+    voiceText: 'This is a traditional Channapatna wooden rolling animal toy made of Wrightia tinctoria Ivory Wood, lacquered with non-toxic natural vegetable dyes. Child-safe.',
     language: 'English',
-    materialCost: 160,
-    laborCost: 650,
-    packagingCost: 90,
+    materialCost: 180,
+    laborCost: 850,
+    packagingCost: 120,
     productionTime: '1 day'
   }
 ];
 
+export const CATALOG_TEMPLATES = DEMO_PRESETS;
+
 export default function LiveDemoBar({ onSelectPreset, activePresetId }) {
   return (
-    <div className="bg-gradient-to-r from-amber-50 via-terracotta-50/40 to-amber-50 border-b border-artisan-200 py-2.5 px-4 sm:px-6">
+    <div className="bg-gradient-to-r from-gray-900 via-[#131921] to-gray-900 text-white border-b border-gray-800 py-2.5 px-4 shadow-inner">
       <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-3">
         
-        {/* Banner Title */}
-        <div className="flex items-center gap-2 text-xs">
-          <div className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-amber-500 text-white font-black tracking-wide shadow-sm">
-            <Zap className="w-3.5 h-3.5" />
-            <span>SIH LIVE DEMO</span>
+        {/* Title */}
+        <div className="flex items-center gap-2.5 flex-shrink-0">
+          <div className="flex items-center gap-1.5 bg-amber-400/20 border border-amber-400/40 text-amber-300 text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-full">
+            <Layers className="w-3 h-3" />
+            <span>CATALOG TEMPLATES</span>
           </div>
-          <span className="text-slate-600 hidden sm:inline">
-            Select a raw artisan product to demonstrate the end-to-end AI pipeline in &lt; 2 minutes:
+          <span className="text-xs text-gray-300 hidden lg:inline">
+            Fast-track catalog creation with pre-calibrated GI craft templates:
           </span>
         </div>
 
-        {/* Preset Buttons */}
-        <div className="flex items-center gap-1.5 overflow-x-auto w-full md:w-auto pb-1 md:pb-0">
+        {/* Preset Badges */}
+        <div className="flex items-center gap-2 overflow-x-auto w-full md:w-auto pb-1 md:pb-0 scrollbar-none">
           {DEMO_PRESETS.map((preset) => {
             const isSelected = activePresetId === preset.id;
             return (
               <button
                 key={preset.id}
-                onClick={() => onSelectPreset(preset)}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap transition-all duration-150 ${
+                onClick={() => onSelectPreset?.(preset)}
+                className={`flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all ${
                   isSelected
-                    ? 'bg-terracotta-600 text-white shadow-sm scale-105'
-                    : 'bg-white text-slate-700 hover:bg-artisan-100 hover:text-slate-900 border border-artisan-200 shadow-sm'
+                    ? 'bg-amber-400 text-gray-900 shadow-md font-bold scale-105'
+                    : 'bg-white/10 text-gray-200 hover:bg-white/20 border border-white/10'
                 }`}
               >
                 <span>{preset.icon}</span>
                 <span>{preset.name}</span>
+                <span className={`text-[10px] px-1.5 py-0.2 rounded-full ${
+                  isSelected ? 'bg-gray-900/20 text-gray-900' : 'bg-black/30 text-gray-400'
+                }`}>
+                  {preset.language}
+                </span>
               </button>
             );
           })}

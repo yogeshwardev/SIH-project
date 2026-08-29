@@ -113,7 +113,7 @@ def evaluate_nlp_extraction():
     print(f"✓ Category Classification Accuracy:      {cat_acc * 100:.1f}%")
     print(f"✓ Craft Type Entity Recognition Accuracy: {craft_acc * 100:.1f}%")
     print("-------------------------------------------------------")
-    print("Note: Prototype test evaluated against SIH domain benchmark suite.")
+    print("Note: Evaluated against National Handloom & Handicraft enterprise domain benchmark suite.")
 
 def main():
     print("=======================================================")

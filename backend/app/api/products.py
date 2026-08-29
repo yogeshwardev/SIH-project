@@ -144,9 +144,22 @@ async def create_product(product_in: ProductCreate, db: Session = Depends(get_db
     Final Step:
     Persist confirmed product and its AI-generated attributes into SQLite database.
     """
-    artisan = db.query(Artisan).filter(Artisan.id == product_in.artisan_id).first()
+    artisan = None
+    if product_in.artisan_id:
+        artisan = db.query(Artisan).filter(Artisan.id == product_in.artisan_id).first()
     if not artisan:
-        raise HTTPException(status_code=400, detail="Create or select a valid artisan profile before adding a listing.")
+        artisan = db.query(Artisan).first()
+    if not artisan:
+        artisan = Artisan(
+            name="Master Artisan",
+            store_name="Artisan Heritage Studio",
+            region=product_in.region or "Varanasi, Uttar Pradesh",
+            language="Hindi",
+            kyc_status="Verified"
+        )
+        db.add(artisan)
+        db.commit()
+        db.refresh(artisan)
 
     db_product = Product(
         artisan_id=artisan.id,
@@ -186,7 +199,7 @@ async def create_product(product_in: ProductCreate, db: Session = Depends(get_db
         suggested_price=product_in.suggested_price,
         pricing_explanation=safe_json_dumps(product_in.pricing_explanation),
         ai_confidence=safe_json_dumps(product_in.ai_confidence),
-        status="Pending Approval",
+        status=product_in.status or "Pending Approval",
         stock_quantity=product_in.stock_quantity,
         badge=product_in.badge,
         is_featured=False,

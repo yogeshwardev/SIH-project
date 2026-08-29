@@ -46,7 +46,7 @@ export default function AdminDashboardPage() {
             <span className="text-xs font-bold bg-amber-100 text-amber-900 border border-amber-300 px-2 py-0.5 rounded">
               Ministry of Social Justice and Empowerment
             </span>
-            <span className="text-xs text-slate-400">• SIH26090</span>
+            <span className="text-xs text-slate-400">• National Directorate</span>
           </div>
           <h2 className="text-2xl font-extrabold text-slate-900 mt-1">
             Artisan Market Linkage & Impact Analytics

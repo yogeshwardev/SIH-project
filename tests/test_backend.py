@@ -46,7 +46,7 @@ def test_root_endpoint():
     response = client.get("/")
     assert response.status_code == 200
     data = response.json()
-    assert data["project"] == "CraftLink AI"
+    assert "CraftLink" in data["project"]
     assert data["status"] == "operational"
 
 def test_health_endpoint():

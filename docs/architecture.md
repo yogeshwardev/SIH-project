@@ -1,4 +1,4 @@
-# CraftLink AI — System Architecture (SIH26090)
+# CraftLink AI — Enterprise System Architecture
 
 CraftLink AI is an end-to-end AI-driven market linkage and smart cataloging platform designed for rural Indian artisans and handloom weavers under the Ministry of Social Justice and Empowerment.
 

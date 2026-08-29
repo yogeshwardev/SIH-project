@@ -1,4 +1,4 @@
-# CraftLink AI — Smart Pricing Engine & Economic Model (SIH26090)
+# CraftLink AI — Smart Pricing Engine & Fair-Trade Economic Model
 
 The primary reason rural artisans remain trapped in poverty is **distress pricing** caused by intermediaries and lack of e-commerce market intelligence. CraftLink AI implements a mathematically transparent hybrid pricing algorithm that guarantees a fair living wage.
 

@@ -179,13 +179,31 @@ function MiniBarChart({ data }) {
 // ═══════════════════════════════════════════════════════════════
 // MAIN SELLER PORTAL
 // ═══════════════════════════════════════════════════════════════
-export default function SellerPortalPage({ onNavigateToAdmin, onNavigateToStore }) {
+export default function SellerPortalPage({
+  currentUser,
+  onNavigateToAdmin,
+  onNavigateToStore,
+  onNavigateToOnboarding,
+  onOpenAuthModal
+}) {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [products, setProducts]   = useState([]);
   const [orders, setOrders]       = useState([]);
   const [artisans, setArtisans]   = useState([]);
+  const [selectedArtisanId, setSelectedArtisanId] = useState(currentUser?.id || null);
   const [loading, setLoading]     = useState(true);
   const [searchQ, setSearchQ]     = useState('');
+
+  const activeArtisan = artisans.find(a => a.id === selectedArtisanId) || currentUser || artisans[0] || null;
+
+  const NAV = [
+    { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
+    { id: 'addproduct', label: 'AI Listing Studio', icon: Sparkles },
+    { id: 'inventory', label: 'My Inventory', icon: Package, count: products.length },
+    { id: 'orders', label: 'Orders & Shipments', icon: Truck, count: orders.length },
+    { id: 'payments', label: 'Payments & Payouts', icon: Banknote },
+    { id: 'analytics', label: 'Analytics', icon: BarChart2 },
+  ];
 
   const fetchData = async () => {
     setLoading(true);
@@ -203,6 +221,9 @@ export default function SellerPortalPage({ onNavigateToAdmin, onNavigateToStore 
         quantity: order.items?.reduce((sum, item) => sum + Number(item.quantity || 0), 0) || 0,
       })));
       setArtisans(artisanProfiles || []);
+      if (!selectedArtisanId && artisanProfiles?.length > 0) {
+        setSelectedArtisanId(artisanProfiles[0].id);
+      }
     } catch (e) { console.error(e); }
     finally { setLoading(false); }
   };
@@ -213,16 +234,6 @@ export default function SellerPortalPage({ onNavigateToAdmin, onNavigateToStore 
   const pending    = products.filter(p => p.status === 'Pending Approval');
   const totalGMV   = published.reduce((s, p) => s + (p.suggested_price || 0) * (p.stock_quantity || 1), 0);
   const totalPayout = orders.reduce((s, o) => s + (o.total_amount || 0), 0);
-  const activeArtisan = artisans[0] || null;
-
-  const NAV = [
-    { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
-    { id: 'addproduct', label: 'AI Listing Studio', icon: Sparkles },
-    { id: 'inventory', label: 'My Inventory', icon: Package, count: products.length },
-    { id: 'orders', label: 'Orders & Shipments', icon: Truck, count: orders.length },
-    { id: 'payments', label: 'Payments & Payouts', icon: Banknote },
-    { id: 'analytics', label: 'Analytics', icon: BarChart2 },
-  ];
 
   return (
     <div className="flex h-screen bg-gray-100 overflow-hidden" style={{ fontFamily: "'Inter', sans-serif" }}>
@@ -230,24 +241,58 @@ export default function SellerPortalPage({ onNavigateToAdmin, onNavigateToStore 
       {/* ════════════════════════════
           LEFT SIDEBAR
       ════════════════════════════ */}
-      <aside className="w-[230px] flex-shrink-0 bg-white border-r border-gray-200 flex flex-col h-full overflow-y-auto">
+      <aside className="w-[240px] flex-shrink-0 bg-white border-r border-gray-200 flex flex-col h-full overflow-y-auto">
 
-        {/* Seller Profile */}
+        {/* Seller Profile & Store Switcher */}
         <div className="p-4 border-b border-gray-200">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-orange-400 to-red-500 flex items-center justify-center text-white font-black text-[15px] flex-shrink-0">
-              A
+          <div className="flex items-center gap-3 mb-3">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-orange-500 to-amber-500 flex items-center justify-center text-white font-black text-[15px] flex-shrink-0 shadow">
+              {activeArtisan?.store_name ? activeArtisan.store_name.charAt(0).toUpperCase() : 'S'}
             </div>
-            <div className="min-w-0">
-              <div className="text-[13px] font-bold text-gray-900 truncate">{activeArtisan?.name || 'Artisan profile'}</div>
-              <div className="text-[11px] text-gray-500 truncate">{activeArtisan?.region || 'Profile loading…'}</div>
+            <div className="min-w-0 flex-1">
+              <div className="text-[13px] font-bold text-gray-900 truncate">
+                {activeArtisan?.store_name || activeArtisan?.name || 'Varanasi Weavers'}
+              </div>
+              <div className="text-[11px] text-gray-500 truncate">
+                {activeArtisan?.region || 'Varanasi, Uttar Pradesh'}
+              </div>
             </div>
           </div>
+
+          {/* Store Switcher Dropdown */}
+          {artisans.length > 1 && (
+            <div className="mb-2">
+              <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">Active Store Profile</label>
+              <select
+                value={selectedArtisanId || ''}
+                onChange={(e) => setSelectedArtisanId(Number(e.target.value))}
+                className="w-full text-xs font-semibold bg-gray-50 border border-gray-200 rounded-lg p-1.5 outline-none focus:border-orange-500 text-gray-800"
+              >
+                {artisans.map(a => (
+                  <option key={a.id} value={a.id}>
+                    {a.store_name || a.name} ({a.region?.split(',')[0]})
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+
+          {/* Quick Register Another Store */}
+          {onNavigateToOnboarding && (
+            <button
+              onClick={onNavigateToOnboarding}
+              className="w-full text-left py-1.5 px-2 bg-orange-50/60 hover:bg-orange-100/80 border border-orange-200 rounded-lg text-[11px] font-bold text-orange-800 flex items-center justify-between transition-colors mb-2"
+            >
+              <span>+ Register New Store</span>
+              <Plus className="w-3 h-3 text-orange-600" />
+            </button>
+          )}
+
           {/* Seller Health Score */}
-          <div className="mt-3 bg-green-50 border border-green-200 rounded-xl p-2.5">
+          <div className="bg-green-50 border border-green-200 rounded-xl p-2.5">
             <div className="flex items-center justify-between mb-1">
-              <span className="text-[11px] font-bold text-green-800">Account Health</span>
-              <span className="text-[11px] font-black text-green-800">98/100</span>
+              <span className="text-[11px] font-bold text-green-800">Producer Health</span>
+              <span className="text-[11px] font-black text-green-800">98/100 · Verified</span>
             </div>
             <div className="bg-green-200 rounded-full h-1.5 overflow-hidden">
               <div className="bg-green-600 h-full rounded-full" style={{ width: '98%' }} />

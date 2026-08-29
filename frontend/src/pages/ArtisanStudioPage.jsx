@@ -113,10 +113,10 @@ export default function ArtisanStudioPage({ onProductCreated, activePreset, onNa
       const priceRes = await api.calculatePrice(costPayload);
       setPricingData(priceRes);
 
-      setStep(4); // Jump directly to review & confirm for instant SIH demonstration
+      setStep(4); // Advance to review & price recommendation stage
     } catch (err) {
       console.error(err);
-      setErrorMessage(err.message || 'Failed to load demo preset');
+      setErrorMessage(err.message || 'Failed to load catalog template');
     } finally {
       setLoading(false);
       setLoadingMessage('');

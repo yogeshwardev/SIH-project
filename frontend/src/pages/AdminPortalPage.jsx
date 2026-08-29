@@ -123,7 +123,7 @@ export default function AdminPortalPage({ onNavigateToMarketplace }) {
                 ADMINISTRATOR GOVERNANCE PORTAL
               </span>
               <span className="text-xs text-slate-400">
-                Ministry of Social Justice & Empowerment (SIH26090)
+                National Handicrafts & Handloom Governance Directorate
               </span>
             </div>
             <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight">

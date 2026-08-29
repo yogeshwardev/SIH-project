@@ -2,37 +2,63 @@ import React, { useState, useEffect } from 'react';
 import AmazonHeader from './components/AmazonHeader';
 import BuyerDashboardPage from './pages/BuyerDashboardPage';
 import SellerPortalPage from './pages/SellerPortalPage';
+import SellerOnboardingPage from './pages/SellerOnboardingPage';
 import AdminPortalPage from './pages/AdminPortalPage';
 import CartDrawer from './components/CartDrawer';
 import CheckoutModal from './components/CheckoutModal';
 import OrderTrackingModal from './components/OrderTrackingModal';
+import AuthModal from './components/AuthModal';
+import UserAccountModal from './components/UserAccountModal';
 import { api } from './services/api';
 import { MapPin, Sparkles, Truck, ShieldCheck, RotateCcw, Phone } from 'lucide-react';
 
 export default function App() {
-  const [activeTab, setActiveTab]         = useState('buyer');
-  const [userPincode, setUserPincode]     = useState('110001');
-  const [pincodeInput, setPincodeInput]   = useState('110001');
+  const [activeTab, setActiveTab] = useState('buyer'); // 'buyer', 'seller', 'seller-onboarding', 'admin'
+  const [userPincode, setUserPincode] = useState('110001');
+  const [pincodeInput, setPincodeInput] = useState('110001');
   const [showPincodeModal, setShowPincodeModal] = useState(false);
 
+  // Authentication & Account State
+  const [currentUser, setCurrentUser] = useState(() => {
+    try {
+      const saved = localStorage.getItem('craftlink_user');
+      return saved ? JSON.parse(saved) : {
+        id: 1,
+        name: 'Master Weaver Ramesh',
+        store_name: 'Varanasi Master Weavers Guild',
+        email: 'ramesh.varanasi@craftlink.in',
+        phone: '+91 98765 11223',
+        role: 'seller',
+        craft_category: 'Handloom & Textiles',
+        region: 'Varanasi, Uttar Pradesh',
+        kyc_status: 'Verified'
+      };
+    } catch {
+      return null;
+    }
+  });
+
+  const [currentRole, setCurrentRole] = useState(() => currentUser?.role || 'seller');
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const [authModalTab, setAuthModalTab] = useState('buyer');
+  const [isAccountModalOpen, setIsAccountModalOpen] = useState(false);
+
   // Search
-  const [searchTerm, setSearchTerm]           = useState('');
+  const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All Categories');
 
   // Cart state
-  const [cartItems, setCartItems]         = useState([]);
-  const [isCartOpen, setIsCartOpen]       = useState(false);
+  const [cartItems, setCartItems] = useState([]);
+  const [isCartOpen, setIsCartOpen] = useState(false);
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
-  const [isOrdersOpen, setIsOrdersOpen]   = useState(false);
+  const [isOrdersOpen, setIsOrdersOpen] = useState(false);
   const [pendingAdminCount, setPendingAdminCount] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
-    // One-time fetch on mount
     api.getPendingProducts?.()
       .then(data => { if (!cancelled) setPendingAdminCount(data?.length || 0); })
       .catch(() => {});
-    // Poll every 60 seconds (not 10) to avoid hammering the backend
     const interval = setInterval(() => {
       if (!cancelled) {
         api.getPendingProducts?.()
@@ -42,6 +68,36 @@ export default function App() {
     }, 60000);
     return () => { cancelled = true; clearInterval(interval); };
   }, []);
+
+  const handleLoginSuccess = (user, role) => {
+    setCurrentUser(user);
+    setCurrentRole(role);
+    try {
+      localStorage.setItem('craftlink_user', JSON.stringify(user));
+    } catch {}
+    
+    if (role === 'seller') {
+      setActiveTab('seller');
+    } else if (role === 'admin') {
+      setActiveTab('admin');
+    } else {
+      setActiveTab('buyer');
+    }
+  };
+
+  const handleSignOut = () => {
+    setCurrentUser(null);
+    setCurrentRole('buyer');
+    try {
+      localStorage.removeItem('craftlink_user');
+    } catch {}
+    setActiveTab('buyer');
+  };
+
+  const handleOpenAuth = (tab = 'buyer') => {
+    setAuthModalTab(tab);
+    setIsAuthModalOpen(true);
+  };
 
   // Cart operations
   const handleAddToCart = (product) => {
@@ -98,9 +154,14 @@ export default function App() {
         userPincode={userPincode}
         onOpenPincodeModal={() => setShowPincodeModal(true)}
         pendingAdminCount={pendingAdminCount}
+        currentUser={currentUser}
+        currentRole={currentRole}
+        onOpenAuthModal={handleOpenAuth}
+        onOpenAccountModal={() => setIsAccountModalOpen(true)}
+        onSignOut={handleSignOut}
       />
 
-      {/* MAIN CONTENT */}
+      {/* MAIN CONTENT ROUTER */}
       <main className="flex-1">
         {activeTab === 'buyer' && (
           <BuyerDashboardPage
@@ -109,20 +170,37 @@ export default function App() {
             onBuyNow={handleBuyNow}
           />
         )}
+
         {activeTab === 'seller' && (
           <SellerPortalPage
+            currentUser={currentUser}
             onNavigateToAdmin={() => setActiveTab('admin')}
             onNavigateToStore={() => setActiveTab('buyer')}
+            onNavigateToOnboarding={() => setActiveTab('seller-onboarding')}
+            onOpenAuthModal={handleOpenAuth}
           />
         )}
+
+        {activeTab === 'seller-onboarding' && (
+          <SellerOnboardingPage
+            onCompleteOnboarding={(newSeller) => {
+              handleLoginSuccess(newSeller, 'seller');
+              setActiveTab('seller');
+            }}
+            onCancel={() => setActiveTab('seller')}
+          />
+        )}
+
         {activeTab === 'admin' && (
           <AdminPortalPage
+            currentUser={currentUser}
             onNavigateToMarketplace={() => setActiveTab('buyer')}
+            onOpenAuthModal={handleOpenAuth}
           />
         )}
       </main>
 
-      {/* ═══ AMAZON-STYLE FOOTER ══════════════════════ */}
+      {/* ═══ FOOTER ══════════════════════ */}
       <footer style={{ fontFamily: "'Inter', sans-serif" }}>
 
         {/* Back to Top */}
@@ -138,138 +216,175 @@ export default function App() {
           <div className="max-w-[1400px] mx-auto px-6 py-10 grid grid-cols-2 md:grid-cols-4 gap-8">
 
             <div>
-              <h5 className="font-bold text-[14px] mb-4">Get to Know Us</h5>
+              <h5 className="font-bold text-[14px] mb-4 text-white">Get to Know Us</h5>
               <ul className="space-y-2 text-[13px] text-gray-300">
-                <li className="hover:text-white cursor-pointer">About CraftLink</li>
-                <li className="hover:text-white cursor-pointer">Artisan Impact Stories</li>
-                <li className="hover:text-white cursor-pointer">Ministry of Social Justice</li>
-                <li className="hover:text-white cursor-pointer">Careers</li>
-                <li className="hover:text-white cursor-pointer">Press & Media</li>
+                <li className="hover:text-white cursor-pointer">About CraftLink India</li>
+                <li className="hover:text-white cursor-pointer">Master Artisan Network</li>
+                <li className="hover:text-white cursor-pointer">GI Certification Standard</li>
+                <li className="hover:text-white cursor-pointer">National Handloom Directorate</li>
+                <li className="hover:text-white cursor-pointer">Press & Media Releases</li>
               </ul>
             </div>
 
             <div>
-              <h5 className="font-bold text-[14px] mb-4">Make Money With Us</h5>
+              <h5 className="font-bold text-[14px] mb-4 text-white">Sell on CraftLink</h5>
               <ul className="space-y-2 text-[13px] text-gray-300">
                 <li
-                  onClick={() => setActiveTab('seller')}
+                  onClick={() => setActiveTab('seller-onboarding')}
                   className="hover:text-amber-400 cursor-pointer font-semibold text-amber-300"
                 >
-                  Sell on CraftLink (Free)
+                  Register Master Artisan Store (0% Commission)
                 </li>
-                <li className="hover:text-white cursor-pointer">Register an Artisan Guild</li>
-                <li className="hover:text-white cursor-pointer">Supply to Govt Clusters</li>
-                <li className="hover:text-white cursor-pointer">ONDC Network Partnership</li>
+                <li
+                  onClick={() => setActiveTab('seller')}
+                  className="hover:text-white cursor-pointer"
+                >
+                  Seller Central Dashboard
+                </li>
+                <li className="hover:text-white cursor-pointer">AI Voice Cataloging Studio</li>
+                <li className="hover:text-white cursor-pointer">Artisan Pehchan Benefits</li>
+                <li className="hover:text-white cursor-pointer">NEFT Direct Payouts</li>
               </ul>
             </div>
 
             <div>
-              <h5 className="font-bold text-[14px] mb-4">Payment & Delivery</h5>
+              <h5 className="font-bold text-[14px] mb-4 text-white">Artisan Clusters</h5>
               <ul className="space-y-2 text-[13px] text-gray-300">
-                <li className="hover:text-white cursor-pointer">UPI, Cards, Netbanking, COD</li>
-                <li className="hover:text-white cursor-pointer">Cluster Direct Shipping</li>
-                <li className="hover:text-white cursor-pointer">Track Your Order</li>
-                <li className="hover:text-white cursor-pointer">Delivery Speed Options</li>
+                <li className="hover:text-white cursor-pointer">Varanasi Handloom Silk</li>
+                <li className="hover:text-white cursor-pointer">Jaipur Cobalt Blue Pottery</li>
+                <li className="hover:text-white cursor-pointer">Bastar Dhokra Bell Metal</li>
+                <li className="hover:text-white cursor-pointer">Channapatna Wooden Toys</li>
+                <li className="hover:text-white cursor-pointer">Assam Golden Muga & Cane</li>
               </ul>
             </div>
 
             <div>
-              <h5 className="font-bold text-[14px] mb-4">Let Us Help You</h5>
+              <h5 className="font-bold text-[14px] mb-4 text-white">Governance & Help</h5>
               <ul className="space-y-2 text-[13px] text-gray-300">
-                <li onClick={() => setIsOrdersOpen(true)} className="hover:text-white cursor-pointer">
-                  Your Account & Orders
+                <li
+                  onClick={() => setActiveTab('admin')}
+                  className="hover:text-emerald-400 cursor-pointer font-semibold text-emerald-300"
+                >
+                  Admin Governance Portal
                 </li>
-                <li className="hover:text-white cursor-pointer">100% Purchase Protection</li>
-                <li className="hover:text-white cursor-pointer">7-Day Returns & Refunds</li>
-                <li className="hover:text-white cursor-pointer">Help Centre</li>
+                <li className="hover:text-white cursor-pointer">Buyer Protection & Returns</li>
+                <li className="hover:text-white cursor-pointer">Fair-Trade Wage Guarantee</li>
+                <li className="hover:text-white cursor-pointer">Track Consignments</li>
+                <li className="hover:text-white cursor-pointer">Artisan Helpline (Toll Free)</li>
               </ul>
             </div>
+
           </div>
-        </div>
 
-        {/* Bottom Bar */}
-        <div className="bg-[#131921] border-t border-gray-700">
-          <div className="max-w-[1400px] mx-auto px-6 py-5 flex flex-col md:flex-row items-center justify-between gap-4">
-
-            {/* Logo */}
-            <div className="flex items-center gap-2">
-              <div className="w-7 h-7 rounded-md bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center">
-                <Sparkles className="w-4 h-4 text-white" />
-              </div>
-              <span className="text-white font-black text-[16px]" style={{ fontFamily: "'Outfit', sans-serif" }}>
-                CraftLink<span className="text-amber-400">.in</span>
+          {/* Bottom strip */}
+          <div className="border-t border-gray-700 py-6 text-center text-[12px] text-gray-400">
+            <div className="flex items-center justify-center gap-6 mb-2">
+              <span className="flex items-center gap-1.5 text-white font-semibold">
+                <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+                CraftLink.in
               </span>
+              <span>•</span>
+              <span>100% Direct Producer Revenue</span>
+              <span>•</span>
+              <span>Zero Intermediary Exploitation</span>
             </div>
-
-            {/* Trust pills */}
-            <div className="flex items-center gap-4 text-[11px] text-gray-400">
-              <span className="flex items-center gap-1"><ShieldCheck className="w-3.5 h-3.5 text-green-400" /> Secure Site</span>
-              <span className="flex items-center gap-1"><Truck className="w-3.5 h-3.5 text-blue-400" /> Free Delivery</span>
-              <span className="flex items-center gap-1"><RotateCcw className="w-3.5 h-3.5 text-amber-400" /> 7-Day Returns</span>
-            </div>
-
-            <div className="text-[12px] text-gray-500">
-              © {new Date().getFullYear()} CraftLink Technologies Pvt. Ltd.
-            </div>
+            <p>© 2026 CraftLink India Enterprise. All rights reserved. Registered National Handloom & Handicraft Marketplace.</p>
           </div>
         </div>
+
       </footer>
 
-      {/* ═══ OVERLAYS ══════════════════════════════════ */}
+      {/* ═══ OVERLAYS & MODALS ════════════════════════ */}
 
+      {/* Cart Drawer */}
       <CartDrawer
         isOpen={isCartOpen}
         onClose={() => setIsCartOpen(false)}
-        cartItems={cartItems}
+        items={cartItems}
         onUpdateQuantity={handleUpdateQuantity}
         onRemoveItem={handleRemoveItem}
-        onCheckout={() => { setIsCartOpen(false); setIsCheckoutOpen(true); }}
+        onProceedToCheckout={() => {
+          setIsCartOpen(false);
+          setIsCheckoutOpen(true);
+        }}
       />
 
-      <CheckoutModal
-        isOpen={isCheckoutOpen}
-        onClose={() => setIsCheckoutOpen(false)}
-        items={cartItems}
-        onOrderCompleted={handleOrderCompleted}
+      {/* Checkout Modal */}
+      {isCheckoutOpen && (
+        <CheckoutModal
+          isOpen={isCheckoutOpen}
+          onClose={() => setIsCheckoutOpen(false)}
+          cartItems={cartItems}
+          cartTotal={cartTotal}
+          onOrderSuccess={handleOrderCompleted}
+        />
+      )}
+
+      {/* Order Tracking Modal */}
+      {isOrdersOpen && (
+        <OrderTrackingModal
+          isOpen={isOrdersOpen}
+          onClose={() => setIsOrdersOpen(false)}
+        />
+      )}
+
+      {/* Auth Modal (Buyer / Seller / Admin) */}
+      <AuthModal
+        isOpen={isAuthModalOpen}
+        onClose={() => setIsAuthModalOpen(false)}
+        initialTab={authModalTab}
+        onLoginSuccess={handleLoginSuccess}
+        onNavigateToSellerOnboarding={() => setActiveTab('seller-onboarding')}
       />
 
-      <OrderTrackingModal
-        isOpen={isOrdersOpen}
-        onClose={() => setIsOrdersOpen(false)}
+      {/* User Account Dashboard Modal */}
+      <UserAccountModal
+        isOpen={isAccountModalOpen}
+        onClose={() => setIsAccountModalOpen(false)}
+        currentUser={currentUser}
+        currentRole={currentRole}
+        onSignOut={handleSignOut}
+        onOpenOrders={() => setIsOrdersOpen(true)}
+        onNavigateToSeller={() => setActiveTab('seller')}
+        onNavigateToAdmin={() => setActiveTab('admin')}
+        onOpenAuthModal={handleOpenAuth}
       />
 
-      {/* Pincode Modal */}
+      {/* Pincode Change Modal */}
       {showPincodeModal && (
-        <div className="fixed inset-0 z-[80] bg-black/60 flex items-center justify-center p-4 animate-fade-in">
-          <div className="bg-white rounded-2xl max-w-sm w-full p-6 shadow-2xl">
-            <h3 className="text-[16px] font-bold text-gray-900 mb-1 flex items-center gap-2">
-              <MapPin className="w-5 h-5 text-amber-500" />
-              Choose Your Delivery Location
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
+          <div className="bg-white rounded-2xl p-6 max-w-sm w-full shadow-2xl border border-gray-200">
+            <h3 className="text-base font-bold text-gray-900 mb-1" style={{ fontFamily: "'Outfit', sans-serif" }}>
+              Choose your location
             </h3>
-            <p className="text-[12px] text-gray-500 mb-4">
-              Enter your area pincode to see faster delivery options.
+            <p className="text-xs text-gray-500 mb-4">
+              Enter your Indian postal pincode to see accurate delivery speed and artisan cluster availability.
             </p>
-            <input
-              type="text"
-              value={pincodeInput}
-              onChange={e => setPincodeInput(e.target.value)}
-              placeholder="6-digit Pincode (e.g. 110001)"
-              maxLength={6}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-[14px] font-semibold text-gray-900 outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-100 mb-3"
-            />
-            <div className="flex gap-2">
+            <div className="flex gap-2 mb-4">
+              <input
+                type="text"
+                value={pincodeInput}
+                onChange={e => setPincodeInput(e.target.value)}
+                placeholder="Enter 6-digit Pincode"
+                maxLength={6}
+                className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm font-semibold outline-none focus:border-amber-400 font-mono"
+              />
+              <button
+                onClick={() => {
+                  setUserPincode(pincodeInput || '110001');
+                  setShowPincodeModal(false);
+                }}
+                className="px-4 py-2 bg-amber-400 hover:bg-amber-500 text-gray-900 font-bold text-xs rounded-lg transition-colors"
+              >
+                Apply
+              </button>
+            </div>
+            <div className="flex justify-end">
               <button
                 onClick={() => setShowPincodeModal(false)}
-                className="flex-1 py-2.5 rounded-lg border border-gray-300 text-[13px] font-semibold text-gray-700 hover:bg-gray-50"
+                className="text-xs text-gray-500 hover:text-gray-800 font-semibold"
               >
                 Cancel
-              </button>
-              <button
-                onClick={() => { setUserPincode(pincodeInput || '110001'); setShowPincodeModal(false); }}
-                className="flex-1 py-2.5 rounded-lg font-bold text-[13px] transition-all"
-                style={{ backgroundColor: '#ffd814', color: '#0f1111' }}
-              >
-                Apply Location
               </button>
             </div>
           </div>

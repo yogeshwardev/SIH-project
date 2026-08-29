@@ -232,7 +232,7 @@ export default function PriceExplainerCard({ pricingData, onUpdateCost, currentC
         </div>
       </div>
 
-      {/* "Why this price?" Transparent Justification Accordion for SIH Judges */}
+      {/* "Why this price?" Transparent Justification Accordion for Fair Trade Compliance */}
       <div className="border border-artisan-200 rounded-xl overflow-hidden">
         <button
           onClick={() => setShowFormulaDetails(!showFormulaDetails)}
@@ -241,7 +241,7 @@ export default function PriceExplainerCard({ pricingData, onUpdateCost, currentC
           <div className="flex items-center gap-2">
             <Info className="w-4 h-4 text-terracotta-600" />
             <span className="text-xs font-bold text-slate-800">
-              Why this price? (SIH Transparency & Anti-Exploitation Proof)
+              Why this price? (Fair-Trade Economics & Artisan Wage Transparency)
             </span>
           </div>
           {showFormulaDetails ? (

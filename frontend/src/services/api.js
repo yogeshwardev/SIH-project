@@ -1,6 +1,61 @@
 const API_BASE = '/api';
 
 export const api = {
+  // ==========================================
+  // Authentication & User Accounts API
+  // ==========================================
+  async login(payload) {
+    const res = await fetch(`${API_BASE}/auth/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ detail: 'Authentication failed' }));
+      throw new Error(err.detail || 'Login failed');
+    }
+    return res.json();
+  },
+
+  async registerBuyer(payload) {
+    const res = await fetch(`${API_BASE}/auth/buyer/register`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ detail: 'Buyer registration failed' }));
+      throw new Error(err.detail || 'Registration failed');
+    }
+    return res.json();
+  },
+
+  async registerSeller(payload) {
+    const res = await fetch(`${API_BASE}/auth/seller/register`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ detail: 'Seller onboarding failed' }));
+      throw new Error(err.detail || 'Seller registration failed');
+    }
+    return res.json();
+  },
+
+  async adminLogin(payload) {
+    const res = await fetch(`${API_BASE}/auth/admin/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ detail: 'Admin authentication failed' }));
+      throw new Error(err.detail || 'Admin login failed');
+    }
+    return res.json();
+  },
+
   // 1. Image AI Enhancement
   async enhanceImage(file) {
     const formData = new FormData();
@@ -218,10 +273,28 @@ export const api = {
     return res.json();
   },
 
-  // Real seller profiles and fulfilment orders
+  // Real seller profiles and fulfillment orders
   async getArtisans() {
     const res = await fetch(`${API_BASE}/artisans`);
     if (!res.ok) throw new Error('Failed to load artisan profiles');
+    return res.json();
+  },
+
+  async createArtisan(payload) {
+    const res = await fetch(`${API_BASE}/artisans`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    if (!res.ok) throw new Error('Failed to register artisan store');
+    return res.json();
+  },
+
+  async verifyArtisanKyc(id, status = 'Verified') {
+    const res = await fetch(`${API_BASE}/artisans/${id}/verify?kyc_status=${status}`, {
+      method: 'PUT',
+    });
+    if (!res.ok) throw new Error('Failed to verify artisan profile');
     return res.json();
   },
 

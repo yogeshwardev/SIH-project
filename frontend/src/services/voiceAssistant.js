@@ -125,11 +125,26 @@ class VoiceAssistant {
       return true;
     }
 
+    const neuralTimeoutMs = Math.max(2500, Number(options.neuralTimeoutMs) || 6000);
+    const browserFallbackAvailable = Boolean(
+      this.synth && typeof SpeechSynthesisUtterance !== 'undefined'
+    );
+    // Never abort the only working voice path. Some embedded browsers expose
+    // Web Audio but not speechSynthesis, so the neural request must be allowed
+    // to finish there even during a cold start.
+    const requestController = browserFallbackAvailable && typeof AbortController !== 'undefined'
+      ? new AbortController()
+      : null;
+    const requestTimeout = requestController
+      ? window.setTimeout(() => requestController.abort(), neuralTimeoutMs)
+      : null;
+
     try {
       const response = await fetch('/api/speech/synthesize', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ text: cleanText, language: lang }),
+        signal: requestController?.signal,
       });
       if (response.ok) {
         const blob = await response.blob();
@@ -157,6 +172,8 @@ class VoiceAssistant {
       }
     } catch (_) {
       // Browser speech keeps voiceover available offline.
+    } finally {
+      if (requestTimeout) window.clearTimeout(requestTimeout);
     }
     const browserStarted = this._speakInBrowser(cleanText, lang, onEnd, speechToken);
     if (!browserStarted && speechToken === this.speechToken) onEnd?.();

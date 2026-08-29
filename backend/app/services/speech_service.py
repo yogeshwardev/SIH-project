@@ -5,6 +5,7 @@ import math
 import requests
 import importlib.util
 import threading
+from concurrent.futures import ThreadPoolExecutor
 import numpy as np
 from pathlib import Path
 from typing import Dict, Any, Optional
@@ -84,19 +85,44 @@ class SpeechService:
         )
 
     def warmup(self) -> None:
-        if not self.local_transcription_available():
-            return
-        try:
-            with self._whisper_lock:
-                if self._whisper_fast_model is None:
-                    self._whisper_fast_model = self._create_whisper_model(settings.LOCAL_WHISPER_FAST_MODEL)
-                if self._whisper_model is None:
-                    if settings.LOCAL_WHISPER_MODEL == settings.LOCAL_WHISPER_FAST_MODEL:
-                        self._whisper_model = self._whisper_fast_model
-                    else:
-                        self._whisper_model = self._create_whisper_model(settings.LOCAL_WHISPER_MODEL)
-        except Exception:
-            return
+        if self.local_transcription_available():
+            try:
+                with self._whisper_lock:
+                    if self._whisper_fast_model is None:
+                        self._whisper_fast_model = self._create_whisper_model(settings.LOCAL_WHISPER_FAST_MODEL)
+                    if self._whisper_model is None:
+                        if settings.LOCAL_WHISPER_MODEL == settings.LOCAL_WHISPER_FAST_MODEL:
+                            self._whisper_model = self._whisper_fast_model
+                        else:
+                            self._whisper_model = self._create_whisper_model(settings.LOCAL_WHISPER_MODEL)
+            except Exception:
+                pass
+
+        # Edge Neural has a noticeable one-time connection/token startup cost.
+        # Pre-generate the exact opening question in the existing background
+        # warm-up thread. This both primes each language voice and puts the
+        # first interaction in the in-memory cache. Avoid an automatic paid
+        # OpenAI request.
+        if settings.AI_PROVIDER.lower() != "openai" and self.neural_voiceover_available():
+            from backend.app.services.product_interview_service import product_interview_service
+
+            language_codes = {"en": "en-IN", "hi": "hi-IN", "te": "te-IN"}
+            warmup_phrases = tuple(
+                (
+                    product_interview_service.QUESTIONS[locale]["product_description"],
+                    language_code,
+                )
+                for locale, language_code in language_codes.items()
+            )
+
+            def warm_voice(item: tuple[str, str]) -> None:
+                try:
+                    self.synthesize_speech(item[0], item[1])
+                except Exception:
+                    pass
+
+            with ThreadPoolExecutor(max_workers=len(warmup_phrases)) as pool:
+                list(pool.map(warm_voice, warmup_phrases))
 
     def _transcribe_with_local_whisper(self, file_path: Path, hint_language: Optional[str]) -> tuple[str, str, float, str, Dict[str, float]]:
         language_code = self._normalize_language_code(hint_language)

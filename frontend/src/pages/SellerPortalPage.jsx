@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   LayoutDashboard, Plus, Package, TrendingUp, IndianRupee,
   Truck, ShieldCheck, CheckCircle2, Eye, Edit3, Trash2, Send,
@@ -976,6 +976,7 @@ function AiListingStudio({ onProductCreated, onNavigateToAdmin, artisanId, artis
   const [pendingAnswer, setPendingAnswer] = useState(null);
   const [submitted, setSubmitted] = useState(false);
   const [productId, setProductId] = useState(null);
+  const lastAutoSpokenQuestionRef = useRef('');
   const questionUi = questionUiCopyFor(detLang);
 
   const STEPS = [
@@ -987,12 +988,15 @@ function AiListingStudio({ onProductCreated, onNavigateToAdmin, artisanId, artis
   ];
 
   const clearQuestionFlow = () => {
+    voiceAssistant.stopSpeaking();
+    lastAutoSpokenQuestionRef.current = '';
+    setSpeaking(false); setVoiceLoading(false);
     setTxt(''); setAttrs(null); setListing(null); setPricing(null);
     setCosts({ material_cost: null, labor_cost: null, packaging_cost: null, production_time: '' });
     setInterview(null); setInterviewTurns([]); setQuestionHistory([]); setTypedAnswer(''); setPendingAnswer(null);
   };
 
-  const speakPrompt = async (message, language = detLang) => {
+  const speakPrompt = useCallback(async (message, language = detLang) => {
     if (!message) return;
     setVoiceLoading(true);
     setSpeaking(false);
@@ -1000,11 +1004,29 @@ function AiListingStudio({ onProductCreated, onNavigateToAdmin, artisanId, artis
       message,
       speechCodeForLanguage(language),
       () => { setSpeaking(false); setVoiceLoading(false); },
-      { preferNeural: true },
+      { preferNeural: true, neuralTimeoutMs: 6000 },
     );
     setVoiceLoading(false);
     setSpeaking(Boolean(started));
-  };
+  }, [detLang]);
+
+  // Play a question only after its page is mounted and the loading screen has
+  // disappeared. Starting speech inside the API handler raced the render and
+  // could be dropped by browser autoplay handling even though the question was
+  // visible a moment later.
+  useEffect(() => {
+    const message = interview?.assistant_message;
+    if (step !== 2 || loading || !message) return undefined;
+
+    const questionKey = [interview?.question_number || 0, detLang, message].join('|');
+    if (lastAutoSpokenQuestionRef.current === questionKey) return undefined;
+    lastAutoSpokenQuestionRef.current = questionKey;
+
+    const timer = window.setTimeout(() => {
+      speakPrompt(message, detLang);
+    }, 180);
+    return () => window.clearTimeout(timer);
+  }, [step, loading, interview?.assistant_message, interview?.question_number, detLang, speakPrompt]);
 
   const handleImageUpload = async (e) => {
     const file = e.target.files?.[0]; if (!file) return;
@@ -1041,7 +1063,6 @@ function AiListingStudio({ onProductCreated, onNavigateToAdmin, artisanId, artis
       setTypedAnswer('');
       setPendingAnswer(null);
       setStep(2);
-      speakPrompt(result.assistant_message, detLang);
     } catch (e) { setError(e.message); }
     finally { setLoading(false); setLoadMsg(''); }
   };
@@ -1118,8 +1139,6 @@ function AiListingStudio({ onProductCreated, onNavigateToAdmin, artisanId, artis
         });
         setPricing(pr);
         setStep(3);
-      } else {
-        speakPrompt(result.assistant_message, lang);
       }
     } catch (e) { setError(e.message); }
     finally { setLoading(false); setLoadMsg(''); }
@@ -1143,8 +1162,8 @@ function AiListingStudio({ onProductCreated, onNavigateToAdmin, artisanId, artis
     setDetLang(previous.language || detLang);
     setTypedAnswer(previous.answer || '');
     setPendingAnswer(null);
+    lastAutoSpokenQuestionRef.current = '';
     setStep(2);
-    speakPrompt(previous.interview?.assistant_message, previous.language || detLang);
   };
 
   const handleSubmit = async () => {

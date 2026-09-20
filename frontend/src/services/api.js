@@ -1,5 +1,19 @@
 const API_BASE = '/api';
 
+// FastAPI returns `detail` as a string, or as a list of validation errors.
+async function errorMessage(res, fallback) {
+  const body = await res.json().catch(() => null);
+  const detail = body?.detail;
+  if (typeof detail === 'string') return detail;
+  if (Array.isArray(detail) && detail.length) {
+    return detail.map((item) => {
+      const field = Array.isArray(item.loc) ? item.loc[item.loc.length - 1] : '';
+      return field ? `${String(field).replace(/_/g, ' ')}: ${item.msg}` : item.msg;
+    }).join(' · ');
+  }
+  return fallback;
+}
+
 export const api = {
   // ==========================================
   // Authentication & User Accounts API
@@ -11,8 +25,7 @@ export const api = {
       body: JSON.stringify(payload),
     });
     if (!res.ok) {
-      const err = await res.json().catch(() => ({ detail: 'Authentication failed' }));
-      throw new Error(err.detail || 'Login failed');
+      throw new Error(await errorMessage(res, 'Login failed'));
     }
     return res.json();
   },
@@ -24,8 +37,7 @@ export const api = {
       body: JSON.stringify(payload),
     });
     if (!res.ok) {
-      const err = await res.json().catch(() => ({ detail: 'Buyer registration failed' }));
-      throw new Error(err.detail || 'Registration failed');
+      throw new Error(await errorMessage(res, 'Registration failed'));
     }
     return res.json();
   },
@@ -37,8 +49,7 @@ export const api = {
       body: JSON.stringify(payload),
     });
     if (!res.ok) {
-      const err = await res.json().catch(() => ({ detail: 'Seller onboarding failed' }));
-      throw new Error(err.detail || 'Seller registration failed');
+      throw new Error(await errorMessage(res, 'Seller registration failed'));
     }
     return res.json();
   },
@@ -50,8 +61,7 @@ export const api = {
       body: JSON.stringify(payload),
     });
     if (!res.ok) {
-      const err = await res.json().catch(() => ({ detail: 'Admin authentication failed' }));
-      throw new Error(err.detail || 'Admin login failed');
+      throw new Error(await errorMessage(res, 'Admin login failed'));
     }
     return res.json();
   },
@@ -65,8 +75,7 @@ export const api = {
       body: formData,
     });
     if (!res.ok) {
-      const err = await res.json().catch(() => ({ detail: 'Failed to enhance image' }));
-      throw new Error(err.detail || 'Image enhancement failed');
+      throw new Error(await errorMessage(res, 'Image enhancement failed'));
     }
     return res.json();
   },
@@ -83,8 +92,7 @@ export const api = {
       body: formData,
     });
     if (!res.ok) {
-      const err = await res.json().catch(() => ({ detail: 'Speech transcription failed' }));
-      throw new Error(err.detail || 'Transcription failed');
+      throw new Error(await errorMessage(res, 'Transcription failed'));
     }
     return res.json();
   },
@@ -96,8 +104,7 @@ export const api = {
       body: JSON.stringify(payload),
     });
     if (!res.ok) {
-      const err = await res.json().catch(() => ({ detail: 'Product interview failed' }));
-      throw new Error(err.detail || 'Product interview failed');
+      throw new Error(await errorMessage(res, 'Product interview failed'));
     }
     return res.json();
   },
@@ -114,8 +121,7 @@ export const api = {
       }),
     });
     if (!res.ok) {
-      const err = await res.json().catch(() => ({ detail: 'Entity extraction failed' }));
-      throw new Error(err.detail || 'Extraction failed');
+      throw new Error(await errorMessage(res, 'Extraction failed'));
     }
     return res.json();
   },
@@ -131,8 +137,7 @@ export const api = {
       }),
     });
     if (!res.ok) {
-      const err = await res.json().catch(() => ({ detail: 'Listing generation failed' }));
-      throw new Error(err.detail || 'Listing generation failed');
+      throw new Error(await errorMessage(res, 'Listing generation failed'));
     }
     return res.json();
   },
@@ -145,8 +150,7 @@ export const api = {
       body: JSON.stringify(pricingData),
     });
     if (!res.ok) {
-      const err = await res.json().catch(() => ({ detail: 'Pricing calculation failed' }));
-      throw new Error(err.detail || 'Pricing failed');
+      throw new Error(await errorMessage(res, 'Pricing failed'));
     }
     return res.json();
   },
@@ -159,8 +163,7 @@ export const api = {
       body: JSON.stringify(productData),
     });
     if (!res.ok) {
-      const err = await res.json().catch(() => ({ detail: 'Product submission failed' }));
-      throw new Error(err.detail || 'Failed to submit product');
+      throw new Error(await errorMessage(res, 'Failed to submit product'));
     }
     return res.json();
   },
@@ -196,7 +199,7 @@ export const api = {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(updateData),
     });
-    if (!res.ok) throw new Error('Failed to update product');
+    if (!res.ok) throw new Error(await errorMessage(res, 'Failed to update product'));
     return res.json();
   },
 
@@ -205,7 +208,7 @@ export const api = {
     const res = await fetch(`${API_BASE}/products/${id}`, {
       method: 'DELETE',
     });
-    if (!res.ok) throw new Error('Failed to delete product');
+    if (!res.ok) throw new Error(await errorMessage(res, 'Failed to delete product'));
     return res.json();
   },
 
@@ -224,7 +227,7 @@ export const api = {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ admin_notes: adminNotes }),
     });
-    if (!res.ok) throw new Error('Failed to approve product');
+    if (!res.ok) throw new Error(await errorMessage(res, 'Failed to approve product'));
     return res.json();
   },
 
@@ -234,7 +237,7 @@ export const api = {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ admin_notes: reason }),
     });
-    if (!res.ok) throw new Error('Failed to reject product');
+    if (!res.ok) throw new Error(await errorMessage(res, 'Failed to reject product'));
     return res.json();
   },
 
@@ -280,6 +283,12 @@ export const api = {
     return res.json();
   },
 
+  async getArtisan(id) {
+    const res = await fetch(`${API_BASE}/artisans/${id}`);
+    if (!res.ok) throw new Error(await errorMessage(res, 'Seller profile not found'));
+    return res.json();
+  },
+
   async createArtisan(payload) {
     const res = await fetch(`${API_BASE}/artisans`, {
       method: 'POST',
@@ -303,6 +312,32 @@ export const api = {
     if (params.artisan_id) query.set('artisan_id', params.artisan_id);
     const res = await fetch(`${API_BASE}/orders?${query.toString()}`);
     if (!res.ok) throw new Error('Failed to load fulfilment orders');
+    return res.json();
+  },
+
+  async checkout(payload) {
+    const res = await fetch(`${API_BASE}/orders/checkout`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    if (!res.ok) throw new Error(await errorMessage(res, 'We could not place your order. Please try again.'));
+    return res.json();
+  },
+
+  async trackOrder(orderNumber, email) {
+    const res = await fetch(`${API_BASE}/orders/track/${encodeURIComponent(orderNumber.trim().toUpperCase())}?email=${encodeURIComponent(email.trim())}`);
+    if (!res.ok) throw new Error(await errorMessage(res, 'Order not found for that email address.'));
+    return res.json();
+  },
+
+  async updateOrderStatus(orderNumber, status) {
+    const res = await fetch(`${API_BASE}/orders/${encodeURIComponent(orderNumber)}/status`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status }),
+    });
+    if (!res.ok) throw new Error(await errorMessage(res, 'Could not update the order status.'));
     return res.json();
   },
 

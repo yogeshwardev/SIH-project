@@ -1,105 +1,53 @@
 /** @type {import('tailwindcss').Config} */
 export default {
-  content: [
-    "./index.html",
-    "./src/**/*.{js,ts,jsx,tsx}",
-  ],
+  content: ['./index.html', './src/**/*.{js,ts,jsx,tsx}'],
   theme: {
     extend: {
       colors: {
-        // Amazon palette
-        amazon: {
-          dark:   '#131921',
-          nav:    '#232f3e',
-          orange: '#ffa41c',
-          yellow: '#ffd814',
-          search: '#febd69',
-          blue:   '#007185',
-          link:   '#007185',
-          deal:   '#cc0c39',
-          prime:  '#00a8e1',
-          green:  '#007600',
+        // CraftLink "Neel & Genda" identity: indigo (neel dye) + marigold (genda phool).
+        brand: {
+          50: '#EEF0FB', 100: '#DDE1F7', 200: '#BCC3EF', 300: '#939DE3', 400: '#6B76D4',
+          500: '#4E58C2', 600: '#3B44A8', 700: '#30378A', 800: '#282D6E', 900: '#1E2150', 950: '#13153A',
         },
-        // Flipkart palette
-        flipkart: {
-          blue:   '#2874F0',
-          yellow: '#FFD13A',
-          orange: '#FF6161',
-          green:  '#388E3C',
+        // Marigold: calls to action, highlights, the logo accent.
+        clay: {
+          50: '#FFF8EB', 100: '#FEEBC8', 200: '#FDD592', 300: '#FCBB55', 400: '#F9A72B',
+          500: '#F29111', 600: '#D6760A', 700: '#B15A0C', 800: '#8F4711', 900: '#753B11',
         },
-        // CraftLink brand
-        craft: {
-          50:   '#FFFBF0',
-          100:  '#FEF3C7',
-          200:  '#FDE68A',
-          300:  '#FCD34D',
-          400:  '#FBBF24',
-          500:  '#F59E0B',
-          600:  '#D97706',
-          700:  '#B45309',
-          800:  '#92400E',
-          900:  '#78350F',
+        gold: { 300: '#FCBB55', 400: '#F9A72B', 500: '#F29111', 600: '#D6760A' },
+        ink: {
+          950: '#0F1024', 900: '#1B1C33', 800: '#2B2D45', 700: '#3F4159', 600: '#55576E',
+          500: '#6D6F85', 400: '#9092A6', 300: '#B9BACA', 200: '#DCDCE6',
         },
-        terracotta: {
-          50:  '#FFF1EE',
-          100: '#FFE0D9',
-          200: '#FFC5B8',
-          300: '#FFA08A',
-          400: '#FF7455',
-          500: '#E05638',
-          600: '#C2410C',
-          700: '#9A3412',
-          800: '#7C2D12',
-          900: '#641E0C',
-        },
+        paper: { DEFAULT: '#F4F4F8', 50: '#FAFAFD', 100: '#F4F4F8', 200: '#EAEAF2', 300: '#DEDEEA' },
+        line: { DEFAULT: '#E4E4EE', strong: '#CFCFDD' },
       },
       fontFamily: {
-        sans:  ['Inter', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'sans-serif'],
-        head:  ['Outfit', 'Inter', 'sans-serif'],
-        mono:  ['JetBrains Mono', 'Fira Code', 'monospace'],
+        sans: ['Inter', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'sans-serif'],
+        display: ['"Plus Jakarta Sans"', 'Inter', '-apple-system', 'Segoe UI', 'sans-serif'],
       },
       boxShadow: {
-        'card':     '0 1px 3px rgba(0,0,0,0.1), 0 1px 2px rgba(0,0,0,0.06)',
-        'card-lg':  '0 4px 16px rgba(0,0,0,0.12), 0 2px 6px rgba(0,0,0,0.08)',
-        'card-xl':  '0 10px 40px rgba(0,0,0,0.15)',
-        'header':   '0 2px 8px rgba(0,0,0,0.25)',
-        'modal':    '0 25px 60px rgba(0,0,0,0.3)',
-        'dropdown': '0 8px 24px rgba(0,0,0,0.15)',
-        'button':   '0 2px 6px rgba(255,164,28,0.4)',
+        xs: '0 1px 2px rgba(17, 26, 21, 0.05)',
+        card: '0 1px 2px rgba(19, 21, 58, 0.05), 0 1px 3px rgba(19, 21, 58, 0.05)',
+        lift: '0 14px 36px -12px rgba(30, 33, 80, 0.28)',
+        modal: '0 24px 64px -12px rgba(14, 22, 36, 0.35)',
       },
-      borderRadius: {
-        'xl2': '1rem',
-        'xl3': '1.5rem',
-      },
-      spacing: {
-        '18': '4.5rem',
-        '22': '5.5rem',
-        '112': '28rem',
-        '128': '32rem',
-      },
-      transitionTimingFunction: {
-        'bounce-out': 'cubic-bezier(0.34, 1.56, 0.64, 1)',
-      },
+      borderRadius: { xl: '0.75rem', '2xl': '1rem', '3xl': '1.5rem' },
       keyframes: {
-        fadeIn: {
-          '0%':   { opacity: '0', transform: 'translateY(10px)' },
-          '100%': { opacity: '1', transform: 'translateY(0)' },
-        },
-        slideRight: {
-          '0%':   { opacity: '0', transform: 'translateX(80px)' },
-          '100%': { opacity: '1', transform: 'translateX(0)' },
-        },
-        shimmer: {
-          '0%':   { backgroundPosition: '-500px 0' },
-          '100%': { backgroundPosition: '500px 0' },
-        },
+        fadeUp: { '0%': { opacity: '0', transform: 'translateY(8px)' }, '100%': { opacity: '1', transform: 'translateY(0)' } },
+        fadeIn: { '0%': { opacity: '0' }, '100%': { opacity: '1' } },
+        slideIn: { '0%': { transform: 'translateX(100%)' }, '100%': { transform: 'translateX(0)' } },
+        pop: { '0%': { opacity: '0', transform: 'scale(.97) translateY(6px)' }, '100%': { opacity: '1', transform: 'scale(1) translateY(0)' } },
+        shimmer: { '0%': { backgroundPosition: '-600px 0' }, '100%': { backgroundPosition: '600px 0' } },
       },
       animation: {
-        'fade-in':   'fadeIn 0.3s ease-out forwards',
-        'slide-right': 'slideRight 0.35s ease-out forwards',
-        'shimmer':   'shimmer 1.5s infinite linear',
+        'fade-up': 'fadeUp .35s cubic-bezier(.16,1,.3,1) both',
+        'fade-in': 'fadeIn .2s ease-out both',
+        'slide-in': 'slideIn .32s cubic-bezier(.16,1,.3,1) both',
+        pop: 'pop .28s cubic-bezier(.16,1,.3,1) both',
+        shimmer: 'shimmer 1.4s linear infinite',
       },
     },
   },
   plugins: [],
-}
+};

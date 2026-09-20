@@ -2,7 +2,7 @@
  * Voice input/output with live browser dictation, neural server voiceover,
  * and a browser text-to-speech fallback.
  */
-class VoiceAssistant {
+export class VoiceAssistant {
   constructor() {
     this.synth = typeof window !== 'undefined' ? window.speechSynthesis : null;
     this.recognition = null;
@@ -127,7 +127,7 @@ class VoiceAssistant {
 
     const neuralTimeoutMs = Math.max(2500, Number(options.neuralTimeoutMs) || 6000);
     const browserFallbackAvailable = Boolean(
-      this.synth && typeof SpeechSynthesisUtterance !== 'undefined'
+      this.synth && typeof SpeechSynthesisUtterance !== 'undefined' && this._getBrowserVoice(lang)
     );
     // Never abort the only working voice path. Some embedded browsers expose
     // Web Audio but not speechSynthesis, so the neural request must be allowed
@@ -148,6 +148,7 @@ class VoiceAssistant {
       });
       if (response.ok) {
         const blob = await response.blob();
+        if (speechToken !== this.speechToken) return false;
         if (this.audioContext && this.audioContext.state !== 'closed') {
           if (this.audioContext.state === 'suspended') await this.audioContext.resume();
           const audioBuffer = await this.audioContext.decodeAudioData(await blob.arrayBuffer());
@@ -175,6 +176,7 @@ class VoiceAssistant {
     } finally {
       if (requestTimeout) window.clearTimeout(requestTimeout);
     }
+    if (speechToken !== this.speechToken) return false;
     const browserStarted = this._speakInBrowser(cleanText, lang, onEnd, speechToken);
     if (!browserStarted && speechToken === this.speechToken) onEnd?.();
     return browserStarted;
@@ -200,15 +202,27 @@ class VoiceAssistant {
     utterance.lang = locale;
     utterance.rate = 0.84;
     utterance.pitch = 1.04;
-    const voices = this.synth.getVoices();
-    utterance.voice = voices.find((voice) => voice.lang.toLowerCase() === locale.toLowerCase())
-      || voices.find((voice) => voice.lang.toLowerCase().startsWith(locale.slice(0, 2).toLowerCase()))
-      || null;
+    // A default Hindi voice must never read a Telugu or English question.
+    // Keep the neural voice path if no matching local voice is installed.
+    utterance.voice = this._getBrowserVoice(locale);
+    if (!utterance.voice || speechToken !== this.speechToken) return false;
     utterance.onend = () => this._finishSpeech(onEnd, speechToken);
     utterance.onerror = () => this._finishSpeech(onEnd, speechToken);
     this.synth.resume();
     this.synth.speak(utterance);
     return true;
+  }
+
+  _getBrowserVoice(lang) {
+    const requested = String(lang || 'en-IN').toLowerCase();
+    const prefix = requested.startsWith('te') || requested.includes('తెలుగు') ? 'te'
+      : requested.startsWith('hi') || requested.includes('हिन्द') ? 'hi'
+        : requested.startsWith('ta') ? 'ta'
+          : requested.startsWith('bn') || requested.includes('bengali') ? 'bn'
+            : requested.startsWith('mr') || requested.includes('marathi') ? 'mr' : 'en';
+    return this.synth?.getVoices().find(voice => voice.lang.toLowerCase() === requested)
+      || this.synth?.getVoices().find(voice => voice.lang.toLowerCase().split('-')[0] === prefix)
+      || null;
   }
 
   _finishSpeech(onEnd, speechToken = this.speechToken) {

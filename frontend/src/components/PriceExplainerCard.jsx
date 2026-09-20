@@ -1,281 +1,110 @@
-import React, { useState } from 'react';
-import { 
-  TrendingUp, 
-  ShieldCheck, 
-  HelpCircle, 
-  ChevronDown, 
-  ChevronUp, 
-  Info, 
-  CheckCircle2, 
-  Sparkles,
-  Calculator,
-  IndianRupee
-} from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { AlertTriangle, Calculator, ChevronDown, Info, ShieldCheck } from 'lucide-react';
+import { useLanguage } from '../context/LanguageContext';
+
+const inr = (value) => '₹' + Math.round(Number(value) || 0).toLocaleString('en-IN');
+const COST_FIELDS = [['material_cost', 'Materials'], ['labor_cost', 'Your labour'], ['packaging_cost', 'Packaging']];
 
 export default function PriceExplainerCard({ pricingData, onUpdateCost, currentCosts }) {
-  const [showFormulaDetails, setShowFormulaDetails] = useState(true);
-  const [isEditing, setIsEditing] = useState(false);
-  const [costs, setCosts] = useState({
-    material_cost: currentCosts?.material_cost || 500,
-    labor_cost: currentCosts?.labor_cost || 1000,
-    packaging_cost: currentCosts?.packaging_cost || 100,
-    production_time: currentCosts?.production_time || '2 days',
-  });
-
-  const handleCostChange = (field, val) => {
-    const updated = { ...costs, [field]: parseFloat(val) || 0 };
-    setCosts(updated);
-  };
-
-  const handleApplyCosts = () => {
-    setIsEditing(false);
-    if (onUpdateCost) {
-      onUpdateCost(costs);
-    }
-  };
+  const { t } = useLanguage();
+  const [editing, setEditing] = useState(false);
+  const [showWhy, setShowWhy] = useState(false);
+  const [costs, setCosts] = useState({});
+  useEffect(() => {
+    setCosts({
+      material_cost: currentCosts?.material_cost ?? 0,
+      labor_cost: currentCosts?.labor_cost ?? 0,
+      packaging_cost: currentCosts?.packaging_cost ?? 0,
+      production_time: currentCosts?.production_time || '',
+    });
+  }, [currentCosts]);
 
   if (!pricingData) return null;
 
-  const totalCost = pricingData.total_cost || (costs.material_cost + costs.labor_cost + costs.packaging_cost);
-  const suggested = pricingData.suggested_price || 0;
-  const marginPct = pricingData.profit_margin_percentage || 30;
+  const suggested = Number(pricingData.suggested_price || 0);
+  const totalCost = Number(pricingData.total_cost ?? COST_FIELDS.reduce((sum, [key]) => sum + Number(costs[key] || 0), 0));
+  const earnings = suggested - totalCost;
+  const confidence = Math.round((pricingData.pricing_confidence_score || 0) * 100);
+  const rows = [...COST_FIELDS.map(([key, label]) => ({ key, label, value: Number(costs[key] || 0) })), { key: 'earnings', label: 'You earn', value: Math.max(0, earnings), highlight: true }];
 
   return (
-    <div className="bg-white rounded-2xl border border-artisan-200 shadow-sm p-5 sm:p-6">
-      
-      {/* Header Banner */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-artisan-100">
-        <div className="flex items-center gap-2.5">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-700 text-white flex items-center justify-center shadow-md shadow-emerald-500/20">
-            <TrendingUp className="w-5 h-5" />
-          </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <h3 className="text-lg font-bold text-slate-900">
-                AI Smart Pricing & Economic Breakdown
-              </h3>
-              <span className="inline-flex items-center gap-1 text-[10px] font-bold bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-full">
-                <ShieldCheck className="w-3 h-3" />
-                Fair Trade Model
-              </span>
-            </div>
-            <p className="text-xs text-slate-500">
-              Guarantees sustainable living wage for artisans + prevents marketplace distress selling
-            </p>
-            <div className="mt-1.5 flex flex-wrap items-center gap-2 text-[10px] font-bold">
-              <span className={`rounded-full px-2 py-0.5 ${pricingData.confidence_level === 'HIGH' ? 'bg-emerald-100 text-emerald-800' : pricingData.confidence_level === 'MEDIUM' ? 'bg-amber-100 text-amber-800' : 'bg-red-100 text-red-800'}`}>
-                {Math.round((pricingData.pricing_confidence_score || 0) * 100)}% pricing confidence
-              </span>
-              <span className="text-slate-500">{pricingData.benchmark_sample_count || 0} comparable benchmark records</span>
-              {pricingData.requires_human_review && <span className="text-red-700">Human price review required</span>}
-            </div>
-          </div>
+    <section className="card overflow-hidden">
+      <div className="flex flex-wrap items-start justify-between gap-4 border-b border-line p-5 sm:p-6">
+        <div>
+          <p className="text-sm text-ink-500">{t('Suggested selling price')}</p>
+          <p className="mt-1 text-4xl font-semibold tracking-tight tabular-nums text-ink-950">{inr(suggested)}</p>
+          {(pricingData.recommended_min_price || pricingData.recommended_max_price) && (
+            <p className="mt-1 text-sm text-ink-600">{t('Fair range')} {inr(pricingData.recommended_min_price)} – {inr(pricingData.recommended_max_price)}</p>
+          )}
         </div>
-
-        <button
-          onClick={() => setIsEditing(!isEditing)}
-          className="self-start sm:self-auto text-xs font-bold text-terracotta-700 hover:text-terracotta-800 bg-artisan-100 hover:bg-artisan-200 px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1.5"
-        >
-          <Calculator className="w-3.5 h-3.5" />
-          <span>{isEditing ? 'Cancel Edit' : 'Adjust Base Costs'}</span>
-        </button>
+        <button type="button" onClick={() => setEditing(!editing)} className="btn btn-secondary"><Calculator className="h-4 w-4" />{t(editing ? 'Close' : 'Adjust my costs')}</button>
       </div>
 
-      {/* Editable Cost Inputs Modal / Bar */}
-      {isEditing && (
-        <div className="my-4 p-4 rounded-xl bg-artisan-50 border border-artisan-200 grid grid-cols-1 sm:grid-cols-4 gap-3 animate-fadeIn">
-          <div>
-            <label className="block text-[11px] font-bold text-slate-600 mb-1">
-              Raw Material (₹)
-            </label>
-            <input
-              type="number"
-              value={costs.material_cost}
-              onChange={(e) => handleCostChange('material_cost', e.target.value)}
-              className="w-full text-sm font-bold bg-white border border-slate-300 rounded-lg px-2.5 py-1.5 focus:ring-2 focus:ring-terracotta-500 outline-none"
-            />
-          </div>
-          <div>
-            <label className="block text-[11px] font-bold text-slate-600 mb-1">
-              Artisan Labor (₹)
-            </label>
-            <input
-              type="number"
-              value={costs.labor_cost}
-              onChange={(e) => handleCostChange('labor_cost', e.target.value)}
-              className="w-full text-sm font-bold bg-white border border-slate-300 rounded-lg px-2.5 py-1.5 focus:ring-2 focus:ring-terracotta-500 outline-none"
-            />
-          </div>
-          <div>
-            <label className="block text-[11px] font-bold text-slate-600 mb-1">
-              Packaging (₹)
-            </label>
-            <input
-              type="number"
-              value={costs.packaging_cost}
-              onChange={(e) => handleCostChange('packaging_cost', e.target.value)}
-              className="w-full text-sm font-bold bg-white border border-slate-300 rounded-lg px-2.5 py-1.5 focus:ring-2 focus:ring-terracotta-500 outline-none"
-            />
-          </div>
+      {editing && (
+        <div className="grid gap-3 border-b border-line bg-paper-50 p-5 sm:grid-cols-4 sm:p-6">
+          {COST_FIELDS.map(([key, label]) => (
+            <div key={key}>
+              <label htmlFor={`cost-${key}`} className="label">{t(label)}</label>
+              <div className="relative">
+                <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-ink-500">₹</span>
+                <input id={`cost-${key}`} type="number" min="0" inputMode="numeric" value={costs[key]} onChange={(event) => setCosts({ ...costs, [key]: Math.max(0, parseFloat(event.target.value) || 0) })} className="field pl-7 tabular-nums" />
+              </div>
+            </div>
+          ))}
           <div className="flex items-end">
-            <button
-              onClick={handleApplyCosts}
-              className="w-full bg-terracotta-600 hover:bg-terracotta-700 text-white text-xs font-bold py-2 rounded-lg transition-colors shadow-sm"
-            >
-              Recompute AI Price
-            </button>
+            <button type="button" onClick={() => { setEditing(false); onUpdateCost?.(costs); }} className="btn btn-primary w-full">{t('Recalculate')}</button>
           </div>
         </div>
       )}
 
-      {/* Main Highlights Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-3 my-5">
-        
-        {/* Direct Cost Card */}
-        <div className="bg-slate-50 border border-slate-200 rounded-xl p-3.5">
-          <span className="text-xs font-semibold text-slate-500 block">Total Production Cost</span>
-          <span className="text-xl font-extrabold text-slate-800">
-            ₹{totalCost.toLocaleString('en-IN')}
-          </span>
-          <p className="text-[10px] text-slate-500 mt-1">
-            Materials + Fair-wage Labor + Box
-          </p>
-        </div>
-
-        {/* Reference Range */}
-        <div className="bg-amber-50/70 border border-amber-200 rounded-xl p-3.5">
-          <span className="text-xs font-semibold text-amber-800 block">Market Reference Range</span>
-          <span className="text-xl font-extrabold text-amber-950">
-            {pricingData.market_reference_range || `₹${(totalCost * 1.2).toFixed(0)} – ₹${(totalCost * 1.6).toFixed(0)}`}
-          </span>
-          <p className="text-[10px] text-amber-700 mt-1">
-            Benchmark Guild & Cluster Data
-          </p>
-        </div>
-
-        {/* Recommended Sustainable Range */}
-        <div className="bg-blue-50/70 border border-blue-200 rounded-xl p-3.5">
-          <span className="text-xs font-semibold text-blue-800 block">Recommended Range</span>
-          <span className="text-xl font-extrabold text-blue-950">
-            ₹{(pricingData.recommended_min_price || totalCost * 1.25).toLocaleString('en-IN')} – ₹{(pricingData.recommended_max_price || totalCost * 1.55).toLocaleString('en-IN')}
-          </span>
-          <p className="text-[10px] text-blue-700 mt-1">
-            Min Margin: +{marginPct}% Fair Surplus
-          </p>
-        </div>
-
-        {/* Suggested Selling Price (Hero) */}
-        <div className="bg-gradient-to-br from-emerald-600 to-teal-800 text-white rounded-xl p-3.5 shadow-md">
-          <span className="text-xs font-semibold text-emerald-100 block flex items-center gap-1">
-            <Sparkles className="w-3 h-3 text-emerald-300" />
-            AI Suggested Price
-          </span>
-          <span className="text-2xl font-black tracking-tight text-white">
-            ₹{suggested.toLocaleString('en-IN')}
-          </span>
-          <p className="text-[10px] text-emerald-200 mt-0.5">
-            Optimized for online buyer conversion
-          </p>
-        </div>
-
-      </div>
-
-      {/* Visual Component Percentage Bar */}
-      <div className="mb-5 bg-slate-50 p-4 rounded-xl border border-slate-200">
-        <div className="flex items-center justify-between text-xs font-bold text-slate-700 mb-2">
-          <span>Cost Structure & Fair-Trade Margin Distribution</span>
-          <span className="text-emerald-700 font-extrabold">100% Value Breakdown</span>
-        </div>
-
-        {/* Multi-segmented Color Bar */}
-        <div className="h-4 w-full rounded-full overflow-hidden flex shadow-inner bg-slate-200">
-          <div 
-            style={{ width: `${(costs.material_cost / (suggested || 1)) * 100}%` }} 
-            className="bg-amber-500 transition-all duration-500" 
-            title="Raw Material Cost"
-          />
-          <div 
-            style={{ width: `${(costs.labor_cost / (suggested || 1)) * 100}%` }} 
-            className="bg-blue-600 transition-all duration-500" 
-            title="Skilled Artisan Labor"
-          />
-          <div 
-            style={{ width: `${(costs.packaging_cost / (suggested || 1)) * 100}%` }} 
-            className="bg-slate-400 transition-all duration-500" 
-            title="Packaging"
-          />
-          <div 
-            style={{ width: `${Math.max(5, marginPct)}%` }} 
-            className="bg-emerald-500 transition-all duration-500" 
-            title="Artisan Fair Surplus"
-          />
-        </div>
-
-        {/* Legend */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-3 text-[11px]">
-          <div className="flex items-center gap-1.5">
-            <span className="w-2.5 h-2.5 rounded-full bg-amber-500"></span>
-            <span className="text-slate-600 font-medium">Material: ₹{costs.material_cost}</span>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <span className="w-2.5 h-2.5 rounded-full bg-blue-600"></span>
-            <span className="text-slate-600 font-medium">Labor: ₹{costs.labor_cost}</span>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <span className="w-2.5 h-2.5 rounded-full bg-slate-400"></span>
-            <span className="text-slate-600 font-medium">Packaging: ₹{costs.packaging_cost}</span>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <span className="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
-            <span className="text-emerald-800 font-bold">Artisan Profit: ₹{(suggested - totalCost).toFixed(0)}</span>
-          </div>
-        </div>
-      </div>
-
-      {/* "Why this price?" Transparent Justification Accordion for Fair Trade Compliance */}
-      <div className="border border-artisan-200 rounded-xl overflow-hidden">
-        <button
-          onClick={() => setShowFormulaDetails(!showFormulaDetails)}
-          className="w-full flex items-center justify-between p-3.5 bg-artisan-50/60 hover:bg-artisan-100/80 text-left transition-colors"
-        >
-          <div className="flex items-center gap-2">
-            <Info className="w-4 h-4 text-terracotta-600" />
-            <span className="text-xs font-bold text-slate-800">
-              Why this price? (Fair-Trade Economics & Artisan Wage Transparency)
-            </span>
-          </div>
-          {showFormulaDetails ? (
-            <ChevronUp className="w-4 h-4 text-slate-500" />
-          ) : (
-            <ChevronDown className="w-4 h-4 text-slate-500" />
-          )}
-        </button>
-
-        {showFormulaDetails && (
-          <div className="p-4 bg-white text-xs text-slate-600 space-y-2 border-t border-artisan-200">
-            <p className="leading-relaxed text-slate-700">
-              {pricingData.explanation || 
-                `Based on ${costs.production_time} of skilled hand craftsmanship, total production costs sum to ₹${totalCost}. The AI blends a 35% sustainable fair-trade margin with Random Forest machine learning benchmarks from regional artisan records to avoid under-pricing handmade heritage artifacts.`
-              }
-            </p>
-            {pricingData.assumptions?.length > 0 && (
-              <div className="rounded-lg border border-slate-200 bg-slate-50 p-2.5">
-                <strong className="text-slate-800">Model assumptions:</strong>
-                <ul className="mt-1 list-disc space-y-0.5 pl-4 text-[11px]">
-                  {pricingData.assumptions.map((assumption, index) => <li key={index}>{assumption}</li>)}
-                </ul>
+      <div className="p-5 sm:p-6">
+        <h3 className="text-sm font-semibold text-ink-950">{t('Where the money goes')}</h3>
+        <ul className="mt-4 space-y-3.5">
+          {rows.map((row) => (
+            <li key={row.key}>
+              <div className="flex items-baseline justify-between text-sm">
+                <span className={row.highlight ? 'font-semibold text-ink-950' : 'text-ink-700'}>{t(row.label)}</span>
+                <span className={`tabular-nums ${row.highlight ? 'font-semibold text-ink-950' : 'text-ink-800'}`}>{inr(row.value)} <span className="text-xs font-normal text-ink-500">{suggested > 0 ? Math.round((row.value / suggested) * 100) : 0}%</span></span>
               </div>
-            )}
-            <div className="bg-emerald-50 p-2.5 rounded-lg border border-emerald-200 flex items-start gap-2">
-              <CheckCircle2 className="w-4 h-4 text-emerald-700 flex-shrink-0 mt-0.5" />
-              <div className="text-[11px] text-emerald-900 leading-tight">
-                <strong>Responsible AI Guarantee:</strong> Calculations are strictly verifiable. Artisans retain 100% control to override or confirm pricing prior to digital publishing.
+              <div className="mt-1.5 h-2 overflow-hidden rounded-full bg-paper-200">
+                <div className={`h-full rounded-full ${row.highlight ? 'bg-clay-500' : 'bg-brand-700'}`} style={{ width: `${suggested > 0 ? Math.min(100, (row.value / suggested) * 100) : 0}%` }} />
               </div>
-            </div>
-          </div>
+            </li>
+          ))}
+        </ul>
+        {earnings < 0 && <p className="mt-4 flex items-center gap-2 rounded-xl bg-red-50 px-3 py-2 text-sm text-red-800"><AlertTriangle className="h-4 w-4" />{t('This price is below your costs.')}</p>}
+
+        <div className="mt-6 grid gap-3 sm:grid-cols-3">
+          <Fact label={t('Total cost')} value={inr(totalCost)} />
+          <Fact label={t('Comparable products')} value={pricingData.benchmark_sample_count || 0} />
+          <Fact label={t('Confidence')} value={`${confidence}%`} tone={pricingData.confidence_level === 'HIGH' ? 'text-emerald-700' : pricingData.confidence_level === 'MEDIUM' ? 'text-amber-700' : 'text-red-700'} />
+        </div>
+        {pricingData.requires_human_review && (
+          <p className="mt-4 flex items-start gap-2 rounded-xl bg-amber-50 px-4 py-3 text-sm text-amber-900"><Info className="mt-0.5 h-4 w-4 flex-shrink-0" />{t('There are few similar products to compare with, so our team will double-check this price.')}</p>
         )}
-      </div>
 
+        <div className="mt-5 rounded-xl border border-line">
+          <button type="button" onClick={() => setShowWhy(!showWhy)} aria-expanded={showWhy} className="flex w-full items-center justify-between px-4 py-3 text-left text-sm font-semibold text-ink-900">
+            {t('Why this price?')}<ChevronDown className={`h-4 w-4 text-ink-500 transition ${showWhy ? 'rotate-180' : ''}`} />
+          </button>
+          {showWhy && (
+            <div className="space-y-3 border-t border-line px-4 py-4 text-sm leading-relaxed text-ink-700">
+              {pricingData.explanation && <p>{pricingData.explanation}</p>}
+              {pricingData.assumptions?.length > 0 && <ul className="list-disc space-y-1 pl-5">{pricingData.assumptions.map((item) => <li key={item}>{item}</li>)}</ul>}
+              <p className="flex items-start gap-2 text-ink-600"><ShieldCheck className="mt-0.5 h-4 w-4 flex-shrink-0 text-brand-600" />{t('This is a recommendation. You stay in control and can change the price any time.')}</p>
+            </div>
+          )}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function Fact({ label, value, tone = 'text-ink-950' }) {
+  return (
+    <div className="rounded-xl bg-paper-100 px-4 py-3">
+      <p className="text-xs text-ink-500">{label}</p>
+      <p className={`mt-0.5 text-lg font-semibold tabular-nums ${tone}`}>{value}</p>
     </div>
   );
 }

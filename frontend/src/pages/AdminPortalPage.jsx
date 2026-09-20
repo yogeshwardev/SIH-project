@@ -1,636 +1,326 @@
-import React, { useState, useEffect } from 'react';
-import { 
-  ShieldCheck, 
-  Check, 
-  X, 
-  Clock, 
-  AlertCircle, 
-  Tag, 
-  Package, 
-  Layers, 
-  FileSpreadsheet, 
-  FileCode, 
-  RefreshCw, 
-  Sparkles, 
-  TrendingUp, 
-  Users, 
-  IndianRupee, 
-  ShoppingBag, 
-  Eye, 
-  Sliders, 
-  CheckCircle2, 
-  MessageSquare,
-  Zap,
-  Filter
-} from 'lucide-react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { BarChart3, Check, ClipboardCheck, Download, Eye, FileSpreadsheet, LogOut, Mic, Package, RefreshCw, Search, Store, Truck, X } from 'lucide-react';
 import { api } from '../services/api';
-import { CategoryBarChart, RegionalDistributionList } from '../components/Charts';
+import { useLanguage } from '../context/LanguageContext';
+import WorkspaceShell from '../components/WorkspaceShell';
 import BeforeAfterSlider from '../components/BeforeAfterSlider';
+import ProductImage from '../components/ProductImage';
+import { EmptyState, Modal, Notice, Spinner, StatCard, StatusPill, cx, formatDate, formatINR } from '../components/ui';
+import SellerOrders from './seller/SellerOrders';
+import { HorizontalBars } from './seller/SellerInsights';
+import { computeSellerMetrics } from './seller/sellerData';
 
-export default function AdminPortalPage({ onNavigateToMarketplace }) {
-  const [adminTab, setAdminTab] = useState('pending'); // 'pending', 'catalog', 'orders', 'analytics'
-  const [pendingProducts, setPendingProducts] = useState([]);
-  const [publishedProducts, setPublishedProducts] = useState([]);
-  const [inquiries, setInquiries] = useState([]);
+const TITLES = {
+  review: ['Review queue', 'Check each listing before it goes live'],
+  catalog: ['Catalog', 'Every product across all stores'],
+  orders: ['Orders', 'Fulfilment across the marketplace'],
+  stores: ['Stores', 'Registered sellers'],
+  reports: ['Reports', 'Marketplace numbers and data exports'],
+};
+
+export default function AdminPortalPage({ currentUser, onNavigateToMarketplace, onNavigateToSeller, onSignOut }) {
+  const { t } = useLanguage();
+  const [tab, setTab] = useState('review');
+  const [products, setProducts] = useState([]);
+  const [orders, setOrders] = useState([]);
+  const [stores, setStores] = useState([]);
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
-  
-  // Inspection Modal
-  const [inspectProduct, setInspectProduct] = useState(null);
-  const [rejectFeedback, setRejectFeedback] = useState('');
-  const [actionSuccessMessage, setActionSuccessMessage] = useState(null);
+  const [error, setError] = useState('');
+  const [flash, setFlash] = useState('');
+  const [inspecting, setInspecting] = useState(null);
 
-  const fetchAdminData = async () => {
+  const load = useCallback(async () => {
     setLoading(true);
+    setError('');
     try {
-      const [pending, published, inqs, dashboardStats] = await Promise.all([
-        api.getPendingProducts(),
-        api.getProducts({ status: 'Published' }),
-        api.getInquiries(),
-        api.getDashboardStats()
+      const [productList, orderList, storeList, dashboard] = await Promise.all([
+        api.getProducts({ status: 'All' }), api.getOrders(), api.getArtisans(), api.getDashboardStats(),
       ]);
-      setPendingProducts(pending);
-      setPublishedProducts(published);
-      setInquiries(inqs);
-      setStats(dashboardStats);
-    } catch (err) {
-      console.error('Failed to load admin data:', err);
+      setProducts(productList || []);
+      setOrders(orderList || []);
+      setStores(storeList || []);
+      setStats(dashboard);
+    } catch (loadError) {
+      setError(loadError.message || 'Could not load operations data.');
     } finally {
       setLoading(false);
     }
-  };
-
-  useEffect(() => {
-    fetchAdminData();
   }, []);
+  useEffect(() => { load(); }, [load]);
 
-  const handleApprove = async (productId, notes = 'Approved for Marketplace publication') => {
-    try {
-      await api.approveProduct(productId, notes);
-      setActionSuccessMessage(`Product #${productId} approved and published to live e-commerce store!`);
-      setInspectProduct(null);
-      fetchAdminData();
-      setTimeout(() => setActionSuccessMessage(null), 4000);
-    } catch (err) {
-      alert('Approval failed: ' + err.message);
-    }
-  };
+  const pending = products.filter((product) => product.status === 'Pending Approval');
+  const metrics = useMemo(() => computeSellerMetrics(products, orders, null), [products, orders]);
+  const replaceProduct = (updated) => setProducts((list) => list.map((product) => (product.id === updated.id ? updated : product)));
+  const showFlash = (message) => { setFlash(message); setTimeout(() => setFlash(''), 4000); };
+  const [title, subtitle] = TITLES[tab];
 
-  const handleReject = async (productId) => {
-    try {
-      await api.rejectProduct(productId, rejectFeedback || 'Requires additional craft verification details.');
-      setActionSuccessMessage(`Product #${productId} rejected with feedback sent to artisan.`);
-      setInspectProduct(null);
-      setRejectFeedback('');
-      fetchAdminData();
-      setTimeout(() => setActionSuccessMessage(null), 4000);
-    } catch (err) {
-      alert('Rejection failed: ' + err.message);
-    }
-  };
+  const nav = [
+    { label: t('Marketplace'), items: [
+      { id: 'review', label: t('Review queue'), icon: ClipboardCheck, count: pending.length },
+      { id: 'orders', label: t('Orders'), icon: Truck, count: metrics.toFulfil.length },
+      { id: 'catalog', label: t('Catalog'), icon: Package },
+      { id: 'stores', label: t('Stores'), icon: Store },
+      { id: 'reports', label: t('Reports'), icon: BarChart3 },
+    ] },
+    { label: t('Switch to'), items: [{ id: 'seller', label: t('Seller workspace'), icon: Store, onClick: onNavigateToSeller }] },
+  ];
 
-  const handleAutoApproveAll = async () => {
-    try {
-      const res = await api.autoApproveAll();
-      setActionSuccessMessage(`Fast-track approved ${res.approved_count} pending crafts to marketplace!`);
-      fetchAdminData();
-      setTimeout(() => setActionSuccessMessage(null), 4000);
-    } catch (err) {
-      alert('Auto-approve failed: ' + err.message);
-    }
-  };
-
-  const handleUpdateOrderStatus = async (inquiryId, newStatus) => {
-    try {
-      await api.updateInquiryStatus(inquiryId, newStatus);
-      fetchAdminData();
-    } catch (err) {
-      alert('Failed to update status: ' + err.message);
-    }
-  };
+  const identity = (
+    <div className="flex items-center gap-3">
+      <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-clay-100 text-base font-semibold text-clay-700">{(currentUser?.name || 'O').charAt(0)}</span>
+      <span className="min-w-0"><span className="block truncate text-sm font-semibold text-white">{currentUser?.name}</span><span className="block truncate text-xs text-brand-300">{currentUser?.admin_id || t('Operations')}</span></span>
+    </div>
+  );
+  const footer = (
+    <div className="space-y-0.5">
+      <button type="button" onClick={onNavigateToMarketplace} className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-brand-100 hover:bg-white/[.07] hover:text-white"><Eye className="h-[18px] w-[18px] text-brand-300" />{t('View storefront')}</button>
+      <button type="button" onClick={onSignOut} className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-brand-100 hover:bg-white/[.07] hover:text-white"><LogOut className="h-[18px] w-[18px] text-brand-300" />{t('Sign out')}</button>
+    </div>
+  );
 
   return (
-    <div className="min-h-screen bg-[#F0F2F2]" style={{ fontFamily: "'Inter', sans-serif" }}>
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+    <WorkspaceShell
+      badge={t('Operations')}
+      identity={identity}
+      nav={nav}
+      activeId={tab}
+      onNavigate={setTab}
+      footer={footer}
+      title={t(title)}
+      subtitle={t(subtitle)}
+      actions={<button type="button" onClick={load} disabled={loading} className="btn btn-secondary btn-icon" aria-label={t('Refresh')}><RefreshCw className={cx('h-4 w-4', loading && 'animate-spin')} /></button>}
+    >
+      {error && <Notice tone="error" className="mb-6" onDismiss={() => setError('')}>{t(error)}</Notice>}
+      {flash && <Notice tone="success" className="mb-6" onDismiss={() => setFlash('')}>{flash}</Notice>}
 
-      {/* Top Admin Header */}
-      <div className="bg-white border border-[#D5D9D9] rounded-lg p-5 mb-5 flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <div className="flex items-center gap-2 mb-1.5">
-            <ShieldCheck className="w-5 h-5 text-[#007600]" />
-            <span className="text-[11px] font-bold text-[#007600] uppercase tracking-wider">Administrator Governance Portal</span>
-            <span className="text-[11px] text-[#565959] ml-1">· National Handicrafts & Handloom Directorate</span>
-          </div>
-          <h1 className="text-[20px] font-bold text-[#0F1111]">
-            Artisan Verification & Marketplace Control Center
-          </h1>
-          <p className="text-[12px] text-[#565959] mt-0.5">
-            Review AI-generated listings, verify pricing, authorize marketplace publications, and manage buyer orders.
-          </p>
-        </div>
-
-        <div className="flex items-center gap-2 flex-shrink-0">
-          <button
-            onClick={handleAutoApproveAll}
-            disabled={pendingProducts.length === 0}
-            className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-[12px] font-bold bg-[#FF9900] hover:bg-[#F7CA00] text-[#0F1111] border border-[#e68900] transition-colors disabled:opacity-50"
-            title="Fast-track approve all pending items"
-          >
-            <Zap className="w-4 h-4" />
-            <span>Approve All ({pendingProducts.length})</span>
-          </button>
-
-          <button
-            onClick={fetchAdminData}
-            className="p-2 rounded-lg bg-white border border-[#D5D9D9] hover:bg-[#F7F8F8] text-[#565959] transition-colors"
-            title="Refresh Queue"
-          >
-            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-          </button>
-        </div>
+      <div key={tab} className="animate-fade-up">
+        {tab === 'review' && <ReviewQueue products={pending} loading={loading} onInspect={setInspecting} />}
+        {tab === 'catalog' && <Catalog products={products} loading={loading} onInspect={setInspecting} />}
+        {tab === 'orders' && <SellerOrders orders={orders} storeId={null} loading={loading} setOrders={setOrders} />}
+        {tab === 'stores' && <Stores stores={stores} products={products} loading={loading} />}
+        {tab === 'reports' && <Reports stats={stats} metrics={metrics} orders={orders} />}
       </div>
 
-      {/* Success Notification Banner */}
-      {actionSuccessMessage && (
-        <div className="mb-5 p-3 rounded-lg bg-[#EAF7EE] border border-[#B7DFC4] text-[#007600] text-[12px] font-semibold flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <CheckCircle2 className="w-4 h-4 flex-shrink-0" />
-            <span>{actionSuccessMessage}</span>
-          </div>
-          <button onClick={() => setActionSuccessMessage(null)} className="text-[#007600] hover:text-[#005900]">
-            <X className="w-4 h-4" />
-          </button>
-        </div>
+      {inspecting && (
+        <InspectModal
+          product={inspecting}
+          onClose={() => setInspecting(null)}
+          onDecided={(updated, message) => { replaceProduct(updated); setInspecting(null); showFlash(message); }}
+        />
       )}
+    </WorkspaceShell>
+  );
+}
 
-      {/* Navigation Sub-Tabs */}
-      <div className="flex items-center gap-0 mb-5 bg-white border border-[#D5D9D9] rounded-lg overflow-hidden">
-        {[
-          { id: 'pending', label: 'Pending Approval', count: pendingProducts.length, icon: Clock },
-          { id: 'catalog', label: 'Live Catalog', count: publishedProducts.length, icon: Package },
-          { id: 'orders', label: 'Orders & Inquiries', count: inquiries.length, icon: ShoppingBag },
-          { id: 'analytics', label: 'Analytics', count: null, icon: TrendingUp }
-        ].map((tab, idx) => {
-          const Icon = tab.icon;
-          const isActive = adminTab === tab.id;
-          return (
-            <button
-              key={tab.id}
-              onClick={() => setAdminTab(tab.id)}
-              className={`flex items-center gap-2 px-5 py-3 text-[12px] font-semibold transition-all whitespace-nowrap border-b-2 flex-1 justify-center ${
-                isActive
-                  ? 'border-[#FF9900] text-[#0F1111] bg-[#FEF9EE]'
-                  : 'border-transparent text-[#565959] hover:text-[#0F1111] hover:bg-[#F7F8F8]'
-              } ${idx > 0 ? 'border-l border-[#D5D9D9]' : ''}`}
-            >
-              <Icon className={`w-4 h-4 ${isActive ? 'text-[#FF9900]' : 'text-[#8D9096]'}`} />
-              <span>{tab.label}</span>
-              {tab.count !== null && tab.count > 0 && (
-                <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-bold ${
-                  isActive ? 'bg-[#FF9900] text-[#0F1111]' : 'bg-[#EAEDED] text-[#565959]'
-                }`}>
-                  {tab.count}
-                </span>
-              )}
-            </button>
-          );
-        })}
-      </div>
-
-      {/* ========================================== */}
-      {/* TAB 1: PENDING APPROVALS QUEUE            */}
-      {/* ========================================== */}
-      {adminTab === 'pending' && (
-        <div className="space-y-4">
-          
-          <div className="flex items-center justify-between">
-            <h3 className="text-base font-extrabold text-slate-900 flex items-center gap-2">
-              <span>Awaiting Review</span>
-              <span className="text-xs font-semibold text-slate-500">
-                ({pendingProducts.length} artisan submissions requiring verification)
-              </span>
-            </h3>
-            {pendingProducts.length > 0 && (
-              <span className="text-xs text-amber-700 font-bold bg-amber-50 px-2.5 py-1 rounded-lg border border-amber-200">
-                AI Pipeline Completed • Human Verification Pending
-              </span>
-            )}
-          </div>
-
-          {loading ? (
-            <div className="text-center py-16 bg-white rounded-2xl border border-artisan-200">
-              <div className="w-8 h-8 border-4 border-terracotta-500 border-t-transparent rounded-full animate-spin mx-auto mb-2"></div>
-              <span className="text-xs text-slate-500 font-bold">Loading Queue...</span>
-            </div>
-          ) : pendingProducts.length === 0 ? (
-            <div className="text-center py-16 bg-white rounded-2xl border border-artisan-200 p-6">
-              <div className="w-14 h-14 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center mx-auto mb-3">
-                <Check className="w-7 h-7" />
-              </div>
-              <h4 className="text-base font-bold text-slate-900">Approval Queue is Clear!</h4>
-              <p className="text-xs text-slate-500 mt-1">
-                All submitted artisan crafts have been verified and published to the e-commerce store.
-              </p>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {pendingProducts.map((product) => (
-                <div 
-                  key={product.id}
-                  className="bg-white rounded-2xl border border-amber-200 shadow-sm hover:shadow-md transition-shadow p-5 flex flex-col justify-between"
-                >
-                  <div>
-                    {/* Top Meta */}
-                    <div className="flex items-center justify-between mb-3 pb-2.5 border-b border-slate-100">
-                      <span className="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded bg-amber-100 text-amber-900 border border-amber-300">
-                        Request ID #{product.id}
-                      </span>
-                      <span className="text-xs font-semibold text-slate-400">
-                        {product.region || 'India'}
-                      </span>
-                    </div>
-
-                    <div className="flex items-start gap-4">
-                      {/* Image Thumbnail */}
-                      <img
-                        src={product.enhanced_image || product.original_image}
-                        alt={product.product_name}
-                        className="w-20 h-20 rounded-xl object-contain bg-slate-900 border border-slate-200 flex-shrink-0"
-                      />
-                      
-                      <div className="flex-1 overflow-hidden">
-                        <div className="text-xs font-bold text-terracotta-700 truncate">
-                          {product.artisan_name || 'Master Artisan'}
-                        </div>
-                        <h4 className="text-sm font-extrabold text-slate-900 truncate">
-                          {product.product_name}
-                        </h4>
-                        <p className="text-xs text-slate-500 truncate mt-0.5">
-                          Craft: {product.craft_type} • Material: {product.material}
-                        </p>
-                        
-                        {/* Price Details */}
-                        <div className="flex items-center gap-3 mt-2 text-xs">
-                          <span className="font-semibold text-slate-500">
-                            Cost: ₹{product.total_cost}
-                          </span>
-                          <span className="font-extrabold text-emerald-700">
-                            Suggested: ₹{product.suggested_price}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* AI Confidence Badge */}
-                    <div className="mt-3.5 p-2.5 rounded-xl bg-artisan-50 border border-artisan-200 text-[11px] text-slate-700 flex items-center justify-between">
-                      <div className="flex items-center gap-1.5">
-                        <Sparkles className="w-3.5 h-3.5 text-amber-600" />
-                        <span>AI Entity Confidence: <strong>HIGH (98%)</strong></span>
-                      </div>
-                      <span className="text-[10px] font-bold text-emerald-800 bg-emerald-100 px-1.5 py-0.5 rounded">
-                        Zero Hallucination
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Actions */}
-                  <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between gap-2">
-                    <button
-                      onClick={() => setInspectProduct(product)}
-                      className="px-3 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition-colors flex items-center gap-1"
-                    >
-                      <Eye className="w-3.5 h-3.5" />
-                      <span>Inspect AI Details</span>
-                    </button>
-
-                    <div className="flex items-center gap-2">
-                      <button
-                        onClick={() => handleReject(product.id)}
-                        className="p-2 rounded-xl bg-red-50 hover:bg-red-100 text-red-700 text-xs font-bold transition-colors"
-                        title="Reject with notes"
-                      >
-                        <X className="w-4 h-4" />
-                      </button>
-
-                      <button
-                        onClick={() => handleApprove(product.id)}
-                        className="flex items-center gap-1 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-extrabold shadow-sm transition-all active:scale-95"
-                      >
-                        <Check className="w-4 h-4" />
-                        <span>Approve & Publish</span>
-                      </button>
-                    </div>
-                  </div>
-
+function ReviewQueue({ products, loading, onInspect }) {
+  const { t } = useLanguage();
+  if (loading && !products.length) return <div className="grid gap-4 md:grid-cols-2">{[0, 1].map((index) => <div key={index} className="skeleton h-44 rounded-2xl" />)}</div>;
+  if (!products.length) return <div className="card"><EmptyState icon={Check} title={t('Queue is clear')}>{t('No listings are waiting for review.')}</EmptyState></div>;
+  return (
+    <ul className="grid gap-4 md:grid-cols-2">
+      {products.map((product) => {
+        const margin = product.suggested_price > 0 && product.total_cost > 0 ? Math.round(((product.suggested_price - product.total_cost) / product.suggested_price) * 100) : null;
+        return (
+          <li key={product.id} className="card flex flex-col p-5">
+            <div className="flex gap-4">
+              <span className="flex h-24 w-24 flex-shrink-0 items-center justify-center overflow-hidden rounded-xl bg-paper-200 p-2 [&_img]:h-full [&_img]:object-contain"><ProductImage product={product} alt="" /></span>
+              <div className="min-w-0 flex-1">
+                <p className="text-xs text-ink-500">#{product.id} · {t('Submitted')} {formatDate(product.created_at)}</p>
+                <h3 className="mt-0.5 line-clamp-2 text-base font-semibold text-ink-950">{product.product_name}</h3>
+                <p className="mt-0.5 truncate text-sm text-clay-600">{product.artisan_name || t('Unknown seller')}{product.region && ` · ${product.region}`}</p>
+                <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-sm">
+                  <span><span className="text-ink-500">{t('Price')}</span> <strong className="tabular-nums">{formatINR(product.suggested_price)}</strong></span>
+                  <span><span className="text-ink-500">{t('Cost')}</span> <span className="tabular-nums">{formatINR(product.total_cost)}</span></span>
+                  {margin != null && <span className={margin < 10 ? 'text-red-700' : 'text-ink-700'}>{margin}% {t('margin')}</span>}
                 </div>
-              ))}
-            </div>
-          )}
-
-        </div>
-      )}
-
-      {/* ========================================== */}
-      {/* TAB 2: LIVE MARKETPLACE CATALOG            */}
-      {/* ========================================== */}
-      {adminTab === 'catalog' && (
-        <div className="bg-white rounded-2xl border border-artisan-200 shadow-sm p-5 sm:p-6">
-          <div className="flex items-center justify-between pb-4 border-b border-slate-100 mb-4">
-            <div>
-              <h3 className="text-base font-extrabold text-slate-900">
-                Active E-Commerce Listings ({publishedProducts.length})
-              </h3>
-              <p className="text-xs text-slate-500">
-                Live products currently visible to retail consumers and wholesale buyers
-              </p>
-            </div>
-            <button
-              onClick={onNavigateToMarketplace}
-              className="text-xs font-bold text-terracotta-700 hover:text-terracotta-800 bg-artisan-100 px-3 py-1.5 rounded-lg flex items-center gap-1"
-            >
-              <span>View Consumer Storefront</span>
-              <Eye className="w-3.5 h-3.5" />
-            </button>
-          </div>
-
-          <div className="overflow-x-auto">
-            <table className="w-full text-xs text-left">
-              <thead className="bg-artisan-50 text-slate-600 font-bold uppercase text-[10px]">
-                <tr>
-                  <th className="p-3 rounded-l-lg">Product</th>
-                  <th className="p-3">Category</th>
-                  <th className="p-3">Artisan Lineage</th>
-                  <th className="p-3">Production Cost</th>
-                  <th className="p-3">Selling Price</th>
-                  <th className="p-3">Rating</th>
-                  <th className="p-3 rounded-r-lg">Status</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100 font-medium text-slate-700">
-                {publishedProducts.map((p) => (
-                  <tr key={p.id} className="hover:bg-slate-50 transition-colors">
-                    <td className="p-3 flex items-center gap-2.5">
-                      <img
-                        src={p.enhanced_image || p.original_image}
-                        alt=""
-                        className="w-10 h-10 rounded-lg object-contain bg-slate-900"
-                      />
-                      <span className="font-bold text-slate-900 truncate max-w-[200px]">{p.product_name}</span>
-                    </td>
-                    <td className="p-3">{p.category}</td>
-                    <td className="p-3">{p.artisan_name || 'Master Artisan'} ({p.region})</td>
-                    <td className="p-3 text-slate-500 font-semibold">₹{p.total_cost}</td>
-                    <td className="p-3 font-extrabold text-slate-900">₹{p.suggested_price}</td>
-                    <td className="p-3 font-bold text-amber-600">★ {p.rating || 4.9}</td>
-                    <td className="p-3">
-                      <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-800">
-                        ● Live on Store
-                      </span>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
-
-      {/* ========================================== */}
-      {/* TAB 3: BUYER ORDERS & INQUIRIES           */}
-      {/* ========================================== */}
-      {adminTab === 'orders' && (
-        <div className="bg-white rounded-2xl border border-artisan-200 shadow-sm p-5 sm:p-6">
-          <div className="flex items-center justify-between pb-4 border-b border-slate-100 mb-4">
-            <div>
-              <h3 className="text-base font-extrabold text-slate-900">
-                Customer Orders & Wholesale Quotes ({inquiries.length})
-              </h3>
-              <p className="text-xs text-slate-500">
-                Direct market linkage orders routed to rural artisan clusters
-              </p>
-            </div>
-          </div>
-
-          {inquiries.length === 0 ? (
-            <div className="text-center py-12 text-slate-400 text-xs font-semibold">
-              No buyer orders placed yet. Add products to cart on the consumer marketplace to test!
-            </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-xs text-left">
-                <thead className="bg-artisan-50 text-slate-600 font-bold uppercase text-[10px]">
-                  <tr>
-                    <th className="p-3 rounded-l-lg">Order ID</th>
-                    <th className="p-3">Buyer Details</th>
-                    <th className="p-3">Product</th>
-                    <th className="p-3">Type</th>
-                    <th className="p-3">Total Amount</th>
-                    <th className="p-3">Status</th>
-                    <th className="p-3 rounded-r-lg">Action</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100 font-medium text-slate-700">
-                  {inquiries.map((inq) => (
-                    <tr key={inq.id} className="hover:bg-slate-50 transition-colors">
-                      <td className="p-3 font-extrabold text-slate-900">#{inq.id}</td>
-                      <td className="p-3">
-                        <div className="font-bold text-slate-900">{inq.buyer_name}</div>
-                        <div className="text-[10px] text-slate-400">{inq.buyer_email} • {inq.buyer_city}</div>
-                      </td>
-                      <td className="p-3 font-semibold text-slate-800">
-                        {inq.product_name} (x{inq.quantity})
-                      </td>
-                      <td className="p-3">
-                        <span className="bg-blue-50 text-blue-700 px-2 py-0.5 rounded font-bold text-[10px]">
-                          {inq.order_type}
-                        </span>
-                      </td>
-                      <td className="p-3 font-black text-emerald-800">₹{inq.total_amount.toLocaleString('en-IN')}</td>
-                      <td className="p-3">
-                        <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold ${
-                          inq.status === 'Completed' ? 'bg-emerald-100 text-emerald-800' :
-                          inq.status === 'Dispatched' ? 'bg-blue-100 text-blue-800' : 'bg-amber-100 text-amber-800'
-                        }`}>
-                          {inq.status}
-                        </span>
-                      </td>
-                      <td className="p-3">
-                        <select
-                          value={inq.status}
-                          onChange={(e) => handleUpdateOrderStatus(inq.id, e.target.value)}
-                          className="bg-artisan-50 border border-artisan-200 rounded p-1 text-[11px] font-semibold"
-                        >
-                          <option value="New">New</option>
-                          <option value="Contacted">Contacted</option>
-                          <option value="Dispatched">Dispatched</option>
-                          <option value="Completed">Completed</option>
-                        </select>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* ========================================== */}
-      {/* TAB 4: IMPACT & ECONOMICS ANALYTICS        */}
-      {/* ========================================== */}
-      {adminTab === 'analytics' && stats && (
-        <div className="space-y-6">
-          
-          {/* KPI Summary Cards */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div className="bg-white rounded-2xl border border-artisan-200 shadow-sm p-4">
-              <span className="text-xs font-bold text-slate-400">Total Artisans</span>
-              <div className="text-2xl font-extrabold text-slate-900 mt-1">{stats.total_artisans}</div>
-            </div>
-            <div className="bg-white rounded-2xl border border-artisan-200 shadow-sm p-4">
-              <span className="text-xs font-bold text-slate-400">Published Crafts</span>
-              <div className="text-2xl font-extrabold text-slate-900 mt-1">{stats.published_products}</div>
-            </div>
-            <div className="bg-white rounded-2xl border border-artisan-200 shadow-sm p-4">
-              <span className="text-xs font-bold text-slate-400">Catalog Valuation</span>
-              <div className="text-2xl font-extrabold text-emerald-700 mt-1">₹{stats.total_catalog_value?.toLocaleString('en-IN')}</div>
-            </div>
-            <div className="bg-white rounded-2xl border border-artisan-200 shadow-sm p-4">
-              <span className="text-xs font-bold text-slate-400">Avg Artisan Surplus</span>
-              <div className="text-2xl font-extrabold text-amber-600 mt-1">+{stats.average_margin_percentage}%</div>
-            </div>
-          </div>
-
-          {/* Charts Row */}
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-            <div className="lg:col-span-7 bg-white rounded-2xl border border-artisan-200 shadow-sm p-6">
-              <h4 className="text-sm font-bold text-slate-900 mb-3">Category Distribution & Market Value</h4>
-              <CategoryBarChart categories={stats.categories || []} />
-            </div>
-
-            <div className="lg:col-span-5 bg-white rounded-2xl border border-artisan-200 shadow-sm p-6">
-              <h4 className="text-sm font-bold text-slate-900 mb-3">Regional Craft Hubs</h4>
-              <RegionalDistributionList regions={stats.regions || []} />
-            </div>
-          </div>
-
-          {/* Direct CSV / JSON Download Actions */}
-          <div className="bg-white rounded-2xl border border-artisan-200 shadow-sm p-5 flex flex-col sm:flex-row items-center justify-between gap-3">
-            <div>
-              <h4 className="text-sm font-bold text-slate-900">Standard Data Feeds (ONDC / GeM Export)</h4>
-              <p className="text-xs text-slate-500">Download live database records in machine-readable formats</p>
-            </div>
-            <div className="flex items-center gap-2">
-              <a
-                href={api.csvExportUrl}
-                download="craftlink_catalog.csv"
-                className="flex items-center gap-1 px-4 py-2 rounded-xl text-xs font-bold bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300"
-              >
-                <FileSpreadsheet className="w-4 h-4 text-emerald-600" />
-                <span>Download CSV</span>
-              </a>
-              <a
-                href={api.jsonExportUrl}
-                download="craftlink_catalog.json"
-                className="flex items-center gap-1 px-4 py-2 rounded-xl text-xs font-bold bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300"
-              >
-                <FileCode className="w-4 h-4 text-blue-600" />
-                <span>Download JSON</span>
-              </a>
-            </div>
-          </div>
-
-        </div>
-      )}
-
-      {/* ========================================== */}
-      {/* INSPECT PRODUCT DETAIL MODAL (ADMIN REVIEW) */}
-      {/* ========================================== */}
-      {inspectProduct && (
-        <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto animate-fadeIn">
-          <div className="bg-white rounded-3xl max-w-3xl w-full max-h-[90vh] overflow-y-auto p-6 shadow-2xl border border-slate-200">
-            
-            <div className="flex items-center justify-between pb-4 border-b border-slate-100 mb-5">
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-black bg-amber-100 text-amber-900 px-2 py-0.5 rounded">
-                  ADMIN INSPECTION: #{inspectProduct.id}
-                </span>
-                <span className="text-xs font-bold text-slate-800">{inspectProduct.product_name}</span>
-              </div>
-              <button onClick={() => setInspectProduct(null)} className="p-1 text-slate-400 hover:text-slate-700">
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            {/* Before/After Split Viewer */}
-            <div className="mb-5">
-              <BeforeAfterSlider
-                originalUrl={inspectProduct.original_image}
-                enhancedUrl={inspectProduct.enhanced_image}
-              />
-            </div>
-
-            {/* Speech Transcript */}
-            <div className="mb-5 bg-artisan-50 p-4 rounded-xl border border-artisan-200 text-xs">
-              <span className="font-bold text-slate-500 block uppercase text-[10px] mb-1">
-                Artisan Speech Transcript ({inspectProduct.detected_language})
-              </span>
-              <p className="italic text-slate-800 leading-relaxed">
-                "{inspectProduct.transcript || 'Voice description recorded.'}"
-              </p>
-            </div>
-
-            {/* Pricing Model Economics */}
-            <div className="mb-5 grid grid-cols-3 gap-3 text-xs bg-slate-50 p-4 rounded-xl border border-slate-200">
-              <div>
-                <span className="text-slate-400 block text-[10px] uppercase font-bold">Total Cost</span>
-                <span className="text-sm font-extrabold text-slate-800">₹{inspectProduct.total_cost}</span>
-              </div>
-              <div>
-                <span className="text-slate-400 block text-[10px] uppercase font-bold">Recommended Range</span>
-                <span className="text-sm font-extrabold text-slate-800">₹{inspectProduct.recommended_min_price} - ₹{inspectProduct.recommended_max_price}</span>
-              </div>
-              <div>
-                <span className="text-slate-400 block text-[10px] uppercase font-bold">Suggested Retail Price</span>
-                <span className="text-base font-black text-emerald-700">₹{inspectProduct.suggested_price}</span>
               </div>
             </div>
-
-            {/* Rejection Feedback Input */}
-            <div className="mb-5">
-              <label className="block text-xs font-bold text-slate-700 mb-1">
-                Admin Notes / Feedback (if rejecting)
-              </label>
-              <textarea
-                rows={2}
-                placeholder="Specify reasons for rejection (e.g. Dimensions need reconfirmation, missing GI details)..."
-                value={rejectFeedback}
-                onChange={(e) => setRejectFeedback(e.target.value)}
-                className="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-xs focus:ring-2 focus:ring-terracotta-500 outline-none"
-              />
+            <div className="mt-4 flex flex-wrap gap-2 text-xs text-ink-600">
+              {[product.category, product.material, `${product.stock_quantity ?? 0} ${t('in stock')}`].filter(Boolean).map((item) => <span key={item} className="rounded-full bg-paper-200 px-2.5 py-1">{item}</span>)}
             </div>
-
-            {/* Action Buttons */}
-            <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-100">
-              <button
-                onClick={() => handleReject(inspectProduct.id)}
-                className="px-5 py-2.5 rounded-xl bg-red-50 hover:bg-red-100 text-red-700 font-bold text-xs transition-colors"
-              >
-                Reject with Feedback
-              </button>
-              <button
-                onClick={() => handleApprove(inspectProduct.id)}
-                className="px-7 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs shadow-md transition-all active:scale-95"
-              >
-                ✓ Authorize & Publish to Store
-              </button>
+            <div className="mt-auto flex justify-end pt-4">
+              <button type="button" onClick={() => onInspect(product)} className="btn btn-primary"><Eye className="h-4 w-4" />{t('Review listing')}</button>
             </div>
+          </li>
+        );
+      })}
+    </ul>
+  );
+}
 
-          </div>
+function Catalog({ products, loading, onInspect }) {
+  const { t } = useLanguage();
+  const [query, setQuery] = useState('');
+  const [status, setStatus] = useState('all');
+  const visible = products.filter((product) => (status === 'all' || product.status === status)
+    && (!query.trim() || [product.product_name, product.artisan_name, product.category, String(product.id)].filter(Boolean).join(' ').toLowerCase().includes(query.trim().toLowerCase())));
+  return (
+    <section className="card overflow-hidden">
+      <div className="flex flex-wrap items-center gap-3 border-b border-line p-4">
+        <div className="relative min-w-[220px] flex-1">
+          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-400" />
+          <input type="search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder={t('Search product, seller, category or ID')} aria-label={t('Search catalog')} className="field pl-9" />
         </div>
-      )}
-
+        <select value={status} onChange={(event) => setStatus(event.target.value)} className="field w-auto" aria-label={t('Status')}>
+          <option value="all">{t('All statuses')}</option>
+          <option value="Published">{t('Live')}</option>
+          <option value="Pending Approval">{t('In review')}</option>
+          <option value="Rejected">{t('Returned')}</option>
+        </select>
       </div>
+      {loading && !products.length ? <div className="space-y-3 p-4">{[0, 1, 2].map((index) => <div key={index} className="skeleton h-12" />)}</div> : visible.length ? (
+        <div className="overflow-x-auto">
+          <table className="table-base">
+            <thead><tr><th>{t('Product')}</th><th>{t('Seller')}</th><th>{t('Status')}</th><th className="text-right">{t('Price')}</th><th className="text-right">{t('Stock')}</th><th /></tr></thead>
+            <tbody>
+              {visible.map((product) => (
+                <tr key={product.id}>
+                  <td><div className="flex min-w-[240px] items-center gap-3"><span className="flex h-10 w-10 flex-shrink-0 items-center justify-center overflow-hidden rounded-lg bg-paper-200 p-1 [&_img]:h-full [&_img]:object-contain"><ProductImage product={product} alt="" /></span><span><span className="line-clamp-1 font-medium">{product.product_name}</span><span className="text-xs text-ink-500">#{product.id} · {product.category}</span></span></div></td>
+                  <td className="text-ink-700">{product.artisan_name || '—'}</td>
+                  <td><StatusPill status={product.status} label={t({ Published: 'Live', 'Pending Approval': 'In review', Rejected: 'Returned' }[product.status] || product.status)} /></td>
+                  <td className="text-right font-semibold tabular-nums">{formatINR(product.suggested_price)}</td>
+                  <td className="text-right tabular-nums">{product.stock_quantity ?? 0}</td>
+                  <td className="text-right"><button type="button" onClick={() => onInspect(product)} className="btn btn-ghost btn-sm">{t('Open')}</button></td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      ) : <EmptyState icon={Package} title={t('No products found')} />}
+    </section>
+  );
+}
+
+function Stores({ stores, products, loading }) {
+  const { t } = useLanguage();
+  const counts = products.reduce((map, product) => ({ ...map, [product.artisan_id]: (map[product.artisan_id] || 0) + 1 }), {});
+  if (loading && !stores.length) return <div className="skeleton h-64 rounded-2xl" />;
+  return (
+    <section className="card overflow-hidden">
+      {stores.length ? (
+        <div className="overflow-x-auto">
+          <table className="table-base">
+            <thead><tr><th>{t('Store')}</th><th>{t('Contact')}</th><th>{t('Region')}</th><th>{t('KYC')}</th><th className="text-right">{t('Products')}</th><th>{t('Joined')}</th></tr></thead>
+            <tbody>
+              {stores.map((store) => (
+                <tr key={store.id}>
+                  <td><span className="font-medium">{store.store_name || store.name}</span><span className="block text-xs text-ink-500">#{store.id} · {store.name}</span></td>
+                  <td className="text-ink-700"><span className="block">{store.email || '—'}</span><span className="text-xs text-ink-500">{store.phone}</span></td>
+                  <td className="text-ink-700">{store.region}</td>
+                  <td><StatusPill status={store.kyc_status || 'Pending'} label={t(store.kyc_status || 'Pending')} /></td>
+                  <td className="text-right tabular-nums">{counts[store.id] || 0}</td>
+                  <td className="text-ink-600">{formatDate(store.created_at)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      ) : <EmptyState icon={Store} title={t('No stores yet')} />}
+    </section>
+  );
+}
+
+function Reports({ stats, metrics, orders }) {
+  const { t } = useLanguage();
+  if (!stats) return <div className="skeleton h-64 rounded-2xl" />;
+  return (
+    <div className="space-y-6">
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <StatCard label={t('Order value')} value={formatINR(metrics.revenue)} hint={`${metrics.orderCount} ${t((metrics.orderCount) === 1 ? 'order' : 'orders')} · ${orders.filter((order) => order.status === 'Cancelled').length} ${t('cancelled')}`} icon={Truck} tone="brand" />
+        <StatCard label={t('Live products')} value={stats.published_products} hint={`${stats.total_products} ${t('total')}`} icon={Package} tone="clay" />
+        <StatCard label={t('Stores')} value={stats.total_artisans} icon={Store} tone="sky" />
+        <StatCard label={t('Average margin')} value={`${stats.average_margin_percentage}%`} hint={`${t('Avg. price')} ${formatINR(stats.average_price)}`} icon={BarChart3} tone="amber" />
+      </div>
+      <div className="grid gap-6 lg:grid-cols-2">
+        <HorizontalBars title={t('Products by category')} description={t('Count of listings in each category')} rows={(stats.categories || []).sort((a, b) => b.count - a.count).map((row) => ({ key: row.name, label: row.name, value: row.count }))} format={(value) => value} empty={t('No products yet.')} />
+        <HorizontalBars title={t('Products by region')} description={t('Where listed crafts come from')} rows={(stats.regions || []).sort((a, b) => b.count - a.count).slice(0, 8).map((row) => ({ key: row.region, label: row.region, value: row.count }))} format={(value) => value} empty={t('No products yet.')} />
+      </div>
+      <section className="card flex flex-wrap items-center justify-between gap-4 p-5">
+        <div className="flex items-center gap-3">
+          <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-brand-50 text-brand-700"><FileSpreadsheet className="h-5 w-5" /></span>
+          <div><h3 className="text-base font-semibold text-ink-950">{t('Catalog export')}</h3><p className="text-sm text-ink-500">{t('Download the live catalog for partners and audits')}</p></div>
+        </div>
+        <div className="flex gap-2">
+          <a href={api.csvExportUrl} download className="btn btn-secondary"><Download className="h-4 w-4" />CSV</a>
+          <a href={api.jsonExportUrl} download className="btn btn-secondary"><Download className="h-4 w-4" />JSON</a>
+        </div>
+      </section>
     </div>
+  );
+}
+
+function InspectModal({ product, onClose, onDecided }) {
+  const { t } = useLanguage();
+  const [note, setNote] = useState('');
+  const [mode, setMode] = useState(null); // null | 'return'
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+  const pending = product.status === 'Pending Approval';
+
+  const decide = async (approve) => {
+    setBusy(true);
+    setError('');
+    try {
+      const updated = approve ? await api.approveProduct(product.id, note.trim() || 'Approved for publication') : await api.rejectProduct(product.id, note.trim());
+      onDecided(updated, approve ? `“${product.product_name}” ${t('is now live.')}` : `“${product.product_name}” ${t('was returned to the seller.')}`);
+    } catch (decideError) {
+      setError(decideError.message);
+      setBusy(false);
+    }
+  };
+
+  const footer = !pending ? null : mode === 'return' ? (
+    <>
+      <button type="button" onClick={() => setMode(null)} className="btn btn-secondary mr-auto">{t('Back')}</button>
+      <button type="button" onClick={() => decide(false)} disabled={busy || note.trim().length < 10} className="btn bg-red-700 text-white hover:bg-red-800">{busy && <Spinner className="h-4 w-4" />}{t('Return to seller')}</button>
+    </>
+  ) : (
+    <>
+      <button type="button" onClick={() => setMode('return')} className="btn btn-danger mr-auto"><X className="h-4 w-4" />{t('Return with note')}</button>
+      <button type="button" onClick={() => decide(true)} disabled={busy} className="btn btn-success">{busy ? <Spinner className="h-4 w-4" /> : <Check className="h-4 w-4" />}{t('Approve & publish')}</button>
+    </>
+  );
+
+  return (
+    <Modal open onClose={onClose} size="xl" title={product.product_name} description={`#${product.id} · ${product.artisan_name || t('Unknown seller')} · ${formatDate(product.created_at)}`} footer={footer}>
+      <div className="grid gap-6 p-5 sm:p-6 lg:grid-cols-[1.1fr_1fr]">
+        <div className="space-y-5">
+          <div className="overflow-hidden rounded-2xl border border-line"><BeforeAfterSlider originalUrl={product.original_image} enhancedUrl={product.enhanced_image} title={t('Photos')} /></div>
+          {product.transcript && (
+            <section>
+              <h3 className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-ink-500"><Mic className="h-3.5 w-3.5" />{t('Seller answers')} {product.detected_language && `(${product.detected_language})`}</h3>
+              <p className="mt-2 max-h-40 overflow-y-auto whitespace-pre-line rounded-xl bg-paper-100 p-4 text-sm italic leading-relaxed text-ink-700">{product.transcript}</p>
+            </section>
+          )}
+        </div>
+        <div className="space-y-5">
+          {error && <Notice tone="error">{error}</Notice>}
+          <div className="flex items-center gap-2"><StatusPill status={product.status} label={t({ Published: 'Live', 'Pending Approval': 'In review', Rejected: 'Returned' }[product.status] || product.status)} /></div>
+          <dl className="grid grid-cols-3 gap-3">
+            {[['Cost', product.total_cost], ['Fair range', null], ['Price', product.suggested_price]].map(([label, value]) => (
+              <div key={label} className="rounded-xl bg-paper-100 px-3 py-2.5">
+                <dt className="text-xs text-ink-500">{t(label)}</dt>
+                <dd className="mt-0.5 text-sm font-semibold tabular-nums text-ink-950">{label === 'Fair range' ? (product.recommended_min_price ? `${formatINR(product.recommended_min_price)}–${formatINR(product.recommended_max_price)}` : '—') : formatINR(value)}</dd>
+              </div>
+            ))}
+          </dl>
+          <dl className="divide-y divide-line rounded-xl border border-line text-sm">
+            {[['Category', product.category], ['Craft', product.craft_type], ['Material', product.material], ['Technique', product.technique], ['Dimensions', product.dimensions], ['Region', product.region], ['Stock', product.stock_quantity]].filter(([, value]) => value != null && value !== '').map(([label, value]) => (
+              <div key={label} className="grid grid-cols-[110px_1fr] gap-3 px-4 py-2"><dt className="text-ink-500">{t(label)}</dt><dd className="text-ink-900">{value}</dd></div>
+            ))}
+          </dl>
+          {product.description && <p className="max-h-40 overflow-y-auto whitespace-pre-line text-sm leading-relaxed text-ink-700">{product.description}</p>}
+          {product.admin_notes && !pending && <Notice tone={product.status === 'Rejected' ? 'warning' : 'info'}><strong>{t('Review note')}:</strong> {product.admin_notes}</Notice>}
+          {pending && (
+            <div>
+              <label htmlFor="review-note" className="label">{t(mode === 'return' ? 'What should the seller fix? (required)' : 'Note to seller (optional)')}</label>
+              <textarea id="review-note" rows={3} value={note} onChange={(event) => setNote(event.target.value)} placeholder={t('e.g. Please add the exact dimensions and a clearer photo of the border.')} className={cx('field resize-y', mode === 'return' && note.trim().length < 10 && 'border-amber-400')} />
+              {mode === 'return' && <p className="hint">{t('At least 10 characters so the seller knows what to change.')}</p>}
+            </div>
+          )}
+        </div>
+      </div>
+    </Modal>
   );
 }

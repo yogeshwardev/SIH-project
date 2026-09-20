@@ -1,435 +1,198 @@
 import React, { useState } from 'react';
-import {
-  Building2,
-  CheckCircle2,
-  ArrowRight,
-  ArrowLeft,
-  Sparkles,
-  ShieldCheck,
-  CreditCard,
-  MapPin,
-  FileCheck,
-  Store,
-  Truck,
-  Award,
-  AlertCircle
-} from 'lucide-react';
+import { ArrowLeft, ArrowRight, Check, Landmark, MapPin, ShieldCheck, Sparkles, Store, X } from 'lucide-react';
+import Logo from '../components/Logo';
 import { api } from '../services/api';
+import { useLanguage } from '../context/LanguageContext';
+import LanguageSelector from '../components/LanguageSelector';
+import { CRAFT_CATEGORIES } from '../components/AuthModal';
+import { Notice, Spinner, cx } from '../components/ui';
+
+const STEPS = [
+  { title: 'Your store', detail: 'Name, contact and craft', icon: Store },
+  { title: 'Verification', detail: 'Artisan ID or GST', icon: ShieldCheck },
+  { title: 'Bank details', detail: 'Where you get paid', icon: Landmark },
+  { title: 'Pickup address', detail: 'Where parcels are collected', icon: MapPin },
+];
+
+const rules = {
+  0: (f) => ({
+    owner_name: f.owner_name.trim().length < 2 && 'Enter your full name',
+    store_name: f.store_name.trim().length < 2 && 'Enter a store name',
+    email: !/^\S+@\S+\.\S+$/.test(f.email.trim()) && 'Enter a valid email',
+    phone: f.phone.replace(/\D/g, '').length < 10 && 'Enter a 10-digit mobile number',
+    region: f.region.trim().length < 2 && 'Enter your city or region',
+  }),
+  1: () => ({}),
+  2: (f) => ({
+    bank_account: f.bank_account && !/^\d{9,18}$/.test(f.bank_account.trim()) && 'Account number should be 9–18 digits',
+    ifsc_code: (f.bank_account || f.ifsc_code) && !/^[A-Z]{4}0[A-Z0-9]{6}$/.test(f.ifsc_code.trim().toUpperCase()) && 'IFSC looks like SBIN0001234',
+  }),
+  3: (f) => ({
+    address: f.address.trim().length < 5 && 'Enter the pickup address',
+    pincode: !/^\d{6}$/.test(f.pincode.trim()) && 'Pincode must be 6 digits',
+  }),
+};
 
 export default function SellerOnboardingPage({ onCompleteOnboarding, onCancel }) {
-  const [step, setStep] = useState(1);
+  const { t } = useLanguage();
+  const [step, setStep] = useState(0);
+  const [touched, setTouched] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
-
-  // Form State
-  const [formData, setFormData] = useState({
-    owner_name: 'Master Weaver Ramesh',
-    store_name: 'Varanasi Master Weavers Guild',
-    email: 'ramesh.varanasi@craftlink.in',
-    phone: '+91 98765 11223',
-    craft_category: 'Handloom & Textiles',
-    region: 'Varanasi, Uttar Pradesh',
-    artisan_card_number: 'IND-PEHCHAN-2026-8842',
-    pan_or_gst: '09AAACG1234F1Z5',
-    bank_name: 'State Bank of India',
-    bank_account: '98765432101234',
-    ifsc_code: 'SBIN0001234',
-    address: 'Bunkar Colony, Chowk Varanasi',
-    pincode: '221001',
+  const [error, setError] = useState('');
+  const [form, setForm] = useState({
+    owner_name: '', store_name: '', email: '', phone: '', craft_category: CRAFT_CATEGORIES[0], region: '',
+    artisan_card_number: '', pan_or_gst: '', bank_account: '', ifsc_code: '', address: '', pincode: '',
   });
 
-  const handleChange = (field, val) => {
-    setFormData(prev => ({ ...prev, [field]: val }));
-  };
+  const errors = Object.fromEntries(Object.entries(rules[step](form)).filter(([, message]) => message));
+  const update = (field) => (event) => setForm((current) => ({ ...current, [field]: event.target.value }));
 
-  const handleFinalSubmit = async () => {
+  const next = async () => {
+    setTouched(true);
+    if (Object.keys(errors).length) return;
+    setTouched(false);
+    if (step < STEPS.length - 1) { setStep(step + 1); window.scrollTo({ top: 0, behavior: 'smooth' }); return; }
     setLoading(true);
-    setError(null);
+    setError('');
     try {
-      const res = await api.registerSeller(formData);
+      const clean = Object.fromEntries(Object.entries(form).map(([key, value]) => [key, typeof value === 'string' ? value.trim() || null : value]));
+      clean.ifsc_code = clean.ifsc_code?.toUpperCase() || null;
+      const res = await api.registerSeller(clean);
       onCompleteOnboarding?.(res.user);
-    } catch (err) {
-      setError(err.message || 'Onboarding failed. Please review your details.');
+    } catch (submitError) {
+      setError(submitError.message);
       setLoading(false);
     }
   };
 
+  const field = (name, label, props = {}) => (
+    <div className={props.wide ? 'sm:col-span-2' : ''}>
+      <label htmlFor={`onboard-${name}`} className="label">{t(label)}{props.optional && <span className="font-normal text-ink-400"> ({t('optional')})</span>}</label>
+      {props.textarea ? (
+        <textarea id={`onboard-${name}`} rows={3} value={form[name]} onChange={update(name)} className={cx('field resize-y', touched && errors[name] && 'field-invalid')} {...props.input} />
+      ) : (
+        <input id={`onboard-${name}`} value={form[name]} onChange={update(name)} className={cx('field', touched && errors[name] && 'field-invalid', props.mono && 'font-mono')} {...props.input} />
+      )}
+      {touched && errors[name] ? <p className="mt-1 text-xs text-red-700">{t(errors[name])}</p> : props.hint && <p className="hint">{t(props.hint)}</p>}
+    </div>
+  );
+
+  const StepIcon = STEPS[step].icon;
+
   return (
-    <div className="min-h-screen bg-[#F0F2F5] py-10 px-4 sm:px-6 lg:px-8" style={{ fontFamily: "'Inter', sans-serif" }}>
-      <div className="max-w-3xl mx-auto">
-        
-        {/* Top Header Banner */}
-        <div className="bg-white rounded-2xl p-6 border border-gray-200 shadow-sm mb-6 flex flex-col sm:flex-row items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-orange-500 to-amber-500 flex items-center justify-center text-white font-black text-xl shadow">
-              <Store className="w-6 h-6" />
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="text-[11px] font-bold text-orange-800 bg-orange-50 border border-orange-200 px-2.5 py-0.5 rounded-full uppercase tracking-wider">
-                  National Producer Network
-                </span>
-                <span className="text-[11px] font-bold text-green-700 bg-green-50 border border-green-200 px-2.5 py-0.5 rounded-full">
-                  0% Commission
-                </span>
-              </div>
-              <h1 className="text-xl font-black text-gray-900 mt-1" style={{ fontFamily: "'Outfit', sans-serif" }}>
-                Sell on CraftLink — Master Artisan Store Onboarding
-              </h1>
-            </div>
+    <div className="min-h-screen bg-paper">
+      <header className="border-b border-line bg-white">
+        <div className="mx-auto flex h-16 max-w-5xl items-center justify-between gap-3 px-4 sm:px-6">
+          <span className="flex items-center gap-2.5">
+            <Logo />
+            <span className="hidden text-sm font-medium text-ink-500 sm:inline">· {t('Seller setup')}</span>
+          </span>
+          <div className="flex items-center gap-2">
+            <div className="hidden sm:block"><LanguageSelector compact /></div>
+            {onCancel && <button type="button" onClick={onCancel} className="btn btn-ghost"><X className="h-4 w-4" /><span className="hidden sm:inline">{t('Exit')}</span></button>}
           </div>
-
-          {onCancel && (
-            <button
-              onClick={onCancel}
-              className="text-xs font-bold text-gray-500 hover:text-gray-900 px-3 py-1.5 rounded-lg border border-gray-200 hover:bg-gray-50"
-            >
-              Cancel & Exit
-            </button>
-          )}
         </div>
+      </header>
 
-        {/* Step Progress Bar */}
-        <div className="bg-white rounded-2xl p-4 border border-gray-200 shadow-sm mb-6">
-          <div className="grid grid-cols-4 gap-2">
-            {[
-              { n: 1, title: 'Store Details', sub: 'Artisan info' },
-              { n: 2, title: 'Artisan Pehchan', sub: 'Govt. Verification' },
-              { n: 3, title: 'Bank Account', sub: '100% Payouts' },
-              { n: 4, title: 'Pickup Address', sub: 'Logistics hub' },
-            ].map(s => {
-              const active = step === s.n;
-              const done = step > s.n;
+      <div className="mx-auto grid max-w-5xl gap-8 px-4 py-8 sm:px-6 lg:grid-cols-[260px_1fr] lg:py-12">
+        <aside>
+          <h1 className="text-2xl font-semibold text-ink-950">{t('Open your CraftLink store')}</h1>
+          <p className="mt-2 text-sm text-ink-500">{t('About 5 minutes. You can list products as soon as you finish.')}</p>
+          <ol className="mt-6 flex gap-2 overflow-x-auto scrollbar-none lg:flex-col lg:gap-1">
+            {STEPS.map((item, index) => {
+              const state = index < step ? 'done' : index === step ? 'current' : 'todo';
               return (
-                <button
-                  key={s.n}
-                  onClick={() => step > s.n && setStep(s.n)}
-                  className={`flex items-center gap-2.5 p-2 rounded-xl text-left transition-all ${
-                    active ? 'bg-orange-50 border border-orange-200' :
-                    done ? 'bg-green-50/50 border border-green-200 text-green-800' :
-                    'opacity-60 cursor-not-allowed'
-                  }`}
-                >
-                  <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 ${
-                    done ? 'bg-green-600 text-white' :
-                    active ? 'bg-orange-500 text-white' :
-                    'bg-gray-200 text-gray-600'
-                  }`}>
-                    {done ? '✓' : s.n}
-                  </div>
-                  <div className="hidden sm:block min-w-0">
-                    <div className="text-xs font-bold text-gray-900 truncate">{s.title}</div>
-                    <div className="text-[10px] text-gray-400 truncate">{s.sub}</div>
-                  </div>
-                </button>
+                <li key={item.title} className="flex-shrink-0">
+                  <button type="button" disabled={index >= step} onClick={() => setStep(index)} className={cx('flex items-center gap-3 rounded-xl px-3 py-2.5 text-left transition disabled:cursor-default', state === 'current' && 'bg-white shadow-card', state === 'done' && 'hover:bg-white/60')}>
+                    <span className={cx('flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full text-sm font-semibold', state === 'done' && 'bg-brand-700 text-white', state === 'current' && 'bg-brand-600 text-white', state === 'todo' && 'border-2 border-line-strong text-ink-400')}>
+                      {state === 'done' ? <Check className="h-4 w-4" /> : index + 1}
+                    </span>
+                    <span className="hidden sm:block">
+                      <span className={cx('block text-sm font-semibold', state === 'todo' ? 'text-ink-500' : 'text-ink-950')}>{t(item.title)}</span>
+                      <span className="block text-xs text-ink-500">{t(item.detail)}</span>
+                    </span>
+                  </button>
+                </li>
               );
             })}
-          </div>
-        </div>
+          </ol>
+        </aside>
 
-        {/* Error */}
-        {error && (
-          <div className="mb-6 p-4 rounded-xl bg-red-50 border border-red-200 text-red-800 text-xs flex items-center gap-2">
-            <AlertCircle className="w-4 h-4 text-red-600 flex-shrink-0" />
-            <span>{error}</span>
-          </div>
-        )}
-
-        {/* ── STEP 1: STORE & ARTISAN IDENTITY ── */}
-        {step === 1 && (
-          <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 sm:p-8 animate-fade-in space-y-4">
-            <div className="border-b border-gray-100 pb-4">
-              <h2 className="text-base font-bold text-gray-900" style={{ fontFamily: "'Outfit', sans-serif" }}>
-                Step 1: Artisan Store & Guild Identification
-              </h2>
-              <p className="text-xs text-gray-500">Provide the commercial name of your studio or producer collective.</p>
+        <section className="card">
+          <header className="flex items-center gap-3 border-b border-line px-5 py-5 sm:px-7">
+            <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-clay-50 text-clay-600"><StepIcon className="h-5 w-5" /></span>
+            <div>
+              <p className="text-xs font-medium text-ink-500">{t('Step')} {step + 1} {t('of')} {STEPS.length}</p>
+              <h2 className="text-lg font-semibold text-ink-950">{t(STEPS[step].title)}</h2>
             </div>
+          </header>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-xs font-bold text-gray-700 mb-1">Master Artisan / Business Owner Name *</label>
-                <input
-                  type="text"
-                  value={formData.owner_name}
-                  onChange={(e) => handleChange('owner_name', e.target.value)}
-                  className="input-field"
-                  placeholder="e.g. Ramesh Kumar"
-                  required
-                />
+          <form onSubmit={(event) => { event.preventDefault(); next(); }} noValidate className="px-5 py-6 sm:px-7">
+            {error && <Notice tone="error" className="mb-5" onDismiss={() => setError('')}>{error}</Notice>}
+
+            {step === 0 && (
+              <div className="grid gap-5 sm:grid-cols-2">
+                {field('owner_name', 'Your full name', { input: { autoComplete: 'name' } })}
+                {field('store_name', 'Store name', { hint: 'Buyers see this on your products' })}
+                {field('email', 'Email', { input: { type: 'email', autoComplete: 'email' } })}
+                {field('phone', 'Mobile number', { input: { type: 'tel', autoComplete: 'tel' } })}
+                <div>
+                  <label htmlFor="onboard-category" className="label">{t('Main craft')}</label>
+                  <select id="onboard-category" value={form.craft_category} onChange={update('craft_category')} className="field">
+                    {CRAFT_CATEGORIES.map((category) => <option key={category} value={category}>{category}</option>)}
+                  </select>
+                </div>
+                {field('region', 'City / region', { input: { placeholder: 'e.g. Channapatna, Karnataka' } })}
               </div>
+            )}
 
-              <div>
-                <label className="block text-xs font-bold text-gray-700 mb-1">Store / Guild Commercial Name *</label>
-                <input
-                  type="text"
-                  value={formData.store_name}
-                  onChange={(e) => handleChange('store_name', e.target.value)}
-                  className="input-field"
-                  placeholder="e.g. Varanasi Weavers Hub"
-                  required
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-gray-700 mb-1">Email Address *</label>
-                <input
-                  type="email"
-                  value={formData.email}
-                  onChange={(e) => handleChange('email', e.target.value)}
-                  className="input-field"
-                  placeholder="e.g. ramesh@varanasiguild.in"
-                  required
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-gray-700 mb-1">Mobile Contact (WhatsApp enabled) *</label>
-                <input
-                  type="tel"
-                  value={formData.phone}
-                  onChange={(e) => handleChange('phone', e.target.value)}
-                  className="input-field"
-                  placeholder="+91 98765 00000"
-                  required
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-gray-700 mb-1">Primary Craft Specialization *</label>
-                <select
-                  value={formData.craft_category}
-                  onChange={(e) => handleChange('craft_category', e.target.value)}
-                  className="input-field"
-                >
-                  <option value="Handloom & Textiles">Handloom & Textiles (Silk, Sarees, Shawls)</option>
-                  <option value="Pottery & Ceramics">Pottery & Ceramics (Blue Pottery, Terracotta)</option>
-                  <option value="Woodcraft & Carving">Woodcraft & Wooden Toys (Channapatna, Saharanpur)</option>
-                  <option value="Metal Craft & Bell Metal">Metal Craft & Bell Metal (Dhokra, Moradabad)</option>
-                  <option value="Cane & Bamboo">Cane & Bamboo Crafts (Assam, Tripura)</option>
-                  <option value="Traditional Paintings">Traditional Paintings (Madhubani, Warli, Pattachitra)</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-gray-700 mb-1">Cluster / Geographic Origin *</label>
-                <input
-                  type="text"
-                  value={formData.region}
-                  onChange={(e) => handleChange('region', e.target.value)}
-                  className="input-field"
-                  placeholder="e.g. Varanasi, Uttar Pradesh"
-                  required
-                />
-              </div>
-            </div>
-
-            <div className="flex justify-end pt-4 border-t border-gray-100">
-              <button
-                onClick={() => setStep(2)}
-                className="btn-primary flex items-center gap-2"
-              >
-                <span>Continue to Verification</span>
-                <ArrowRight className="w-4 h-4" />
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* ── STEP 2: ARTISAN PEHCHAN & GOVT ID ── */}
-        {step === 2 && (
-          <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 sm:p-8 animate-fade-in space-y-4">
-            <div className="border-b border-gray-100 pb-4">
-              <h2 className="text-base font-bold text-gray-900" style={{ fontFamily: "'Outfit', sans-serif" }}>
-                Step 2: Government Artisan Pehchan & Quality Verification
-              </h2>
-              <p className="text-xs text-gray-500">Fast-track direct marketplace publishing with verified artisan registration.</p>
-            </div>
-
-            <div className="p-4 bg-amber-50 border border-amber-200 rounded-xl flex items-start gap-3">
-              <Award className="w-5 h-5 text-amber-700 flex-shrink-0 mt-0.5" />
-              <div className="text-xs text-amber-900">
-                <span className="font-bold block mb-0.5">Government GI & Artisan Pehchan Recognition</span>
-                Verified Pehchan cardholders get 0% marketplace commission, subsidized logistics, and verified producer trust badges on product pages.
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-xs font-bold text-gray-700 mb-1">Artisan Pehchan Card / SHG Number</label>
-                <input
-                  type="text"
-                  value={formData.artisan_card_number}
-                  onChange={(e) => handleChange('artisan_card_number', e.target.value)}
-                  className="input-field font-mono"
-                  placeholder="e.g. IND-PEHCHAN-2026-8842"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-gray-700 mb-1">PAN or GSTIN (Optional for Handloom)</label>
-                <input
-                  type="text"
-                  value={formData.pan_or_gst}
-                  onChange={(e) => handleChange('pan_or_gst', e.target.value)}
-                  className="input-field font-mono"
-                  placeholder="e.g. 09AAACG1234F1Z5 or PAN"
-                />
-              </div>
-            </div>
-
-            <div className="flex justify-between pt-4 border-t border-gray-100">
-              <button
-                onClick={() => setStep(1)}
-                className="btn-secondary flex items-center gap-1.5"
-              >
-                <ArrowLeft className="w-4 h-4" />
-                <span>Back</span>
-              </button>
-              <button
-                onClick={() => setStep(3)}
-                className="btn-primary flex items-center gap-2"
-              >
-                <span>Continue to Bank Details</span>
-                <ArrowRight className="w-4 h-4" />
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* ── STEP 3: BANK DETAILS ── */}
-        {step === 3 && (
-          <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 sm:p-8 animate-fade-in space-y-4">
-            <div className="border-b border-gray-100 pb-4">
-              <h2 className="text-base font-bold text-gray-900" style={{ fontFamily: "'Outfit', sans-serif" }}>
-                Step 3: Direct Bank Settlement Account
-              </h2>
-              <p className="text-xs text-gray-500">100% of customer order amounts are settled directly via NEFT within 24 hours.</p>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-xs font-bold text-gray-700 mb-1">Bank Name *</label>
-                <input
-                  type="text"
-                  value={formData.bank_name}
-                  onChange={(e) => handleChange('bank_name', e.target.value)}
-                  className="input-field"
-                  placeholder="e.g. State Bank of India"
-                  required
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-gray-700 mb-1">Account Number *</label>
-                <input
-                  type="text"
-                  value={formData.bank_account}
-                  onChange={(e) => handleChange('bank_account', e.target.value)}
-                  className="input-field font-mono"
-                  placeholder="98765432101234"
-                  required
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-gray-700 mb-1">IFSC Code *</label>
-                <input
-                  type="text"
-                  value={formData.ifsc_code}
-                  onChange={(e) => handleChange('ifsc_code', e.target.value)}
-                  className="input-field font-mono uppercase"
-                  placeholder="SBIN0001234"
-                  required
-                />
-              </div>
-            </div>
-
-            <div className="flex justify-between pt-4 border-t border-gray-100">
-              <button
-                onClick={() => setStep(2)}
-                className="btn-secondary flex items-center gap-1.5"
-              >
-                <ArrowLeft className="w-4 h-4" />
-                <span>Back</span>
-              </button>
-              <button
-                onClick={() => setStep(4)}
-                className="btn-primary flex items-center gap-2"
-              >
-                <span>Continue to Pickup Address</span>
-                <ArrowRight className="w-4 h-4" />
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* ── STEP 4: PICKUP ADDRESS & CONFIRMATION ── */}
-        {step === 4 && (
-          <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 sm:p-8 animate-fade-in space-y-4">
-            <div className="border-b border-gray-100 pb-4">
-              <h2 className="text-base font-bold text-gray-900" style={{ fontFamily: "'Outfit', sans-serif" }}>
-                Step 4: Artisan Workshop Pickup Address
-              </h2>
-              <p className="text-xs text-gray-500">Logistics couriers will collect packed craft items directly from this address.</p>
-            </div>
-
-            <div className="space-y-4">
-              <div>
-                <label className="block text-xs font-bold text-gray-700 mb-1">Workshop / Guild Street Address *</label>
-                <textarea
-                  rows={2}
-                  value={formData.address}
-                  onChange={(e) => handleChange('address', e.target.value)}
-                  className="input-field"
-                  placeholder="e.g. Bunkar Colony, Chowk, Varanasi"
-                  required
-                />
-              </div>
-
-              <div className="w-full sm:w-1/2">
-                <label className="block text-xs font-bold text-gray-700 mb-1">Pincode *</label>
-                <input
-                  type="text"
-                  value={formData.pincode}
-                  onChange={(e) => handleChange('pincode', e.target.value)}
-                  className="input-field font-mono"
-                  placeholder="221001"
-                  required
-                />
-              </div>
-
-              {/* Summary Box */}
-              <div className="p-4 bg-gray-50 border border-gray-200 rounded-xl space-y-2 text-xs">
-                <div className="font-bold text-gray-900 border-b border-gray-200 pb-1">Onboarding Summary</div>
-                <div className="grid grid-cols-2 gap-2 text-gray-600">
-                  <div><strong>Store:</strong> {formData.store_name}</div>
-                  <div><strong>Master Artisan:</strong> {formData.owner_name}</div>
-                  <div><strong>Craft:</strong> {formData.craft_category}</div>
-                  <div><strong>Cluster:</strong> {formData.region}</div>
+            {step === 1 && (
+              <div className="space-y-5">
+                <Notice tone="info">{t('Verified sellers earn more buyer trust. Add at least one ID now or later from your store profile.')}</Notice>
+                <div className="grid gap-5 sm:grid-cols-2">
+                  {field('artisan_card_number', 'Artisan (Pehchan) card number', { optional: true, mono: true })}
+                  {field('pan_or_gst', 'PAN or GSTIN', { optional: true, mono: true, input: { style: { textTransform: 'uppercase' } } })}
                 </div>
               </div>
-            </div>
+            )}
 
-            <div className="flex justify-between pt-4 border-t border-gray-100">
-              <button
-                onClick={() => setStep(3)}
-                className="btn-secondary flex items-center gap-1.5"
-              >
-                <ArrowLeft className="w-4 h-4" />
-                <span>Back</span>
-              </button>
-              <button
-                onClick={handleFinalSubmit}
-                disabled={loading}
-                className="btn-primary flex items-center gap-2"
-              >
-                <CheckCircle2 className="w-4 h-4" />
-                <span>{loading ? 'Activating Store...' : 'Complete Registration & Open Seller Central'}</span>
+            {step === 2 && (
+              <div className="space-y-5">
+                <Notice tone="info">{t('Used only to settle your earnings. We show only the last 4 digits anywhere in the app.')}</Notice>
+                <div className="grid gap-5 sm:grid-cols-2">
+                  {field('bank_account', 'Account number', { optional: true, mono: true, input: { inputMode: 'numeric', autoComplete: 'off' } })}
+                  {field('ifsc_code', 'IFSC code', { optional: !form.bank_account, mono: true, input: { style: { textTransform: 'uppercase' }, autoComplete: 'off', maxLength: 11 } })}
+                </div>
+              </div>
+            )}
+
+            {step === 3 && (
+              <div className="space-y-5">
+                <div className="grid gap-5 sm:grid-cols-2">
+                  {field('address', 'Workshop / pickup address', { wide: true, textarea: true, input: { autoComplete: 'street-address' } })}
+                  {field('pincode', 'Pincode', { input: { inputMode: 'numeric', maxLength: 6, autoComplete: 'postal-code' } })}
+                </div>
+                <div className="rounded-xl bg-paper-100 p-4">
+                  <h3 className="text-sm font-semibold text-ink-950">{t('Review')}</h3>
+                  <dl className="mt-3 grid gap-x-6 gap-y-2 text-sm sm:grid-cols-2">
+                    {[['Store', form.store_name], ['Owner', form.owner_name], ['Email', form.email], ['Mobile', form.phone], ['Craft', form.craft_category], ['Region', form.region], ['Bank', form.bank_account ? '•••• ' + form.bank_account.slice(-4) : t('Not added')]].map(([label, value]) => (
+                      <div key={label} className="flex justify-between gap-3"><dt className="text-ink-500">{t(label)}</dt><dd className="truncate text-right font-medium text-ink-900">{value || '—'}</dd></div>
+                    ))}
+                  </dl>
+                </div>
+              </div>
+            )}
+
+            <div className="mt-8 flex items-center justify-between gap-3 border-t border-line pt-5">
+              {step > 0 ? <button type="button" onClick={() => { setTouched(false); setStep(step - 1); }} className="btn btn-secondary"><ArrowLeft className="h-4 w-4" />{t('Back')}</button> : <span />}
+              <button type="submit" disabled={loading} className="btn btn-primary btn-lg">
+                {loading && <Spinner className="h-4 w-4" />}
+                {t(step === STEPS.length - 1 ? 'Create store' : 'Continue')}
+                {!loading && <ArrowRight className="h-4 w-4" />}
               </button>
             </div>
-          </div>
-        )}
-
+          </form>
+        </section>
       </div>
     </div>
   );

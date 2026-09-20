@@ -1,203 +1,56 @@
 import React from 'react';
-import {
-  X,
-  User,
-  ShoppingBag,
-  Store,
-  ShieldCheck,
-  MapPin,
-  CreditCard,
-  LogOut,
-  Sparkles,
-  Package,
-  Truck,
-  Settings,
-  ChevronRight,
-  Award,
-  Phone,
-  Mail,
-  Building2
-} from 'lucide-react';
+import { ChevronRight, LogOut, Mail, MapPin, Package, Phone, ShieldCheck, Store } from 'lucide-react';
+import { useLanguage } from '../context/LanguageContext';
+import { Modal, StatusPill } from './ui';
 
-export default function UserAccountModal({
-  isOpen,
-  onClose,
-  currentUser,
-  currentRole,
-  onSignOut,
-  onOpenOrders,
-  onNavigateToSeller,
-  onNavigateToAdmin,
-  onOpenAuthModal
-}) {
-  if (!isOpen) return null;
+export default function UserAccountModal({ isOpen, onClose, currentUser, onSignOut, onOpenOrders, onNavigateToSeller, onNavigateToAdmin }) {
+  const { t } = useLanguage();
+  if (!isOpen || !currentUser) return null;
+  const role = currentUser.role || 'buyer';
+  const roleLabel = { buyer: 'Shopper', seller: 'Seller', admin: 'Operations' }[role];
+  const initials = (currentUser.store_name || currentUser.name || 'U').split(' ').map((word) => word[0]).slice(0, 2).join('').toUpperCase();
 
-  const isSeller = currentRole === 'seller';
-  const isAdmin = currentRole === 'admin';
-  const isBuyer = !isSeller && !isAdmin;
+  const actions = [
+    { icon: Package, title: 'Track an order', detail: 'Check delivery progress with your order number', onClick: onOpenOrders, show: true },
+    { icon: Store, title: 'Seller workspace', detail: 'Listings, orders and payouts', onClick: onNavigateToSeller, show: role === 'seller' || role === 'admin' },
+    { icon: ShieldCheck, title: 'Administration', detail: 'Review listings and fulfilment', onClick: onNavigateToAdmin, show: role === 'admin' },
+  ].filter((action) => action.show);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in" style={{ fontFamily: "'Inter', sans-serif" }}>
-      <div className="relative w-full max-w-[480px] bg-white rounded-2xl shadow-2xl border border-gray-200 overflow-hidden">
-        
-        {/* Top Profile Banner */}
-        <div className="bg-[#131921] p-6 text-white relative">
-          <button
-            onClick={onClose}
-            className="absolute top-4 right-4 p-1.5 rounded-full text-gray-400 hover:text-white hover:bg-white/10 transition-colors"
-          >
-            <X className="w-5 h-5" />
-          </button>
-
-          <div className="flex items-center gap-4">
-            <div className={`w-14 h-14 rounded-2xl flex items-center justify-center font-black text-xl text-white shadow-lg ${
-              isSeller ? 'bg-gradient-to-br from-orange-500 to-amber-500' :
-              isAdmin ? 'bg-gradient-to-br from-emerald-600 to-teal-700' :
-              'bg-gradient-to-br from-blue-600 to-indigo-700'
-            }`}>
-              {currentUser?.name ? currentUser.name.charAt(0).toUpperCase() : 'U'}
-            </div>
-
-            <div className="min-w-0 flex-1">
-              <div className="flex items-center gap-2 mb-1">
-                <span className={`text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full border ${
-                  isSeller ? 'bg-orange-500/20 text-orange-300 border-orange-400/40' :
-                  isAdmin ? 'bg-emerald-500/20 text-emerald-300 border-emerald-400/40' :
-                  'bg-blue-500/20 text-blue-300 border-blue-400/40'
-                }`}>
-                  {isSeller ? 'Verified Artisan Seller' : isAdmin ? 'Governance Officer' : 'Verified Buyer'}
-                </span>
-              </div>
-
-              <h3 className="text-lg font-black text-white truncate" style={{ fontFamily: "'Outfit', sans-serif" }}>
-                {currentUser?.store_name || currentUser?.name || 'CraftLink User'}
-              </h3>
-              
-              <div className="flex items-center gap-3 text-xs text-gray-400 mt-1">
-                {currentUser?.email && (
-                  <span className="flex items-center gap-1 truncate">
-                    <Mail className="w-3 h-3" />
-                    {currentUser.email}
-                  </span>
-                )}
-                {currentUser?.phone && (
-                  <span className="flex items-center gap-1">
-                    <Phone className="w-3 h-3" />
-                    {currentUser.phone}
-                  </span>
-                )}
-              </div>
+    <Modal open={isOpen} onClose={onClose} size="sm" title={t('Your account')}>
+      <div className="p-5 sm:p-6">
+        <div className="flex items-center gap-4">
+          <span className="flex h-14 w-14 flex-shrink-0 items-center justify-center rounded-2xl bg-brand-600 text-lg font-semibold text-white">{initials}</span>
+          <div className="min-w-0">
+            <p className="truncate text-lg font-semibold text-ink-950">{currentUser.store_name || currentUser.name}</p>
+            {currentUser.store_name && <p className="truncate text-sm text-ink-500">{currentUser.name}</p>}
+            <div className="mt-1 flex flex-wrap gap-1.5">
+              <span className="badge bg-brand-50 text-brand-700 ring-brand-700/15">{t(roleLabel)}</span>
+              {currentUser.kyc_status && <StatusPill status={currentUser.kyc_status} label={`KYC ${t(currentUser.kyc_status)}`} />}
             </div>
           </div>
         </div>
 
-        {/* Account Details & Quick Actions */}
-        <div className="p-6 space-y-4 max-h-[70vh] overflow-y-auto">
+        <dl className="mt-5 divide-y divide-line rounded-xl border border-line text-sm">
+          {currentUser.email && <div className="flex items-center gap-3 px-4 py-2.5"><Mail className="h-4 w-4 text-ink-400" /><dd className="truncate text-ink-800">{currentUser.email}</dd></div>}
+          {currentUser.phone && <div className="flex items-center gap-3 px-4 py-2.5"><Phone className="h-4 w-4 text-ink-400" /><dd className="text-ink-800">{currentUser.phone}</dd></div>}
+          {(currentUser.region || currentUser.department) && <div className="flex items-center gap-3 px-4 py-2.5"><MapPin className="h-4 w-4 text-ink-400" /><dd className="text-ink-800">{currentUser.region || currentUser.department}</dd></div>}
+        </dl>
 
-          {/* Role specific quick stats/badges */}
-          {isSeller && (
-            <div className="p-3.5 bg-orange-50 border border-orange-200 rounded-xl">
-              <div className="flex items-center justify-between text-xs mb-1">
-                <span className="font-bold text-orange-900">Artisan Guild Cluster</span>
-                <span className="font-semibold text-orange-700">{currentUser?.region || 'Varanasi, UP'}</span>
-              </div>
-              <div className="flex items-center justify-between text-xs">
-                <span className="font-bold text-orange-900">Direct NEFT Bank Settlement</span>
-                <span className="font-semibold text-green-700">✓ 100% (0% Fee)</span>
-              </div>
-            </div>
-          )}
+        <ul className="mt-5 space-y-2">
+          {actions.map(({ icon: Icon, title, detail, onClick }) => (
+            <li key={title}>
+              <button type="button" onClick={() => { onClose(); onClick?.(); }} className="group flex w-full items-center gap-3 rounded-xl border border-line px-4 py-3 text-left transition hover:border-line-strong hover:bg-paper-50">
+                <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-paper-200 text-brand-700"><Icon className="h-[18px] w-[18px]" /></span>
+                <span className="flex-1"><span className="block text-sm font-semibold text-ink-900">{t(title)}</span><span className="text-xs text-ink-500">{t(detail)}</span></span>
+                <ChevronRight className="h-4 w-4 text-ink-400 transition group-hover:translate-x-0.5" />
+              </button>
+            </li>
+          ))}
+        </ul>
 
-          {isAdmin && (
-            <div className="p-3.5 bg-emerald-50 border border-emerald-200 rounded-xl">
-              <div className="flex items-center justify-between text-xs mb-1">
-                <span className="font-bold text-emerald-900">Department</span>
-                <span className="font-semibold text-emerald-700">Handloom & Handicrafts Directorate</span>
-              </div>
-              <div className="flex items-center justify-between text-xs">
-                <span className="font-bold text-emerald-900">Clearance Tier</span>
-                <span className="font-semibold text-emerald-800">SuperAdmin Governance Clearance</span>
-              </div>
-            </div>
-          )}
-
-          {/* Quick Actions List */}
-          <div className="space-y-1.5">
-            <div className="text-[11px] font-bold uppercase text-gray-400 tracking-wider mb-2">Account Management</div>
-            
-            {/* Orders */}
-            <button
-              onClick={() => { onClose(); onOpenOrders?.(); }}
-              className="w-full flex items-center justify-between p-3 rounded-xl border border-gray-100 hover:border-gray-300 hover:bg-gray-50 transition-all text-left group"
-            >
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center">
-                  <Package className="w-4 h-4" />
-                </div>
-                <div>
-                  <div className="text-xs font-bold text-gray-900">Your Orders & Deliveries</div>
-                  <div className="text-[11px] text-gray-500">Track shipments, download GST invoices</div>
-                </div>
-              </div>
-              <ChevronRight className="w-4 h-4 text-gray-400 group-hover:text-gray-700" />
-            </button>
-
-            {/* Seller Central Gateway */}
-            <button
-              onClick={() => { onClose(); onNavigateToSeller?.(); }}
-              className="w-full flex items-center justify-between p-3 rounded-xl border border-gray-100 hover:border-orange-300 hover:bg-orange-50/30 transition-all text-left group"
-            >
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-lg bg-orange-50 text-orange-600 flex items-center justify-center">
-                  <Store className="w-4 h-4" />
-                </div>
-                <div>
-                  <div className="text-xs font-bold text-gray-900">Seller Central Dashboard</div>
-                  <div className="text-[11px] text-gray-500">Manage catalog, orders & AI studio</div>
-                </div>
-              </div>
-              <ChevronRight className="w-4 h-4 text-gray-400 group-hover:text-orange-600" />
-            </button>
-
-            {/* Admin Portal Gateway */}
-            <button
-              onClick={() => { onClose(); onNavigateToAdmin?.(); }}
-              className="w-full flex items-center justify-between p-3 rounded-xl border border-gray-100 hover:border-emerald-300 hover:bg-emerald-50/30 transition-all text-left group"
-            >
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center">
-                  <ShieldCheck className="w-4 h-4" />
-                </div>
-                <div>
-                  <div className="text-xs font-bold text-gray-900">Admin Governance Portal</div>
-                  <div className="text-[11px] text-gray-500">Compliance, approvals & reports</div>
-                </div>
-              </div>
-              <ChevronRight className="w-4 h-4 text-gray-400 group-hover:text-emerald-600" />
-            </button>
-          </div>
-
-          {/* Footer Actions: Switch Account / Logout */}
-          <div className="pt-3 border-t border-gray-100 flex items-center gap-2">
-            <button
-              onClick={() => { onClose(); onOpenAuthModal?.(); }}
-              className="flex-1 py-2 px-3 rounded-xl border border-gray-200 hover:bg-gray-50 text-xs font-bold text-gray-700 transition-colors text-center"
-            >
-              Switch Account
-            </button>
-
-            <button
-              onClick={() => { onSignOut?.(); onClose(); }}
-              className="py-2 px-4 rounded-xl bg-red-50 hover:bg-red-100 border border-red-200 text-xs font-bold text-red-700 transition-colors flex items-center gap-1.5"
-            >
-              <LogOut className="w-3.5 h-3.5" />
-              Sign Out
-            </button>
-          </div>
-
-        </div>
-
+        <button type="button" onClick={() => { onSignOut?.(); onClose(); }} className="btn btn-danger mt-5 w-full"><LogOut className="h-4 w-4" />{t('Sign out')}</button>
       </div>
-    </div>
+    </Modal>
   );
 }

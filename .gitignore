@@ -28,3 +28,8 @@ npm-debug.log*
 # OS
 .DS_Store
 Thumbs.db
+
+# Scratch & Local IDE
+.claude/
+test_*.pptx
+extracted_*.png

@@ -1,3 +1,4 @@
+import re
 import os
 import sys
 import io
@@ -650,3 +651,130 @@ def test_every_supported_language_has_a_complete_question_bank():
         # And a speech code the recogniser and the voice can both use.
         assert speech_service._normalize_language_code(interview_content.LANGUAGES[locale]["name"]) == locale
         assert interview_content.speech_code(locale).endswith("-IN") or locale == "en"
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Pricing reads the photo and the words; the cataloguer translates them
+# ──────────────────────────────────────────────────────────────────────────────
+
+def test_pricing_uses_photo_and_description_signals():
+    from backend.app.services.craft_signal_service import craft_signal_service
+
+    costs = {
+        "material_cost": 300, "labor_cost": 700, "packaging_cost": 50,
+        "production_time": "2 days", "category": "Pottery & Ceramics",
+        "craft_type": "Terracotta Pottery", "material": "River clay",
+    }
+
+    plain = client.post("/api/products/price-recommendation", json=costs)
+    assert plain.status_code == 200
+    plain_data = plain.json()
+    assert plain_data["craft_signals"] == []
+    assert plain_data["photo_analysed"] is False
+
+    described = client.post("/api/products/price-recommendation", json={
+        **costs,
+        "description": "A hand-carved pure silk saree with gold zari border, woven with natural dyes.",
+    })
+    assert described.status_code == 200
+    described_data = described.json()
+    labels = [signal["label"] for signal in described_data["craft_signals"]]
+    assert "Premium material or technique" in labels
+    # The premium raises the suggestion, and the reason is stated to the artisan.
+    assert described_data["suggested_price"] > plain_data["suggested_price"]
+    assert "premium material" in described_data["explanation"].lower()
+
+    # A short description is never punished when the artisan gave none at all.
+    signals = craft_signal_service.analyse(description="", craft_type="Terracotta Pottery")
+    assert signals["factors"] == []
+    assert signals["multiplier"] == 1.0
+
+    # The adjustment stays bounded however many premium words appear.
+    loaded = craft_signal_service.analyse(
+        description="pure silk pashmina zari gold silver sandalwood filigree inlay hand-carved large",
+    )
+    assert loaded["multiplier"] <= 1.28
+
+
+def test_listing_translates_the_artisan_words_and_carries_seo_fields():
+    response = client.post("/api/products/generate-listing", json={
+        "attributes": {
+            "product_name": "Terracotta Diya Set",
+            "category": "Pottery & Ceramics",
+            "material": "River clay",
+            "craft_type": "Terracotta Pottery",
+            "technique": "Hand-moulded",
+            "region": "Khurja, Uttar Pradesh",
+            "production_time": "2 days",
+            "artisan_description": "ಇದು ಕೈಯಿಂದ ಮಾಡಿದ ಮಣ್ಣಿನ ಹಣತೆ. ಹಬ್ಬಗಳಿಗೆ ಬಳಸುತ್ತಾರೆ.",
+        },
+        "artisan_name": "Shivamma",
+        "source_language": "Kannada",
+    })
+    assert response.status_code == 200
+    listing = response.json()
+
+    # SEO fields are sized for what a search result actually shows.
+    assert 0 < len(listing["seo_title_en"]) <= 60
+    assert 0 < len(listing["meta_description_en"]) <= 155
+    assert listing["slug"] and listing["slug"] == listing["slug"].lower()
+    assert " " not in listing["slug"]
+    assert len(listing["keywords"]) >= 6
+    assert any("buy" in keyword for keyword in listing["keywords"])
+    assert listing["keywords_hi"]
+
+    # The artisan's own sentence is kept, and what the buyer reads is not that
+    # sentence in a script they cannot read.
+    assert listing["artisan_quote_original"].startswith("ಇದು")
+    assert listing["artisan_quote_language"] == "Kannada"
+    kannada_block = "\u0c80-\u0cff"
+    assert not re.search(f"[{kannada_block}]", listing["description_en"])
+    assert not re.search(f"[{kannada_block}]", listing["description_hi"])
+
+
+def test_translation_service_reports_its_engine():
+    from backend.app.services.translation_service import translation_service
+
+    same = translation_service.translate("A clay pot", "English", "English")
+    assert same["engine"] == "same-language"
+    assert translation_service.translate("", "English", "Hindi")["text"] == ""
+
+    result = translation_service.translate("This is a handmade clay lamp.", "English", "Hindi")
+    assert result["text"]
+    # Whatever produced it, the caller can tell which engine it was.
+    assert result["engine"] in {"llm", "nllb-200-distilled-600M", "craft-glossary"}
+    if translation_service.local_model_available():
+        assert re.search("[\u0900-\u097f]", result["text"])
+
+
+def test_listing_facts_cross_languages_not_just_the_quote():
+    """A listing written from Kannada answers must read as English and Hindi.
+
+    The interview stores product name, material and craft in whatever language
+    the artisan spoke; if only the quote is translated, an English buyer sees a
+    Kannada sentence where the product name should be.
+    """
+    response = client.post("/api/products/generate-listing", json={
+        "attributes": {
+            "product_name": "ಇದು ಕೈಯಿಂದ ಚಿತ್ರಿಸಿದ ಮಧುಬನಿ ಕಲಾಕೃತಿ. ಹಬ್ಬಗಳಿಗೆ ಬಳಸುತ್ತಾರೆ.",
+            "category": "Traditional Paintings",
+            "material": "ಕೈಯಿಂದ ಮಾಡಿದ ಕಾಗದ ಮತ್ತು ಸಹಜ ಬಣ್ಣ",
+            "craft_type": "ಇದು ಕೈಯಿಂದ ಚಿತ್ರಿಸಿದ ಮಧುಬನಿ ಕಲಾಕೃತಿ.",
+            "technique": "Handcrafted",
+            "region": "Madhubani, Bihar",
+            "production_time": "2 days",
+            "artisan_description": "ಇದು ಕೈಯಿಂದ ಚಿತ್ರಿಸಿದ ಮಧುಬನಿ ಕಲಾಕೃತಿ.",
+        },
+        "artisan_name": "Shivamma",
+        "source_language": "Kannada",
+    })
+    assert response.status_code == 200
+    listing = response.json()
+
+    kannada = "[ಀ-೿]"
+    for field in ("title_en", "short_desc_en", "description_en", "seo_title_en",
+                  "meta_description_en", "title_hi", "short_desc_hi", "description_hi"):
+        assert not re.search(kannada, listing[field]), f"{field} still carries the source script"
+
+    # And the product name is a name, not the whole spoken sentence.
+    assert len(listing["title_en"]) < 120

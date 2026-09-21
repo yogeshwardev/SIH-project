@@ -139,13 +139,16 @@ export const api = {
   },
 
   // 4. Multilingual Listing Generation
-  async generateListing(attributes, artisanName = 'Master Artisan') {
+  async generateListing(attributes, artisanName = 'Master Artisan', sourceLanguage = 'English') {
     const res = await fetch(`${API_BASE}/products/generate-listing`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         attributes,
         artisan_name: artisanName,
+        // The language the artisan spoke in, so their words are translated
+        // rather than quoted in a script the buyer cannot read.
+        source_language: sourceLanguage,
       }),
     });
     if (!res.ok) {

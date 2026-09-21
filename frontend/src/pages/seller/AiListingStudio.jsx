@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { ArrowLeft, ArrowRight, Camera, Check, CheckCircle2, ChevronDown, Edit3, Globe, ImagePlus, MessageSquare, Mic, Palette, Plus, RefreshCw, Send, ShieldCheck, Sparkles, Tag, Trash2, Upload, Volume2, VolumeX, X } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Camera, Check, CheckCircle2, ChevronDown, Edit3, Globe, ImagePlus, MessageSquare, Mic, Palette, Plus, RefreshCw, Search, Send, ShieldCheck, Sparkles, Tag, Trash2, Upload, Volume2, VolumeX, X } from 'lucide-react';
 import { api } from '../../services/api';
 import { voiceAssistant } from '../../services/voiceAssistant';
 import BeforeAfterSlider from '../../components/BeforeAfterSlider';
@@ -314,7 +314,7 @@ export default function AiListingStudio({ onProductCreated, onViewProducts, arti
 
       if (result.status === 'ready_for_pricing') {
         setLoadMsg('Generating a verified bilingual marketplace listing...');
-        const l = await api.generateListing(result.attributes, artisanName);
+        const l = await api.generateListing(result.attributes, artisanName, detLang);
         setListing(l);
         setLoadMsg('Pricing AI: Blending confirmed costs with regional market benchmarks...');
         const pr = await api.calculatePrice({
@@ -428,6 +428,12 @@ export default function AiListingStudio({ onProductCreated, onViewProducts, arti
   };
 
   const listingField = (base) => listing?.[`${base}_${listLang}`] || listing?.[`${base}_en`] || '';
+  // Search-engine copy follows the preview language where we have it.
+  const seoFields = {
+    title: listing?.[`seo_title_${listLang}`] || listing?.seo_title_en || '',
+    meta: listing?.[`meta_description_${listLang}`] || listing?.meta_description_en || '',
+    keywords: (listLang === 'hi' ? listing?.keywords_hi : listing?.keywords) || listing?.keywords || [],
+  };
 
   if (submitted) {
     return (
@@ -875,8 +881,30 @@ export default function AiListingStudio({ onProductCreated, onViewProducts, arti
                       <div><p className="text-xs font-medium text-ink-500">{t('Title')}</p><p className="mt-0.5 text-base font-semibold leading-snug text-ink-950">{listingField('title')}</p></div>
                       <div><p className="text-xs font-medium text-ink-500">{t('Summary')}</p><p className="mt-0.5 text-sm leading-relaxed text-ink-700">{listingField('short_desc')}</p></div>
                       <div><p className="text-xs font-medium text-ink-500">{t('Description')}</p><p className="mt-1 max-h-56 overflow-y-auto whitespace-pre-line rounded-xl bg-paper-100 p-4 text-sm leading-relaxed text-ink-700">{listingField('description')}</p></div>
-                      {listing.keywords?.length > 0 && (
-                        <div className="flex flex-wrap gap-1.5">{listing.keywords.map((keyword) => <span key={keyword} className="rounded-full bg-paper-200 px-2.5 py-0.5 text-xs text-ink-600">#{keyword}</span>)}</div>
+                      {seoFields.title && (
+                        <div className="rounded-xl border border-line bg-paper-50 p-4">
+                          <p className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-ink-500">
+                            <Search className="h-3.5 w-3.5 text-brand-600" />{t('How buyers will find this')}
+                          </p>
+                          <p className="mt-2 text-sm font-semibold leading-snug text-brand-800">{seoFields.title}</p>
+                          <p className="mt-0.5 text-xs leading-relaxed text-ink-600">{seoFields.meta}</p>
+                          {listing.slug && <p className="mt-1 truncate text-xs text-ink-400">craftlink.in/p/{listing.slug}</p>}
+                        </div>
+                      )}
+                      {(seoFields.keywords?.length > 0 || listing.keywords?.length > 0) && (
+                        <div>
+                          <p className="text-xs font-medium text-ink-500">{t('Search words')}</p>
+                          <div className="mt-1.5 flex flex-wrap gap-1.5">
+                            {(seoFields.keywords?.length ? seoFields.keywords : listing.keywords).map((keyword) => (
+                              <span key={keyword} className="rounded-full bg-paper-200 px-2.5 py-0.5 text-xs text-ink-600">#{keyword}</span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                      {listing.artisan_quote_original && listing.translation_engine !== 'same-language' && (
+                        <p className="text-xs leading-relaxed text-ink-500">
+                          {t('Translated from your own words in')} {listing.artisan_quote_language}: “{listing.artisan_quote_original}”
+                        </p>
                       )}
                     </div>
                   </section>

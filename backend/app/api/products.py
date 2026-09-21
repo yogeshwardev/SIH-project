@@ -180,13 +180,15 @@ async def extract_product_information(req: ProductExtractRequest):
 async def generate_product_listing(req: ListingGenerateRequest):
     """
     Step 3 of AI Pipeline:
-    Generates high-converting bilingual e-commerce listings (English + Hindi)
-    including titles, descriptions, technical specs, and SEO keywords.
+    Generates marketplace listings in English, Hindi and Telugu: the artisan's
+    own spoken words are translated into each language, and the response carries
+    SEO title, meta description, keywords and slug for every listing.
     """
     try:
         listing = listing_service.generate_listing(
             attributes=req.attributes,
-            artisan_name=req.artisan_name or "Master Artisan"
+            artisan_name=req.artisan_name or "Master Artisan",
+            source_language=req.source_language or "English",
         )
         return listing
     except Exception as e:

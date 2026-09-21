@@ -95,6 +95,7 @@ class ListingGenerateRequest(BaseModel):
     attributes: ProductAttributes
     artisan_name: Optional[str] = "Master Artisan"
     target_languages: Optional[List[str]] = ["English", "Hindi", "Telugu"]
+    source_language: Optional[str] = "English"
 
 class MultilingualListingResponse(BaseModel):
     title_en: str
@@ -109,6 +110,18 @@ class MultilingualListingResponse(BaseModel):
     specifications: List[str]
     keywords: List[str]
     authenticity_notes: str
+    # Search-engine fields, sized for what marketplaces and search results show.
+    seo_title_en: str = ""
+    seo_title_hi: str = ""
+    meta_description_en: str = ""
+    meta_description_hi: str = ""
+    keywords_hi: List[str] = Field(default_factory=list)
+    slug: str = ""
+    # Provenance: what the artisan said, in their language, and how it was
+    # carried into English and Hindi.
+    artisan_quote_original: str = ""
+    artisan_quote_language: str = ""
+    translation_engine: str = "none"
 
 # --- Pricing Schemas ---
 class PriceCalculateRequest(BaseModel):

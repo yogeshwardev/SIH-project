@@ -1,16 +1,19 @@
 import json
+import re
 from typing import Dict, Any, List, Optional
 from backend.app.config import settings
 from backend.app.schemas.product import ProductAttributes, MultilingualListingResponse
+from backend.app.services.translation_service import translation_service
 
 class ListingService:
     def __init__(self):
         self.provider = settings.AI_PROVIDER
 
     def generate_listing(
-        self, 
-        attributes: ProductAttributes, 
-        artisan_name: str = "Master Artisan"
+        self,
+        attributes: ProductAttributes,
+        artisan_name: str = "Master Artisan",
+        source_language: str = "English",
     ) -> MultilingualListingResponse:
         """
         Generate marketplace listings in English, Hindi and Telugu:
@@ -34,12 +37,13 @@ class ListingService:
                 pass
 
         # High-Fidelity Domain Generator (Offline-capable, Zero-hallucination)
-        return self._generate_domain_listing(attributes, artisan_name)
+        return self._generate_domain_listing(attributes, artisan_name, source_language)
 
     def _generate_domain_listing(
-        self, 
-        attr: ProductAttributes, 
-        artisan_name: str
+        self,
+        attr: ProductAttributes,
+        artisan_name: str,
+        source_language: str = "English",
     ) -> MultilingualListingResponse:
         p_name = attr.product_name
         craft = attr.craft_type
@@ -54,7 +58,34 @@ class ListingService:
             if attr.artisan_description and attr.artisan_description.strip().lower() not in {"not provided", "not specified"}
             else ""
         )
-        own_words_en = f"In the artisan's own words: “{artisan_description}”\n\n" if artisan_description else ""
+        # Attributes were captured in the artisan's language. Translate them
+        # once, in a single batch, so every language of the listing is built
+        # from the same English facts.
+        if translation_service._locale(source_language) != "en":
+            p_name, mat, craft, tech, color, region = translation_service.terms(
+                [p_name, mat, craft, tech, color, region], "en", source=source_language
+            )
+            p_name = self._product_name_from(p_name)
+            craft = self._product_name_from(craft)
+            mat = self._clip(mat, 60)
+            # The interview stores the artisan's opening sentence as both the
+            # product name and the craft. Repeating it in one sentence reads
+            # badly, so fall back to the category for the craft.
+            if craft.lower() == p_name.lower() or not craft:
+                craft = attr.category or "Handcrafted"
+
+        quote_en = quote_hi = quote_te = ""
+        translation_engine = "none"
+        if artisan_description:
+            # English first, then Hindi and Telugu from that English text: the
+            # model is strongest in and out of English, and it saves a hop.
+            english = translation_service.translate(artisan_description, source_language, "en")
+            quote_en = english["text"] or artisan_description
+            translation_engine = english["engine"]
+            quote_hi = translation_service.translate(quote_en, "en", "hi")["text"] or quote_en
+            quote_te = translation_service.translate(quote_en, "en", "te")["text"] or quote_en
+
+        own_words_en = f"In the artisan's own words: “{quote_en}”\n\n" if quote_en else ""
 
         # Map common craft terms to Hindi
         name_hi = p_name
@@ -72,6 +103,19 @@ class ListingService:
             name_hi = "पारंपरिक मधुबनी मिथिला लोक चित्रकला"
         elif "Terracotta" in p_name or "Terracotta" in craft:
             name_hi = "प्राकृतिक टेराकोटा मिट्टी का हस्तशिल्प"
+
+        p_time_hi = self._duration_in(p_time, "hi")
+        p_time_te = self._duration_in(p_time, "te")
+
+        # Attributes reach the regional copy in that language too, so a Hindi
+        # listing reads as Hindi rather than Hindi wrapped around English nouns.
+        state = str(region or "").split(",")[-1].strip() or "India"
+        mat_hi, craft_hi, region_hi, tech_hi, state_hi = translation_service.terms(
+            [mat, craft, region, tech, state], "hi"
+        )
+        mat_te, craft_te, region_te, tech_te, name_te = translation_service.terms(
+            [mat, craft, region, tech, p_name], "te"
+        )
 
         # 1. English Listings
         title_en = f"Authentic {p_name} | Handcrafted in {region}"
@@ -91,36 +135,36 @@ class ListingService:
         )
 
         # 2. Hindi Listings (शुद्ध एवं प्रामाणिक हिंदी विवरण)
-        title_hi = f"प्रामाणिक हस्तनिर्मित {name_hi} | {region} का पारंपरिक शिल्प"
+        title_hi = f"प्रामाणिक हस्तनिर्मित {name_hi} | {region_hi} का पारंपरिक शिल्प"
         
         short_desc_hi = (
-            f"{region} के कुशल शिल्पकारों द्वारा शुद्ध {mat} से हस्तनिर्मित {name_hi}। "
-            f"पारंपरिक {craft} विधि से {p_time} के अथक परिश्रम से तैयार।"
+            f"{region_hi} के कुशल शिल्पकारों द्वारा शुद्ध {mat_hi} से हस्तनिर्मित {name_hi}। "
+            f"पारंपरिक {craft_hi} विधि से {p_time_hi} के अथक परिश्रम से तैयार।"
         )
 
         description_hi = (
-            (f"कारीगर के अपने शब्दों में: “{artisan_description}”\n\n" if artisan_description else "") +
-            f"भारतीय हस्तकला की अमूल्य धरोहर को अपने घर लाएं। यह प्रामाणिक {p_name} {region} के पारंपरिक शिल्पकारों द्वारा पूर्ण समर्पण से तैयार किया गया है।\n\n"
-            f"• पारंपरिक कारीगरी: {tech} विधि द्वारा प्रत्येक बारीकी को हाथों से तराशा गया है।\n"
-            f"• शुद्ध सामग्री: उच्च गुणवत्ता वाले {mat} से निर्मित जो इसकी प्रामाणिकता और सुंदरता को दीर्घायु बनाता है।\n"
+            (f"कारीगर के अपने शब्दों में: “{quote_hi}”\n\n" if quote_hi else "") +
+            f"भारतीय हस्तकला की अमूल्य धरोहर को अपने घर लाएं। यह प्रामाणिक {name_hi} {region_hi} के पारंपरिक शिल्पकारों द्वारा पूर्ण समर्पण से तैयार किया गया है।\n\n"
+            f"• पारंपरिक कारीगरी: {tech_hi} विधि द्वारा प्रत्येक बारीकी को हाथों से तराशा गया है।\n"
+            f"• शुद्ध सामग्री: उच्च गुणवत्ता वाले {mat_hi} से निर्मित जो इसकी प्रामाणिकता और सुंदरता को दीर्घायु बनाता है।\n"
             f"• सामाजिक प्रभाव: सीधे शिल्पकार से खरीदारी, ग्रामीण कारीगरों को आत्मनिर्भर और सशक्त बनाने में सहायक।\n"
-            f"• निर्माण समय: लगभग {p_time} का धैर्यपूर्ण हस्तशिल्प श्रम।"
+            f"• निर्माण समय: लगभग {p_time_hi} का धैर्यपूर्ण हस्तशिल्प श्रम।"
         )
 
         # 3. Telugu listing. The artisan's own description is retained verbatim so
         # their story remains the primary source even when product terms are regional.
-        title_te = f"ప్రామాణిక చేతిపని {p_name} | {region} సంప్రదాయ కళ"
+        title_te = f"ప్రామాణిక చేతిపని {name_te} | {region_te} సంప్రదాయ కళ"
         short_desc_te = (
-            f"{region} కళాకారులు {mat}తో చేతితో తయారు చేసిన {p_name}. "
-            f"సంప్రదాయ {craft} విధానంలో సుమారు {p_time} శ్రమతో తయారైంది."
+            f"{region_te} కళాకారులు {mat_te}తో చేతితో తయారు చేసిన {name_te}. "
+            f"సంప్రదాయ {craft_te} విధానంలో సుమారు {p_time_te} శ్రమతో తయారైంది."
         )
         description_te = (
-            (f"కళాకారుని స్వంత మాటల్లో: “{artisan_description}”\n\n" if artisan_description else "") +
-            f"ఇది {region} కళాకారులు శ్రద్ధగా తయారు చేసిన ప్రామాణిక {p_name}.\n\n"
-            f"• సంప్రదాయ నైపుణ్యం: {tech} విధానంతో చేతితో తయారు చేశారు.\n"
-            f"• ముఖ్య పదార్థం: {mat}.\n"
+            (f"కళాకారుని స్వంత మాటల్లో: “{quote_te}”\n\n" if quote_te else "") +
+            f"ఇది {region_te} కళాకారులు శ్రద్ధగా తయారు చేసిన ప్రామాణిక {name_te}.\n\n"
+            f"• సంప్రదాయ నైపుణ్యం: {tech_te} విధానంతో చేతితో తయారు చేశారు.\n"
+            f"• ముఖ్య పదార్థం: {mat_te}.\n"
             f"• కళాకారునికి నేరుగా మద్దతు: న్యాయమైన ధరతో గ్రామీణ కళాకారుని శ్రమకు గౌరవం.\n"
-            f"• తయారీ సమయం: సుమారు {p_time}."
+            f"• తయారీ సమయం: సుమారు {p_time_te}."
         )
 
         # 4. Structured Specifications
@@ -135,21 +179,48 @@ class ListingService:
             "Direct Artisan Fair-Trade Product"
         ]
 
-        # 5. Keywords
-        keywords = [
-            p_name.lower(),
-            craft.lower(),
-            mat.lower(),
-            region.lower(),
-            "indian handicraft",
-            "handmade",
-            "sustainable craft",
-            "vocal for local",
-            "direct artisan",
-            "authentic handloom"
-        ]
-
         authenticity = f"100% Verified Artisan Craft. Origin: {region}. Strictly verified without synthetic shortcuts."
+
+        # SEO: a title that survives a search result (~60 chars), a meta
+        # description inside the ~155 chars Google renders, long-tail keywords
+        # buyers actually type, and a stable slug.
+        seo_title_en = self._fit(
+            [
+                f"{p_name} | Handmade {craft} from {state}",
+                f"{p_name} | Handmade in {state}",
+                f"{p_name} | Handmade in India",
+                p_name,
+            ],
+            60,
+        )
+        seo_title_hi = self._fit(
+            [
+                f"{name_hi} | {state_hi} का हस्तनिर्मित शिल्प",
+                f"{name_hi} | हस्तनिर्मित",
+                name_hi,
+            ],
+            60,
+        )
+        meta_description_en = self._clip(
+            f"Buy {p_name} online — handmade in {mat} by artisans of {region} using {craft}. "
+            f"Direct from the maker, cash on delivery across India.",
+            155,
+        )
+        meta_description_hi = self._clip(
+            f"{name_hi} ऑनलाइन खरीदें — {region_hi} के कारीगरों द्वारा {mat_hi} से हस्तनिर्मित। "
+            f"सीधे कारीगर से, पूरे भारत में डिलीवरी पर नकद।",
+            155,
+        )
+        keywords = self._seo_keywords(p_name, craft, mat, region, tech)
+        keywords_hi = [
+            name_hi,
+            f"{name_hi} ऑनलाइन",
+            "हस्तनिर्मित शिल्प",
+            f"{region_hi} हस्तशिल्प",
+            "भारतीय हस्तकला",
+            "कारीगर से सीधे",
+        ]
+        slug = self._slug(f"{p_name} {craft} {region}")
 
         return MultilingualListingResponse(
             title_en=title_en,
@@ -163,8 +234,109 @@ class ListingService:
             description_te=description_te,
             specifications=specifications,
             keywords=keywords,
-            authenticity_notes=authenticity
+            authenticity_notes=authenticity,
+            seo_title_en=seo_title_en,
+            seo_title_hi=seo_title_hi,
+            meta_description_en=meta_description_en,
+            meta_description_hi=meta_description_hi,
+            keywords_hi=keywords_hi,
+            slug=slug,
+            artisan_quote_original=artisan_description,
+            artisan_quote_language=source_language or "English",
+            translation_engine=translation_engine,
         )
+
+    @staticmethod
+    def _duration_in(value: str, target: str) -> str:
+        """Localise "2 days" by mapping the unit; a number needs no model."""
+        units = {
+            "hi": {"hour": "घंटे", "day": "दिन", "week": "हफ़्ते", "month": "महीने"},
+            "te": {"hour": "గంటలు", "day": "రోజులు", "week": "వారాలు", "month": "నెలలు"},
+        }.get(target)
+        text = str(value or "").strip()
+        if not units or not text:
+            return text
+
+        match = re.match(r"^\s*(\d+(?:\.\d+)?)\s*(hours?|hrs?|days?|weeks?|months?)\s*$", text, re.IGNORECASE)
+        if not match:
+            return text
+        amount, unit = match.group(1), match.group(2).lower()
+        if unit.startswith(("hour", "hr")):
+            key = "hour"
+        elif unit.startswith("week"):
+            key = "week"
+        elif unit.startswith("month"):
+            key = "month"
+        else:
+            key = "day"
+        return f"{amount} {units[key]}"
+
+    @staticmethod
+    def _product_name_from(text: str) -> str:
+        """Turn a spoken sentence into something usable as a product name."""
+        import re as _re
+
+        clean = " ".join(str(text or "").split())
+        if not clean:
+            return clean
+        # Keep the first clause: an artisan answers "This is a hand-painted
+        # Madhubani artwork. It is used for festivals."
+        clean = _re.split(r"(?<=[.!?।])\s", clean)[0].strip(" .!?।")
+        clean = _re.sub(r"^(this|it|these|they)\s+(is|are)\s+(a|an|the)?\s*", "", clean, flags=_re.IGNORECASE)
+        clean = _re.sub(r"^(a|an|the)\s+", "", clean, flags=_re.IGNORECASE)
+        words = clean.split()
+        if len(words) > 9:
+            clean = " ".join(words[:9])
+        return clean[:1].upper() + clean[1:] if clean else clean
+
+    @staticmethod
+    def _clip(text: str, limit: int) -> str:
+        """Trim on a word boundary so a search snippet never ends mid-word."""
+        clean = " ".join(str(text or "").split())
+        if len(clean) <= limit:
+            return clean
+        cut = clean[:limit].rsplit(" ", 1)[0]
+        return (cut or clean[:limit]).rstrip(" ,;—-") + "…"
+
+    @staticmethod
+    def _fit(candidates: List[str], limit: int) -> str:
+        """First phrasing that fits the limit; the last one is always short."""
+        for candidate in candidates:
+            clean = " ".join(str(candidate or "").split())
+            if clean and len(clean) <= limit:
+                return clean
+        return ListingService._clip(candidates[-1] if candidates else "", limit)
+
+    @staticmethod
+    def _slug(text: str) -> str:
+        import re as _re
+        value = _re.sub(r"[^a-z0-9]+", "-", str(text or "").lower()).strip("-")
+        return _re.sub(r"-{2,}", "-", value)[:70]
+
+    @staticmethod
+    def _seo_keywords(p_name: str, craft: str, mat: str, region: str, tech: str) -> List[str]:
+        """Head terms plus the long-tail phrases buyers actually search."""
+        state = str(region or "").split(",")[-1].strip() or "India"
+        seeds = [
+            p_name, craft, mat, region,
+            f"buy {p_name} online",
+            f"handmade {craft}",
+            f"{craft} from {state}",
+            f"{mat} {p_name}",
+            f"{state} handicraft",
+            f"authentic {craft} online india",
+            "indian handicraft", "handmade in india", "direct from artisan",
+        ]
+        if tech and tech.lower() not in {"handcrafted", "not provided"}:
+            seeds.insert(4, f"{tech} {p_name}")
+
+        seen, keywords = set(), []
+        for seed in seeds:
+            value = " ".join(str(seed or "").split()).lower()
+            if value and value not in seen and len(value) > 2:
+                seen.add(value)
+                keywords.append(value)
+        return keywords[:14]
 
     def _call_gemini_api(self, attr: ProductAttributes, artisan_name: str) -> MultilingualListingResponse:
         import requests

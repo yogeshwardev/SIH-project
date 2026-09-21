@@ -77,6 +77,15 @@ async def lifespan(_app: FastAPI):
         if settings.IMAGE_MODEL_PRELOAD:
             image_service.warmup(include_primary=False)
         if settings.VOICE_MODEL_PRELOAD:
+            # Translation first: it loads in about two seconds, and while the
+            # speech and image models are still loading they leave little CPU
+            # for anything else. Loading it last made the first listing of the
+            # session take twenty seconds instead of four.
+            try:
+                from backend.app.services.translation_service import translation_service
+                translation_service.warmup()
+            except Exception:
+                pass
             speech_service.warmup()
         if settings.IMAGE_MODEL_PRELOAD:
             image_service.warmup(include_primary=True)

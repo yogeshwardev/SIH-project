@@ -322,6 +322,11 @@ export default function AiListingStudio({ onProductCreated, onViewProducts, arti
           category: result.attributes.category,
           craft_type: result.attributes.craft_type,
           material: result.attributes.material,
+          // The pricing assistant reads the enhanced photo and the artisan's
+          // own words, not just the costs.
+          image_url: imgData?.enhanced_image_url || imgData?.original_image_url,
+          description: result.attributes.artisan_description,
+          dimensions: result.attributes.dimensions,
         });
         setPricing(pr);
         setStep(3);
@@ -888,7 +893,7 @@ export default function AiListingStudio({ onProductCreated, onViewProducts, arti
                 onUpdateCost={async (nextCosts) => {
                   setCosts(nextCosts);
                   try {
-                    setPricing(await api.calculatePrice({ ...nextCosts, category: attrs?.category, craft_type: attrs?.craft_type, material: attrs?.material }));
+                    setPricing(await api.calculatePrice({ ...nextCosts, category: attrs?.category, craft_type: attrs?.craft_type, material: attrs?.material, image_url: imgData?.enhanced_image_url || imgData?.original_image_url, description: attrs?.artisan_description, dimensions: attrs?.dimensions }));
                   } catch (priceError) { setError(priceError.message); }
                 }}
               />

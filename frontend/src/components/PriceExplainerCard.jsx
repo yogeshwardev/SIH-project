@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { AlertTriangle, Calculator, ChevronDown, Info, ShieldCheck } from 'lucide-react';
+import { AlertTriangle, Calculator, ChevronDown, Camera, Info, ShieldCheck } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
 
 const inr = (value) => '₹' + Math.round(Number(value) || 0).toLocaleString('en-IN');
@@ -25,6 +25,7 @@ export default function PriceExplainerCard({ pricingData, onUpdateCost, currentC
   const totalCost = Number(pricingData.total_cost ?? COST_FIELDS.reduce((sum, [key]) => sum + Number(costs[key] || 0), 0));
   const earnings = suggested - totalCost;
   const confidence = Math.round((pricingData.pricing_confidence_score || 0) * 100);
+  const signals = pricingData.craft_signals || [];
   const rows = [...COST_FIELDS.map(([key, label]) => ({ key, label, value: Number(costs[key] || 0) })), { key: 'earnings', label: 'You earn', value: Math.max(0, earnings), highlight: true }];
 
   return (
@@ -73,6 +74,28 @@ export default function PriceExplainerCard({ pricingData, onUpdateCost, currentC
           ))}
         </ul>
         {earnings < 0 && <p className="mt-4 flex items-center gap-2 rounded-xl bg-red-50 px-3 py-2 text-sm text-red-800"><AlertTriangle className="h-4 w-4" />{t('This price is below your costs.')}</p>}
+
+        {signals.length > 0 && (
+          <section className="mt-6 rounded-xl border border-line bg-paper-50 p-4">
+            <h4 className="flex items-center gap-2 text-sm font-semibold text-ink-950">
+              <Camera className="h-4 w-4 text-clay-500" />
+              {t(pricingData.photo_analysed ? 'What we saw in your photo and words' : 'What we read in your words')}
+            </h4>
+            <ul className="mt-3 space-y-2">
+              {signals.map((signal) => (
+                <li key={signal.label} className="flex items-start justify-between gap-3 text-sm">
+                  <span className="text-ink-700">
+                    <span className="font-medium text-ink-900">{t(signal.label)}</span>
+                    <span className="block text-xs text-ink-500">{signal.detail}</span>
+                  </span>
+                  <span className={`flex-shrink-0 tabular-nums font-semibold ${signal.impact_percentage >= 0 ? 'text-emerald-700' : 'text-amber-700'}`}>
+                    {signal.impact_percentage >= 0 ? '+' : ''}{signal.impact_percentage}%
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
 
         <div className="mt-6 grid gap-3 sm:grid-cols-3">
           <Fact label={t('Total cost')} value={inr(totalCost)} />

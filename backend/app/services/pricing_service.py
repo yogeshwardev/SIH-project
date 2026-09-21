@@ -5,10 +5,12 @@ import pandas as pd
 from typing import Dict, Any, List
 from backend.app.config import settings
 from backend.app.ml.pricing_model import pricing_ml_model
+from backend.app.services.craft_signal_service import craft_signal_service
 from backend.app.schemas.product import (
-    PriceCalculateRequest, 
-    PriceRecommendationResponse, 
-    PriceBreakdownItem
+    PriceCalculateRequest,
+    PriceRecommendationResponse,
+    PriceBreakdownItem,
+    CraftSignalItem,
 )
 
 class PricingService:
@@ -32,8 +34,9 @@ class PricingService:
         1. Cost-Based Production Economics
         2. Craft Complexity & Artisan Fair-Trade Margin Adjustment
         3. Machine Learning Reference Market Pricing
-        4. Calculation of Recommended Range & Suggested Price
-        5. Full Transparent Price Breakdown
+        4. Photo and description signals (detail, colour work, scale, materials)
+        5. Calculation of Recommended Range & Suggested Price
+        6. Full Transparent Price Breakdown
         """
         material_cost = float(req.material_cost)
         labor_cost = float(req.labor_cost)
@@ -82,6 +85,20 @@ class PricingService:
 
         # 7. Blend Cost-Based and ML Market Intelligence (60% Cost economics, 40% Market benchmarking)
         blended_target = (cost_based_price * 0.60) + (ml_predicted_price * 0.40)
+
+        # 7b. What the photo and the artisan's own words say about the piece.
+        # The adjustment is bounded and every factor is returned for display, so
+        # the artisan can see the reason for each rupee of difference.
+        signals = craft_signal_service.analyse(
+            image_path=self._resolve_upload_path(req.image_url),
+            description=req.description or "",
+            craft_type=req.craft_type or "",
+            material=req.material or "",
+            dimensions=req.dimensions or "",
+        )
+        signal_multiplier = float(signals.get("multiplier", 1.0))
+        pre_signal_target = blended_target
+        blended_target = blended_target * signal_multiplier
         blended_target = max(blended_target, minimum_sustainable_price)
 
         # 8. Calculate Range & Suggested Price
@@ -135,6 +152,25 @@ class PricingService:
             f"{market_ref_str}, with an optimal suggested listing price of ₹{suggested_price:,.0f}."
         )
 
+        signal_items = [
+            CraftSignalItem(
+                label=factor["label"],
+                detail=factor["detail"],
+                impact_percentage=factor["impact_percentage"],
+            )
+            for factor in signals.get("factors", [])
+        ]
+        if signal_items:
+            direction = "raises" if signal_multiplier >= 1.0 else "lowers"
+            change = abs(signal_multiplier - 1.0) * 100.0
+            source = "your photo and description" if signals.get("image_analysed") else "your description"
+            explanation += (
+                f" What we measured in {source} ("
+                + ", ".join(item.label.lower() for item in signal_items)
+                + f") {direction} the suggestion by {change:.0f}%, from "
+                f"₹{self._round_to_retail_price(pre_signal_target):,.0f}."
+            )
+
         confidence = self._benchmark_confidence(
             req.category or "", req.craft_type or "", req.material or "",
             prod_hours, total_cost,
@@ -154,13 +190,19 @@ class PricingService:
             market_reference_range=market_ref_str,
             price_breakdown=breakdown_items,
             explanation=explanation,
-            pricing_model_type="Hybrid Ensemble ML + Fair-Trade Cost Model",
+            pricing_model_type=(
+                "Ensemble ML market benchmark + fair-trade cost model + photo and description signals"
+                if signal_items else
+                "Ensemble ML market benchmark + fair-trade cost model"
+            ),
             pricing_confidence_score=confidence["score"],
             confidence_level=confidence["level"],
             benchmark_sample_count=confidence["sample_count"],
             benchmark_similarity_score=confidence["similarity"],
             requires_human_review=confidence["requires_review"],
             assumptions=assumptions,
+            craft_signals=signal_items,
+            photo_analysed=bool(signals.get("image_analysed")),
         )
 
     def _benchmark_confidence(
@@ -205,6 +247,20 @@ class PricingService:
             }
         except Exception:
             return {"score": 0.35, "level": "LOW", "sample_count": 0, "similarity": 0.0, "requires_review": True}
+
+    @staticmethod
+    def _resolve_upload_path(image_url: str) -> str:
+        """Turn a served image URL back into a path the vision code can open."""
+        if not image_url:
+            return ""
+        name = str(image_url).split("?")[0].rsplit("/", 1)[-1]
+        if not name:
+            return ""
+        candidate = settings.UPLOAD_DIR / name
+        if candidate.exists():
+            return str(candidate)
+        nested = next(settings.UPLOAD_DIR.rglob(name), None)
+        return str(nested) if nested else ""
 
     def _parse_production_hours(self, time_str: str) -> float:
         """Parse human readable production duration into approximate hours."""

@@ -119,12 +119,22 @@ class PriceCalculateRequest(BaseModel):
     category: Optional[str] = "Handloom & Textiles"
     craft_type: Optional[str] = "Handcrafted"
     material: Optional[str] = "Natural"
+    # The photo and the artisan's own words are read by the pricing assistant:
+    # detail, colour work and scale all move what a piece can sell for.
+    image_url: Optional[str] = None
+    description: Optional[str] = None
+    dimensions: Optional[str] = None
 
 class PriceBreakdownItem(BaseModel):
     label: str
     amount: float
     percentage: float
     description: str
+
+class CraftSignalItem(BaseModel):
+    label: str
+    detail: str
+    impact_percentage: float
 
 class PriceRecommendationResponse(BaseModel):
     total_cost: float
@@ -143,6 +153,8 @@ class PriceRecommendationResponse(BaseModel):
     benchmark_similarity_score: float = 0.0
     requires_human_review: bool = True
     assumptions: List[str] = Field(default_factory=list)
+    craft_signals: List[CraftSignalItem] = Field(default_factory=list)
+    photo_analysed: bool = False
 
 # --- Product Entity CRUD Schemas ---
 class ProductCreate(BaseModel):

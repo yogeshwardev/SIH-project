@@ -14,6 +14,12 @@ class ImageEnhanceResponse(BaseModel):
     mask_quality_score: Optional[float] = None
     confidence_breakdown: Dict[str, float] = Field(default_factory=dict)
     latency_breakdown: Dict[str, float] = Field(default_factory=dict)
+    background_style: str = "warm-studio"
+
+class ProductGalleryImage(BaseModel):
+    original_image_url: str
+    enhanced_image_url: str
+    background_style: str = "warm-studio"
 
 # --- Speech Transcription Schemas ---
 class SpeechTranscribeResponse(BaseModel):
@@ -143,6 +149,8 @@ class ProductCreate(BaseModel):
     artisan_id: Optional[int] = None
     original_image: Optional[str] = None
     enhanced_image: Optional[str] = None
+    gallery: List[ProductGalleryImage] = Field(default_factory=list, max_length=6)
+    background_style: Optional[str] = "warm-studio"
     audio_file: Optional[str] = None
     transcript: Optional[str] = None
     detected_language: Optional[str] = "Hindi"
@@ -190,6 +198,8 @@ class ProductCreate(BaseModel):
     is_featured: Optional[bool] = False
 
 class ProductUpdate(BaseModel):
+    gallery: Optional[List[ProductGalleryImage]] = Field(default=None, max_length=6)
+    background_style: Optional[str] = None
     product_name: Optional[str] = None
     category: Optional[str] = None
     material: Optional[str] = None
@@ -237,6 +247,8 @@ class ProductResponse(BaseModel):
     artisan_region: Optional[str] = None
     original_image: Optional[str]
     enhanced_image: Optional[str]
+    gallery: List[ProductGalleryImage] = Field(default_factory=list)
+    background_style: Optional[str] = "warm-studio"
     audio_file: Optional[str]
     transcript: Optional[str]
     detected_language: Optional[str]

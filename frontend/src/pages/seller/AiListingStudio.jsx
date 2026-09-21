@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { ArrowLeft, ArrowRight, Camera, Check, CheckCircle2, Edit3, Globe, MessageSquare, Mic, Plus, RefreshCw, Send, ShieldCheck, Sparkles, Tag, Upload, Volume2, VolumeX } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Camera, Check, CheckCircle2, ChevronDown, Edit3, Globe, ImagePlus, MessageSquare, Mic, Palette, Plus, RefreshCw, Send, ShieldCheck, Sparkles, Tag, Trash2, Upload, Volume2, VolumeX, X } from 'lucide-react';
 import { api } from '../../services/api';
 import { voiceAssistant } from '../../services/voiceAssistant';
 import BeforeAfterSlider from '../../components/BeforeAfterSlider';
@@ -16,6 +16,19 @@ import {
 const SELLER_LANGUAGE_OPTIONS = STUDIO_LANGUAGES;
 const questionUiCopyFor = studioCopyFor;
 const confirmationAnswerForLanguage = confirmationAnswerFor;
+const MAX_PRODUCT_IMAGES = 6;
+const BACKGROUND_OPTIONS = [
+  { id: 'warm-studio', label: 'Warm studio', description: 'Premium cream', swatch: 'bg-[#eee2cb]' },
+  { id: 'pure-white', label: 'Classic white', description: 'Marketplace clean', swatch: 'bg-white' },
+  { id: 'soft-gray', label: 'Soft grey', description: 'Modern neutral', swatch: 'bg-[#dfe3e7]' },
+  { id: 'natural-linen', label: 'Natural linen', description: 'Craft-friendly', swatch: 'bg-[#d9c3a0]' },
+  { id: 'deep-charcoal', label: 'Deep charcoal', description: 'Bold contrast', swatch: 'bg-[#262b2f]' },
+  { id: 'blush', label: 'Soft blush', description: 'Warm and gentle', swatch: 'bg-[#f1d4d1]' },
+  { id: 'sage', label: 'Sage green', description: 'Calm and natural', swatch: 'bg-[#c7d3bd]' },
+  { id: 'sky', label: 'Sky blue', description: 'Fresh and bright', swatch: 'bg-[#c5dfea]' },
+  { id: 'sand', label: 'Golden sand', description: 'Earthy warmth', swatch: 'bg-[#dec59a]' },
+  { id: 'terracotta', label: 'Terracotta', description: 'Artisan character', swatch: 'bg-[#b96f53]' },
+];
 
 // Guided listing flow: photo -> one question at a time -> review -> fair price -> submit.
 export default function AiListingStudio({ onProductCreated, onViewProducts, artisanId, artisanName }) {
@@ -27,7 +40,17 @@ export default function AiListingStudio({ onProductCreated, onViewProducts, arti
   const [speaking, setSpeaking]   = useState(false);
   const [voiceLoading, setVoiceLoading] = useState(false);
 
-  const [imgData, setImgData]     = useState(null);
+  const [images, setImages]       = useState([]);
+  const [activeImageIndex, setActiveImageIndex] = useState(0);
+  const [backgroundStyle, setBackgroundStyle] = useState('warm-studio');
+  const [customBackgroundFile, setCustomBackgroundFile] = useState(null);
+  const [customBackgroundPreview, setCustomBackgroundPreview] = useState('');
+  const [backgroundPanelOpen, setBackgroundPanelOpen] = useState(false);
+  const [editingBackgroundIndex, setEditingBackgroundIndex] = useState(null);
+  const [changingImageIndex, setChangingImageIndex] = useState(null);
+  const imgData = images[0] || null;
+  const activeImage = images[activeImageIndex] || imgData;
+  const selectedBackground = BACKGROUND_OPTIONS.find(option => option.id === backgroundStyle);
   const [cameraOpen, setCameraOpen] = useState(false);
   const [transcript, setTxt]      = useState('');
   // Nine languages can be spoken here, whatever the portal's own interface
@@ -131,19 +154,74 @@ export default function AiListingStudio({ onProductCreated, onViewProducts, arti
     return () => window.clearTimeout(timer);
   }, [step, loading, languageChanging, interviewLocale, answerLocale, interview?.assistant_message, interview?.question_number, detLang, speakPrompt]);
 
-  const enhancePhoto = async (file) => {
-    if (!file) return;
+  const enhancePhotos = async (fileList) => {
+    const files = Array.from(fileList || []).slice(0, MAX_PRODUCT_IMAGES - images.length);
+    if (!files.length) return;
     setLoading(true); setError(null);
-    setLoadMsg('AI Computer Vision: Removing background & enhancing studio quality...');
+    setLoadMsg(files.length > 1 ? `Enhancing ${files.length} product photos…` : 'Removing the background and creating your studio photo…');
     try {
-      const d = await api.enhanceImage(file);
+      const enhanced = [];
+      for (let index = 0; index < files.length; index += 1) {
+        setLoadMsg(`Enhancing photo ${index + 1} of ${files.length}…`);
+        enhanced.push(await api.enhanceImage(files[index], backgroundStyle, backgroundStyle === 'custom' ? customBackgroundFile : null));
+      }
       clearQuestionFlow();
-      setImgData(d);
+      setImages(current => [...current, ...enhanced].slice(0, MAX_PRODUCT_IMAGES));
+      setActiveImageIndex(images.length);
     } catch (e) { setError(e.message); }
     finally { setLoading(false); setLoadMsg(''); }
   };
 
-  const handleImageUpload = (e) => enhancePhoto(e.target.files?.[0]);
+  const enhancePhoto = (file) => enhancePhotos(file ? [file] : []);
+
+  const handleImageUpload = (e) => {
+    enhancePhotos(e.target.files);
+    e.target.value = '';
+  };
+
+  const removeImage = (index) => {
+    setImages(current => current.filter((_, imageIndex) => imageIndex !== index));
+    setActiveImageIndex(current => Math.max(0, Math.min(current, images.length - 2)));
+  };
+
+  const makePrimary = (index) => {
+    if (index === 0) return;
+    setImages(current => [current[index], ...current.filter((_, imageIndex) => imageIndex !== index)]);
+    setActiveImageIndex(0);
+  };
+
+  const openBackgroundPicker = (index = null) => {
+    setEditingBackgroundIndex(index);
+    setBackgroundPanelOpen(true);
+  };
+
+  const applyBackground = async (style, file = null) => {
+    if (editingBackgroundIndex === null) {
+      setBackgroundStyle(style);
+      setCustomBackgroundFile(style === 'custom' ? file : null);
+      if (customBackgroundPreview) URL.revokeObjectURL(customBackgroundPreview);
+      setCustomBackgroundPreview(style === 'custom' && file ? URL.createObjectURL(file) : '');
+      setBackgroundPanelOpen(false);
+      return;
+    }
+    const index = editingBackgroundIndex;
+    const image = images[index];
+    if (!image) return;
+    setChangingImageIndex(index); setError(null);
+    try {
+      const updated = await api.changeImageBackground(image.original_image_url, style, file);
+      setImages(current => current.map((item, imageIndex) => imageIndex === index ? updated : item));
+      setBackgroundPanelOpen(false);
+      setEditingBackgroundIndex(null);
+    } catch (e) { setError(e.message); }
+    finally { setChangingImageIndex(null); }
+  };
+
+  const handleCustomBackground = (event) => {
+    const file = event.target.files?.[0];
+    if (file) applyBackground('custom', file);
+    event.target.value = '';
+  };
 
   const beginInterview = async () => {
     if (!imgData) return;
@@ -290,6 +368,12 @@ export default function AiListingStudio({ onProductCreated, onViewProducts, arti
         artisan_id: artisanId,
         original_image: imgData.original_image_url,
         enhanced_image: imgData.enhanced_image_url,
+        gallery: images.slice(1).map(image => ({
+          original_image_url: image.original_image_url,
+          enhanced_image_url: image.enhanced_image_url,
+          background_style: image.background_style || backgroundStyle,
+        })),
+        background_style: imgData.background_style || backgroundStyle,
         transcript, detected_language: detLang,
         product_name: attrs?.product_name || listing?.title_en,
         category: attrs?.category || 'Handloom & Textiles',
@@ -332,7 +416,8 @@ export default function AiListingStudio({ onProductCreated, onViewProducts, arti
   };
 
   const reset = () => {
-    setStep(1); setImgData(null); setTxt(''); setAttrs(null); setListing(null); setPricing(null); setStockQuantity(1); setSubmitted(false); setProductId(null); setError(null);
+    if (customBackgroundPreview) URL.revokeObjectURL(customBackgroundPreview);
+    setStep(1); setImages([]); setActiveImageIndex(0); setBackgroundStyle('warm-studio'); setCustomBackgroundFile(null); setCustomBackgroundPreview(''); setBackgroundPanelOpen(false); setEditingBackgroundIndex(null); setTxt(''); setAttrs(null); setListing(null); setPricing(null); setStockQuantity(1); setSubmitted(false); setProductId(null); setError(null);
     setCosts({ material_cost: null, labor_cost: null, packaging_cost: null, production_time: '' });
     setInterview(null); setInterviewTurns([]); setQuestionHistory([]); setTypedAnswer(''); setPendingAnswer(null);
   };
@@ -431,23 +516,98 @@ export default function AiListingStudio({ onProductCreated, onViewProducts, arti
         <div className="grid gap-6 lg:grid-cols-2">
           <section className="card card-pad">
             <span className="eyebrow"><Camera className="h-3.5 w-3.5" />{t('Step 1')}</span>
-            <h2 className="mt-2 text-xl font-semibold text-ink-950">{t('First, add one product photo')}</h2>
-            <p className="mt-1 text-sm text-ink-500">{t('Do not worry about the background. AI will clean it.')}</p>
+            <h2 className="mt-2 text-xl font-semibold text-ink-950">{t('Build your product photo gallery')}</h2>
+            <p className="mt-1 text-sm text-ink-500">{t('Choose a background, then add up to six views so buyers can inspect every detail.')}</p>
+
+            <div className="relative mt-5 rounded-2xl border border-line bg-paper-50">
+              <button type="button" onClick={() => backgroundPanelOpen ? setBackgroundPanelOpen(false) : openBackgroundPicker(null)} className="flex w-full items-center gap-3 p-3.5 text-left" aria-expanded={backgroundPanelOpen}>
+                <span className={`h-12 w-12 flex-none overflow-hidden rounded-xl border border-black/5 shadow-inner ${selectedBackground?.swatch || 'bg-paper-200'}`}>
+                  {backgroundStyle === 'custom' && customBackgroundPreview && <img src={customBackgroundPreview} alt="" className="h-full w-full object-cover" />}
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="block text-xs font-medium text-ink-500">{t('Background for next photo')}</span>
+                  <span className="block truncate text-sm font-bold text-ink-950">{backgroundStyle === 'custom' ? t('Your uploaded background') : t(selectedBackground?.label || 'Warm studio')}</span>
+                </span>
+                <span className="hidden text-xs font-semibold text-brand-700 sm:block">{t('Choose or import')}</span>
+                <ChevronDown className={`h-4 w-4 text-ink-500 transition ${backgroundPanelOpen ? 'rotate-180' : ''}`} />
+              </button>
+
+              {backgroundPanelOpen && (
+                <div className="border-t border-line p-3.5" aria-busy={changingImageIndex !== null}>
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <p className="text-sm font-bold text-ink-950">{editingBackgroundIndex === null ? t('Choose a background for the next photo') : `${t('Change background')} · ${t('Photo')} ${editingBackgroundIndex + 1}`}</p>
+                      <p className="mt-0.5 text-xs text-ink-500">{changingImageIndex !== null ? t('Please wait…') : t('Each product photo can use a different background and can be changed later.')}</p>
+                    </div>
+                    <button type="button" onClick={() => { setBackgroundPanelOpen(false); setEditingBackgroundIndex(null); }} aria-label={t('Close')} className="flex h-8 w-8 flex-none items-center justify-center rounded-full hover:bg-paper-200"><X className="h-4 w-4" /></button>
+                  </div>
+                  <div className="mt-3 grid grid-cols-3 gap-2 sm:grid-cols-5">
+                    {BACKGROUND_OPTIONS.map(option => {
+                      const selected = editingBackgroundIndex === null && backgroundStyle === option.id;
+                      return (
+                        <button key={option.id} type="button" disabled={changingImageIndex !== null} aria-pressed={selected} onClick={() => applyBackground(option.id)} className={`rounded-xl border p-1.5 text-left transition disabled:cursor-wait disabled:opacity-50 ${selected ? 'border-brand-600 bg-brand-50 ring-2 ring-brand-600/15' : 'border-line bg-white hover:border-brand-300'}`}>
+                          <span className={`relative block aspect-[5/3] rounded-lg border border-black/5 shadow-inner ${option.swatch}`}>{selected && <Check className="absolute right-1 top-1 h-4 w-4 rounded-full bg-brand-700 p-0.5 text-white" />}</span>
+                          <span className="mt-1.5 block truncate text-[11px] font-bold text-ink-900">{t(option.label)}</span>
+                        </button>
+                      );
+                    })}
+                    <label className={`flex flex-col rounded-xl border border-dashed border-brand-400 bg-brand-50 p-1.5 text-brand-800 hover:bg-brand-100 ${changingImageIndex !== null ? 'cursor-wait opacity-50' : 'cursor-pointer'}`}>
+                      <input type="file" accept="image/jpeg,image/png,image/webp" onChange={handleCustomBackground} disabled={changingImageIndex !== null} className="sr-only" />
+                      <span className="flex aspect-[5/3] items-center justify-center rounded-lg bg-white"><Upload className="h-5 w-5" /></span>
+                      <span className="mt-1.5 truncate text-[11px] font-bold">{t('Import yours')}</span>
+                    </label>
+                  </div>
+                </div>
+              )}
+            </div>
 
             <label className="group mt-5 flex cursor-pointer flex-col items-center rounded-2xl border-2 border-dashed border-line-strong bg-paper-50 px-6 py-10 text-center transition hover:border-brand-600 hover:bg-brand-50/40 focus-within:border-brand-600 focus-within:ring-4 focus-within:ring-brand-600/10">
-              <input type="file" accept="image/jpeg,image/png,image/webp" aria-label={t('Add Photo')} onChange={handleImageUpload} className="sr-only" />
+              <input type="file" multiple accept="image/jpeg,image/png,image/webp" aria-label={t('Add product photos')} onChange={handleImageUpload} disabled={images.length >= MAX_PRODUCT_IMAGES} className="sr-only" />
               <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-white text-brand-700 shadow-card transition group-hover:scale-105"><Upload className="h-6 w-6" /></span>
-              <span className="mt-4 text-[15px] font-semibold text-ink-900">{t(imgData ? 'Choose a different photo' : 'Tap here and choose a photo')}</span>
-              <span className="mt-1 text-xs text-ink-500">{t('JPG, PNG or WebP — up to 15MB')}</span>
+              <span className="mt-4 text-[15px] font-semibold text-ink-900">{t(images.length ? 'Add more product views' : 'Choose product photos')}</span>
+              <span className="mt-1 text-xs text-ink-500">{images.length}/{MAX_PRODUCT_IMAGES} · {t('JPG, PNG or WebP — up to 15MB each')}</span>
             </label>
 
             <button
               type="button"
               onClick={() => setCameraOpen(true)}
-              className="btn btn-primary btn-lg mt-4 w-full rounded-2xl"
+              disabled={images.length >= MAX_PRODUCT_IMAGES}
+              className="btn btn-primary btn-lg mt-4 w-full rounded-2xl disabled:cursor-not-allowed disabled:opacity-50"
             >
               <Camera className="h-5 w-5" />{cameraCopy.open}
             </button>
+
+            {images.length > 0 && (
+              <div className="mt-5">
+                <div className="flex items-center justify-between gap-3">
+                  <p className="text-sm font-semibold text-ink-900">{t('Your buyer gallery')}</p>
+                  <p className="text-xs text-ink-500">{t('Tap a photo to preview')}</p>
+                </div>
+                <div className="mt-3 grid grid-cols-3 gap-3">
+                  {images.map((image, index) => (
+                    <div key={image.enhanced_image_url} className={`group relative overflow-hidden rounded-2xl border-2 bg-paper-100 ${activeImageIndex === index ? 'border-brand-600' : 'border-transparent'}`}>
+                      <button type="button" onClick={() => setActiveImageIndex(index)} className="block aspect-square w-full p-1.5">
+                        <img src={image.enhanced_image_url} alt={`${t('Product view')} ${index + 1}`} className="h-full w-full rounded-xl object-contain" />
+                      </button>
+                      <span className="absolute left-2 top-2 rounded-full bg-brand-950/80 px-2 py-1 text-[10px] font-bold text-white">{index === 0 ? t('Main') : index + 1}</span>
+                      <button type="button" onClick={() => openBackgroundPicker(index)} disabled={changingImageIndex !== null} title={t('Change background')} className="absolute right-2 top-2 flex h-7 w-7 items-center justify-center rounded-full bg-white/95 text-brand-700 shadow-card disabled:opacity-50">
+                        <Palette className={`h-3.5 w-3.5 ${changingImageIndex === index ? 'animate-pulse' : ''}`} />
+                      </button>
+                      <div className="absolute bottom-2 right-2 flex gap-1 opacity-100 sm:opacity-0 sm:transition sm:group-hover:opacity-100">
+                        {index > 0 && <button type="button" onClick={() => makePrimary(index)} title={t('Make main photo')} className="flex h-7 items-center rounded-full bg-white px-2 text-[10px] font-bold text-brand-700 shadow-card">{t('Main')}</button>}
+                        <button type="button" onClick={() => removeImage(index)} title={t('Remove photo')} className="flex h-7 w-7 items-center justify-center rounded-full bg-white text-rose-700 shadow-card"><Trash2 className="h-3.5 w-3.5" /></button>
+                      </div>
+                    </div>
+                  ))}
+                  {images.length < MAX_PRODUCT_IMAGES && (
+                    <label className="flex aspect-square cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed border-line-strong bg-paper-50 text-ink-500 hover:border-brand-500 hover:text-brand-700">
+                      <input type="file" multiple accept="image/jpeg,image/png,image/webp" onChange={handleImageUpload} className="sr-only" />
+                      <ImagePlus className="h-5 w-5" /><span className="mt-1 text-[11px] font-semibold">{t('Add views')}</span>
+                    </label>
+                  )}
+                </div>
+              </div>
+            )}
 
             <div className="mt-5 rounded-2xl border border-line bg-paper-50 p-4">
               <p className="flex items-center gap-2 text-[15px] font-semibold text-ink-900">
@@ -487,8 +647,8 @@ export default function AiListingStudio({ onProductCreated, onViewProducts, arti
           </section>
 
           <section className="card overflow-hidden">
-            {imgData ? (
-              <BeforeAfterSlider originalUrl={imgData.original_image_url} enhancedUrl={imgData.enhanced_image_url} title={t('Photo preview')} />
+            {activeImage ? (
+              <BeforeAfterSlider originalUrl={activeImage.original_image_url} enhancedUrl={activeImage.enhanced_image_url} title={`${t('Photo preview')} · ${activeImageIndex + 1}/${images.length}`} />
             ) : (
               <div className="flex h-full min-h-[360px] flex-col items-center justify-center bg-brand-900 px-6 text-center text-white">
                 <span className="flex h-16 w-16 items-center justify-center rounded-2xl bg-white/10"><Sparkles className="h-7 w-7 text-clay-200" /></span>

@@ -47,7 +47,21 @@ class ComputerVisionStudioService:
         self._session_lock = threading.Lock()
         os.makedirs(self.upload_dir, exist_ok=True)
 
-    def enhance_product_image(self, input_image_path: str) -> Dict[str, Any]:
+    BACKGROUND_STYLES = {
+        "warm-studio", "pure-white", "soft-gray", "natural-linen", "deep-charcoal",
+        "blush", "sage", "sky", "sand", "terracotta", "custom",
+    }
+
+    def enhance_product_image(
+        self,
+        input_image_path: str,
+        background_style: str = "warm-studio",
+        custom_background_path: str | None = None,
+    ) -> Dict[str, Any]:
+        if background_style not in self.BACKGROUND_STYLES:
+            raise ValueError(f"Unknown background style '{background_style}'.")
+        if background_style == "custom" and not custom_background_path:
+            raise ValueError("Choose a custom background image first.")
         start_time = time.time()
         source = self._load_and_normalize(input_image_path)
         loaded_at = time.time()
@@ -56,9 +70,9 @@ class ComputerVisionStudioService:
         segmented_at = time.time()
         enhanced_rgb = self._enhance_product_color(source_rgb, alpha)
         foreground = np.dstack((enhanced_rgb, alpha)).astype(np.uint8)
-        studio_canvas = self._composite_studio_scene(foreground)
+        studio_canvas = self._composite_studio_scene(foreground, background_style, custom_background_path)
 
-        output_filename = f"{uuid.uuid4().hex[:8]}_studio_enhanced.png"
+        output_filename = f"{uuid.uuid4().hex[:8]}_{background_style}_enhanced.png"
         output_filepath = self.upload_dir / output_filename
         studio_canvas.save(output_filepath, format="PNG", optimize=True)
         completed_at = time.time()
@@ -79,6 +93,7 @@ class ComputerVisionStudioService:
                 "segmentation_seconds": round(segmented_at - loaded_at, 3),
                 "render_seconds": round(completed_at - segmented_at, 3),
             },
+            "background_style": background_style,
         }
 
     def warmup(self, include_primary: bool = True) -> None:
@@ -253,7 +268,11 @@ class ComputerVisionStudioService:
         return quality, valid, details
 
     @staticmethod
-    def _composite_studio_scene(foreground_rgba: np.ndarray) -> Image.Image:
+    def _composite_studio_scene(
+        foreground_rgba: np.ndarray,
+        background_style: str = "warm-studio",
+        custom_background_path: str | None = None,
+    ) -> Image.Image:
         alpha = foreground_rgba[:, :, 3]
         points = cv2.findNonZero((alpha > 18).astype(np.uint8))
         if points is None:
@@ -273,11 +292,44 @@ class ComputerVisionStudioService:
             Image.Resampling.LANCZOS,
         )
 
-        yy, xx = np.mgrid[0:canvas_size, 0:canvas_size]
-        radial = np.sqrt(((xx - canvas_size / 2) / canvas_size) ** 2 + ((yy - canvas_size * 0.46) / canvas_size) ** 2)
-        tone = np.clip(253 - radial * 14 + (yy / canvas_size) * 3, 238, 253).astype(np.uint8)
-        backdrop = np.dstack((tone, tone, np.minimum(255, tone + 2), np.full_like(tone, 255)))
-        canvas = Image.fromarray(backdrop, mode="RGBA")
+        if background_style == "custom":
+            try:
+                with Image.open(custom_background_path) as background:
+                    fitted = ImageOps.fit(
+                        ImageOps.exif_transpose(background).convert("RGB"),
+                        (canvas_size, canvas_size),
+                        method=Image.Resampling.LANCZOS,
+                    )
+                # A very light softening keeps the uploaded scene secondary to
+                # the product while preserving its recognisable appearance.
+                canvas = fitted.filter(ImageFilter.GaussianBlur(0.7)).convert("RGBA")
+            except Exception as exc:
+                raise ValueError("The custom background is not a readable image.") from exc
+        else:
+            yy, xx = np.mgrid[0:canvas_size, 0:canvas_size]
+            radial = np.sqrt(((xx - canvas_size / 2) / canvas_size) ** 2 + ((yy - canvas_size * 0.43) / canvas_size) ** 2)
+            palette = {
+                "warm-studio": ((250, 246, 237), (229, 218, 199)),
+                "pure-white": ((255, 255, 255), (244, 244, 242)),
+                "soft-gray": ((247, 248, 249), (218, 222, 226)),
+                "natural-linen": ((244, 235, 218), (210, 190, 158)),
+                "deep-charcoal": ((67, 73, 78), (22, 26, 30)),
+                "blush": ((255, 242, 240), (231, 199, 196)),
+                "sage": ((239, 244, 233), (194, 207, 184)),
+                "sky": ((239, 248, 253), (184, 214, 229)),
+                "sand": ((249, 239, 218), (218, 194, 151)),
+                "terracotta": ((224, 164, 132), (156, 82, 58)),
+            }
+            center, edge = palette[background_style]
+            blend = np.clip(radial * 1.7 + (yy / canvas_size) * 0.12, 0, 1)[..., None]
+            rgb = np.asarray(center, dtype=np.float32) * (1 - blend) + np.asarray(edge, dtype=np.float32) * blend
+            if background_style == "natural-linen":
+                # A deterministic, subtle woven texture reads naturally without
+                # competing with the product or adding fake scene objects.
+                texture = (np.sin(xx / 7.0) + np.sin(yy / 9.0))[:, :, None] * 1.8
+                rgb = np.clip(rgb + texture, 0, 255)
+            backdrop = np.dstack((rgb.astype(np.uint8), np.full((canvas_size, canvas_size), 255, dtype=np.uint8)))
+            canvas = Image.fromarray(backdrop, mode="RGBA")
 
         position = ((canvas_size - product.width) // 2, (canvas_size - product.height) // 2 - 18)
         alpha_channel = product.getchannel("A")

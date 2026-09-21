@@ -1,8 +1,17 @@
 import React from 'react';
 import { X, Loader2, AlertCircle, CheckCircle2, Info } from 'lucide-react';
 import useDialogFocus from '../hooks/useDialogFocus';
+import { useLanguage } from '../context/LanguageContext';
 
 export const cx = (...classes) => classes.filter(Boolean).join(' ');
+
+// Dates follow whichever language the person picked; LanguageProvider keeps
+// <html lang> in step. Digits stay Latin so a rupee amount reads the same way
+// on every screen, whatever the script around it.
+export const uiLocale = () => {
+  const lang = (typeof document !== 'undefined' && document.documentElement.lang) || 'en';
+  return `${lang}-IN-u-nu-latn`;
+};
 
 export const formatINR = (value) => {
   const number = Number(value);
@@ -13,7 +22,7 @@ export const formatDate = (value, withTime = false) => {
   if (!value) return '—';
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return '—';
-  return date.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', ...(withTime ? { hour: 'numeric', minute: '2-digit' } : {}) });
+  return date.toLocaleDateString(uiLocale(), { day: 'numeric', month: 'short', year: 'numeric', ...(withTime ? { hour: 'numeric', minute: '2-digit' } : {}) });
 };
 
 export function Spinner({ className = 'h-5 w-5' }) {
@@ -37,11 +46,14 @@ const STATUS_TONES = {
 };
 
 export function StatusPill({ status, label }) {
+  // Statuses arrive from the API in English; the artisan reads them in their
+  // own language.
+  const { t } = useLanguage();
   const tone = STATUS_TONES[status] || 'bg-paper-200 text-ink-700 ring-ink-500/20';
   return (
     <span className={cx('badge', tone)}>
       <span className="h-1.5 w-1.5 rounded-full bg-current opacity-70" aria-hidden="true" />
-      {label || status}
+      {label || t(status)}
     </span>
   );
 }

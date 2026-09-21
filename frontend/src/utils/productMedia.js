@@ -1,6 +1,13 @@
 export function productImageSources(product = {}) {
-  const images = [product.enhanced_image, product.enhanced_image_url, product.original_image, product.original_image_url, ...(Array.isArray(product.gallery) ? product.gallery : [])];
-  return [...new Set(images.filter(value => typeof value === 'string' && (/^https?:\/\//i.test(value) || /^\/(?!\/)/.test(value))))];
+  const gallery = (Array.isArray(product.gallery) ? product.gallery : []).map(item => {
+    if (typeof item === 'string') return item;
+    if (!item || typeof item !== 'object') return [];
+    return item.enhanced_image_url || item.enhanced_image || item.url || item.src || item.original_image_url || item.original_image;
+  });
+  const valid = value => typeof value === 'string' && (/^https?:\/\//i.test(value) || /^\/(?!\/)/.test(value));
+  const enhanced = [product.enhanced_image, product.enhanced_image_url, ...gallery].filter(valid);
+  const images = enhanced.length ? enhanced : [product.original_image, product.original_image_url].filter(valid);
+  return [...new Set(images)];
 }
 
 export function productTitle(product, locale = 'en') {

@@ -67,9 +67,11 @@ export const api = {
   },
 
   // 1. Image AI Enhancement
-  async enhanceImage(file) {
+  async enhanceImage(file, backgroundStyle = 'warm-studio', customBackground = null) {
     const formData = new FormData();
     formData.append('file', file);
+    formData.append('background_style', backgroundStyle);
+    if (customBackground) formData.append('custom_background', customBackground);
     const res = await fetch(`${API_BASE}/products/image-enhance`, {
       method: 'POST',
       body: formData,
@@ -77,6 +79,16 @@ export const api = {
     if (!res.ok) {
       throw new Error(await errorMessage(res, 'Image enhancement failed'));
     }
+    return res.json();
+  },
+
+  async changeImageBackground(originalImageUrl, backgroundStyle, customBackground = null) {
+    const formData = new FormData();
+    formData.append('original_image_url', originalImageUrl);
+    formData.append('background_style', backgroundStyle);
+    if (customBackground) formData.append('custom_background', customBackground);
+    const res = await fetch(`${API_BASE}/products/image-rebackground`, { method: 'POST', body: formData });
+    if (!res.ok) throw new Error(await errorMessage(res, 'Could not change the image background'));
     return res.json();
   },
 

@@ -36,6 +36,8 @@ def ensure_database_columns() -> None:
             "title_telugu": "VARCHAR",
             "short_description_telugu": "TEXT",
             "description_telugu": "TEXT",
+            "image_gallery": "TEXT",
+            "background_style": "VARCHAR DEFAULT 'warm-studio'",
         }
         with engine.begin() as connection:
             for column_name, column_type in additions.items():

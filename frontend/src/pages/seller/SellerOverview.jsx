@@ -2,7 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { AlertTriangle, ArrowRight, Camera, CheckCircle2, Clock, HeartHandshake, IndianRupee, Lightbulb, MessageCircle, Package, PackageCheck, PartyPopper, Sparkles, Tag, Truck, Volume2, VolumeX, XCircle } from 'lucide-react';
 import { useLanguage } from '../../context/LanguageContext';
 import { voiceAssistant } from '../../services/voiceAssistant';
-import { EmptyState, StatCard, StatusPill, cx, formatDate, formatINR, timeAgo } from '../../components/ui';
+import { EmptyState, StatCard, StatusPill, cx, formatDate, formatINR, timeAgo, uiLocale } from '../../components/ui';
 import { dailyRevenue, storeLines, storeOrderValue } from './sellerData';
 
 // A short spoken summary so a seller can simply listen to their day.
@@ -63,7 +63,7 @@ export default function SellerOverview({ products, orders, metrics, storeId, loa
       {/* Greeting */}
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <p className="text-sm text-ink-500">{new Date().toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long' })}</p>
+          <p className="text-sm text-ink-500">{new Date().toLocaleDateString(uiLocale(), { weekday: 'long', day: 'numeric', month: 'long' })}</p>
           <h2 className="mt-0.5 text-2xl font-extrabold text-ink-950 sm:text-[28px]">{t(greeting)}, {firstName || storeName} 👋</h2>
           <p className="mt-1 text-[15px] text-ink-600">
             {metrics.toFulfil.length
@@ -318,7 +318,7 @@ function SalesChart({ orders, storeId }) {
             </div>
           )}
           <div className="mt-2 flex justify-between text-[11px] text-ink-400">
-            <span>{data[0].date.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}</span>
+            <span>{data[0].date.toLocaleDateString(uiLocale(), { day: 'numeric', month: 'short' })}</span>
             <span>{t('Today')}</span>
           </div>
         </div>

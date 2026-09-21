@@ -1,7 +1,7 @@
 import uuid
 from pathlib import Path
 from typing import List, Optional
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Query, status
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form, Query, status
 from sqlalchemy.orm import Session
 from sqlalchemy import or_
 
@@ -32,7 +32,11 @@ router = APIRouter(prefix="/products", tags=["Products & AI Pipeline"])
 ALLOWED_IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".webp"}
 
 @router.post("/image-enhance", response_model=ImageEnhanceResponse)
-async def enhance_image(file: UploadFile = File(...)):
+async def enhance_image(
+    file: UploadFile = File(...),
+    background_style: str = Form("warm-studio"),
+    custom_background: Optional[UploadFile] = File(None),
+):
     """
     Step 1 of AI Pipeline:
     Uploads messy raw artisan photo -> Performs Computer Vision background segmentation, 
@@ -64,9 +68,16 @@ async def enhance_image(file: UploadFile = File(...)):
                 raise HTTPException(status_code=413, detail=f"Image exceeds {settings.MAX_IMAGE_SIZE_MB}MB limit.")
             buffer.write(chunk)
 
+    custom_background_path = None
     try:
+        if custom_background:
+            custom_background_path = await _save_background_upload(custom_background)
         # Run real Computer Vision pipeline
-        result = image_service.enhance_product_image(str(input_filepath))
+        result = image_service.enhance_product_image(
+            str(input_filepath),
+            background_style=background_style,
+            custom_background_path=str(custom_background_path) if custom_background_path else None,
+        )
         
         return ImageEnhanceResponse(
             original_image_url=result["original_image_url"],
@@ -79,6 +90,7 @@ async def enhance_image(file: UploadFile = File(...)):
             mask_quality_score=result.get("mask_quality_score"),
             confidence_breakdown=result.get("confidence_breakdown", {}),
             latency_breakdown=result.get("latency_breakdown", {}),
+            background_style=result.get("background_style", "warm-studio"),
         )
     except HTTPException:
         raise
@@ -88,6 +100,61 @@ async def enhance_image(file: UploadFile = File(...)):
     except Exception as e:
         input_filepath.unlink(missing_ok=True)
         raise HTTPException(status_code=500, detail=f"Image enhancement failed: {str(e)}")
+    finally:
+        if custom_background_path:
+            custom_background_path.unlink(missing_ok=True)
+
+@router.post("/image-rebackground", response_model=ImageEnhanceResponse)
+async def change_image_background(
+    original_image_url: str = Form(...),
+    background_style: str = Form(...),
+    custom_background: Optional[UploadFile] = File(None),
+):
+    """Re-render one saved original with a new preset or uploaded background."""
+    upload_root = settings.UPLOAD_DIR.resolve()
+    filename = Path(original_image_url).name
+    original_path = (upload_root / filename).resolve()
+    if not original_image_url.startswith("/uploads/") or original_path.parent != upload_root or not original_path.is_file():
+        raise HTTPException(status_code=404, detail="The original product photo could not be found.")
+
+    custom_background_path = None
+    try:
+        if custom_background:
+            custom_background_path = await _save_background_upload(custom_background)
+        result = image_service.enhance_product_image(
+            str(original_path),
+            background_style=background_style,
+            custom_background_path=str(custom_background_path) if custom_background_path else None,
+        )
+        return ImageEnhanceResponse(**result)
+    except HTTPException:
+        raise
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=f"Background change failed: {exc}")
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"Background change failed: {exc}")
+    finally:
+        if custom_background_path:
+            custom_background_path.unlink(missing_ok=True)
+
+async def _save_background_upload(file: UploadFile) -> Path:
+    ext = Path(file.filename or "").suffix.lower()
+    if ext not in ALLOWED_IMAGE_EXTENSIONS or ((file.content_type or "").lower() and not (file.content_type or "").lower().startswith("image/")):
+        raise HTTPException(status_code=400, detail="Custom background must be a JPG, PNG, or WebP image.")
+    path = settings.UPLOAD_DIR / f"{uuid.uuid4().hex[:10]}_background{ext}"
+    max_bytes = settings.MAX_IMAGE_SIZE_MB * 1024 * 1024
+    size = 0
+    try:
+        with open(path, "wb") as buffer:
+            while chunk := await file.read(1024 * 1024):
+                size += len(chunk)
+                if size > max_bytes:
+                    raise HTTPException(status_code=413, detail=f"Background exceeds {settings.MAX_IMAGE_SIZE_MB}MB limit.")
+                buffer.write(chunk)
+        return path
+    except Exception:
+        path.unlink(missing_ok=True)
+        raise
 
 @router.post("/extract-information", response_model=ProductAttributes)
 async def extract_product_information(req: ProductExtractRequest):
@@ -165,6 +232,8 @@ async def create_product(product_in: ProductCreate, db: Session = Depends(get_db
         artisan_id=artisan.id,
         original_image=product_in.original_image,
         enhanced_image=product_in.enhanced_image,
+        image_gallery=safe_json_dumps([item.model_dump() for item in product_in.gallery]),
+        background_style=product_in.background_style or "warm-studio",
         audio_file=product_in.audio_file,
         transcript=product_in.transcript,
         detected_language=product_in.detected_language or "Hindi",
@@ -280,6 +349,10 @@ async def update_product(product_id: int, update_data: ProductUpdate, db: Sessio
         update_dict["specifications"] = safe_json_dumps(update_dict["specifications"])
     if "keywords" in update_dict and update_dict["keywords"] is not None:
         update_dict["keywords"] = safe_json_dumps(update_dict["keywords"])
+    if "gallery" in update_dict and update_dict["gallery"] is not None:
+        update_dict["image_gallery"] = safe_json_dumps([
+            item.model_dump() if hasattr(item, "model_dump") else item for item in update_dict.pop("gallery")
+        ])
 
     for key, value in update_dict.items():
         setattr(product, key, value)
@@ -307,6 +380,8 @@ def _format_product_response(p: Product, db: Session) -> ProductResponse:
         artisan_region=artisan.region if artisan else p.region,
         original_image=p.original_image,
         enhanced_image=p.enhanced_image,
+        gallery=safe_json_loads(p.image_gallery, []),
+        background_style=p.background_style or "warm-studio",
         audio_file=p.audio_file,
         transcript=p.transcript,
         detected_language=p.detected_language or "Hindi",

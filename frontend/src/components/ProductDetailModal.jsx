@@ -3,12 +3,10 @@ import { ArrowRight, Banknote, Check, Minus, Plus, ShieldCheck, ShoppingBag, Sto
 import { voiceAssistant } from '../services/voiceAssistant';
 import { useLanguage } from '../context/LanguageContext';
 import useDialogFocus from '../hooks/useDialogFocus';
-import ProductImage from './ProductImage';
+import ProductGallery from './ProductGallery';
 import ProductCard from './ProductCard';
 import { productTitle, productPrice } from '../utils/productMedia';
 import { cx, formatINR } from './ui';
-
-const isCutout = (product) => /\.png($|\?)/i.test(product.enhanced_image || product.original_image || '');
 
 export default function ProductDetailModal({ product, allProducts = [], storeName, onClose, onAddToCart, onBuyNow, onViewProduct, onVisitMaker }) {
   const { locale, language, t } = useLanguage();
@@ -55,10 +53,7 @@ export default function ProductDetailModal({ product, allProducts = [], storeNam
         <div ref={scrollRef} className="overflow-y-auto">
           <div className="grid md:grid-cols-[1.05fr_1fr]">
             <div className="relative bg-paper-200 md:sticky md:top-0 md:h-[min(720px,calc(100dvh-40px))]">
-              <div className={cx('flex aspect-[4/5] w-full items-center justify-center md:aspect-auto md:h-full [&_img]:h-full [&_img]:w-full', isCutout(product) ? 'p-10 [&_img]:object-contain' : '[&_img]:object-cover')}>
-                <ProductImage product={product} alt={title} loading="eager" />
-              </div>
-              {product.badge && <span className="absolute left-4 top-4 rounded-full bg-clay-400 px-3 py-1.5 text-xs font-bold text-ink-950 shadow-card">{t(product.badge)}</span>}
+              <ProductGallery product={product} alt={title} badge={product.badge} translate={t} />
             </div>
 
             <div className="flex flex-col p-6 sm:p-9">

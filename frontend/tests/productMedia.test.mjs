@@ -3,8 +3,9 @@ import assert from 'node:assert/strict';
 import { productImageSources, productTitle, productPrice } from '../src/utils/productMedia.js';
 import { normalizeCategory, STOREFRONT_CATEGORIES } from '../src/data/storefrontCategories.js';
 
-test('product media falls back to actual original and gallery photos, never stock photos', () => {
-  assert.deepEqual(productImageSources({ enhanced_image: '/uploads/enhanced.png', original_image: '/uploads/original.png', gallery: ['/uploads/original.png', 'https://example.com/detail.jpg'] }), ['/uploads/enhanced.png', '/uploads/original.png', 'https://example.com/detail.jpg']);
+test('product media prefers the enhanced buyer gallery and only falls back to the original', () => {
+  assert.deepEqual(productImageSources({ enhanced_image: '/uploads/enhanced.png', original_image: '/uploads/original.png', gallery: [{ original_image_url: '/uploads/raw-detail.png', enhanced_image_url: '/uploads/detail.png' }, 'https://example.com/side.jpg'] }), ['/uploads/enhanced.png', '/uploads/detail.png', 'https://example.com/side.jpg']);
+  assert.deepEqual(productImageSources({ original_image: '/uploads/original.png' }), ['/uploads/original.png']);
   assert.deepEqual(productImageSources({}), []);
 });
 test('invalid image schemes cannot be used in listings', () => {

@@ -85,7 +85,8 @@ def test_image_enhancement_endpoint_returns_renderable_urls(monkeypatch):
     assert response.status_code == 200
     data = response.json()
     assert data["original_image_url"].startswith("/uploads/")
-    assert data["enhanced_image_url"].endswith("_studio_enhanced.png")
+    assert data["enhanced_image_url"].endswith("_enhanced.png")
+    assert data.get("background_style") == "warm-studio"
     assert data["segmentation_engine"] == "test-segmentation"
     assert data["confidence_score"] == 0.99
     assert data["confidence_breakdown"]["component_coherence"] == 1.0

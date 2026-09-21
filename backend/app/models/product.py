@@ -12,6 +12,8 @@ class Product(Base):
     # Media & Multimodal Inputs
     original_image = Column(String, nullable=True)
     enhanced_image = Column(String, nullable=True)
+    image_gallery = Column(Text, nullable=True)  # JSON list of original/enhanced image pairs
+    background_style = Column(String, default="warm-studio")
     audio_file = Column(String, nullable=True)
     transcript = Column(Text, nullable=True)
     detected_language = Column(String, default="Hindi")

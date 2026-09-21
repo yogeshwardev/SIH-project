@@ -4,109 +4,22 @@ import { api } from '../../services/api';
 import { voiceAssistant } from '../../services/voiceAssistant';
 import BeforeAfterSlider from '../../components/BeforeAfterSlider';
 import VoiceRecorder from '../../components/VoiceRecorder';
+import CameraCapture from '../../components/CameraCapture';
 import PriceExplainerCard from '../../components/PriceExplainerCard';
 import { Notice } from '../../components/ui';
 import { useLanguage } from '../../context/LanguageContext';
+import {
+  STUDIO_LANGUAGES, cameraCopyFor, confirmationAnswerFor, languageNameFor,
+  localeForLanguage, speechCodeForLanguage, studioCopyFor,
+} from '../../i18n/studioCopy';
 
-const SELLER_LANGUAGE_OPTIONS = [
-  { name: 'Hindi', code: 'hi-IN', label: 'हिन्दी' },
-  { name: 'Telugu', code: 'te-IN', label: 'తెలుగు' },
-  { name: 'English', code: 'en-IN', label: 'English' },
-];
-
-const speechCodeForLanguage = (language) => {
-  const value = String(language || '').toLowerCase();
-  if (value.startsWith('te') || value.includes('telugu') || value.includes('తెలుగు')) return 'te-IN';
-  if (value.startsWith('hi') || value.includes('hindi') || value.includes('हिन्द')) return 'hi-IN';
-  if (value.startsWith('ta') || value.includes('tamil')) return 'ta-IN';
-  if (value.startsWith('bn') || value.includes('bengali')) return 'bn-IN';
-  if (value.startsWith('mr') || value.includes('marathi')) return 'mr-IN';
-  return 'en-IN';
-};
-
-const confirmationAnswerForLanguage = (language) => {
-  const code = speechCodeForLanguage(language);
-  if (code === 'te-IN') return 'అవును, ఈ సమాచారం మరియు ఖర్చులు సరైనవి.';
-  if (code === 'hi-IN') return 'हाँ, यह जानकारी और लागत सही है।';
-  return 'Yes, these details and costs are correct.';
-};
-
-const questionUiCopyFor = (language) => {
-  const code = speechCodeForLanguage(language);
-  if (code === 'te-IN') return {
-    heading: 'ఒక సులభమైన ప్రశ్న',
-    question: 'ప్రశ్న',
-    of: 'లో',
-    confirm: '✓ అవును, ఇది సరైనది — తర్వాత',
-    heard: 'మేము విన్న సమాధానం',
-    checkAnswer: 'ఇది సరైందైతే తర్వాత నొక్కండి. కాకపోతే మళ్లీ రికార్డ్ చేయండి.',
-    recordAgain: 'మళ్లీ రికార్డ్ చేయండి',
-    saveVoice: 'సమాధానం సేవ్ చేసి తర్వాత',
-    orType: 'లేదా సమాధానం టైప్ చేయండి',
-    placeholder: 'మీ భాషలో టైప్ చేయండి…',
-    save: 'సేవ్ చేసి తర్వాత',
-    back: 'ఫోటోకు తిరిగి వెళ్లండి',
-    previous: 'వెనుకకు',
-    next: 'తర్వాత',
-    listenQuestion: 'ప్రశ్నను వినండి',
-    stopQuestion: 'వాయిస్ ఆపండి',
-    preparingVoice: 'సహజమైన వాయిస్ సిద్ధమవుతోంది…',
-    questionHelp: 'ఈ ప్రశ్నను సహజమైన వాయిస్‌లో చదువుతాం. మళ్లీ వినాలంటే కింద ఉన్న బటన్ నొక్కండి.',
-    answerChoice: 'మాట్లాడండి లేదా టైప్ చేయండి — మీకు సులభమైనది ఎంచుకోండి.',
-    confirmationHelp: 'వివరాలను ఒకసారి చూసుకోండి. అన్నీ సరైతే నిర్ధారించి తర్వాత నొక్కండి. ఏదైనా మార్చాలంటే వెనుకకు నొక్కండి.',
-    languageLabel: 'సమాధానం చెప్పే భాష',
-  };
-  if (code === 'hi-IN') return {
-    heading: 'एक आसान सवाल',
-    question: 'सवाल',
-    of: 'में से',
-    confirm: '✓ हाँ, यह सही है — आगे',
-    heard: 'हमने यह जवाब सुना',
-    checkAnswer: 'यह सही है तो आगे दबाएँ। नहीं तो फिर रिकॉर्ड करें।',
-    recordAgain: 'फिर रिकॉर्ड करें',
-    saveVoice: 'जवाब सहेजें और आगे जाएँ',
-    orType: 'या जवाब लिखें',
-    placeholder: 'अपनी भाषा में लिखें…',
-    save: 'सहेजें और आगे जाएँ',
-    back: 'फोटो पर वापस जाएँ',
-    previous: 'पिछला',
-    next: 'अगला',
-    listenQuestion: 'सवाल सुनें',
-    stopQuestion: 'आवाज़ रोकें',
-    preparingVoice: 'स्वाभाविक आवाज़ तैयार हो रही है…',
-    questionHelp: 'यह सवाल स्वाभाविक आवाज़ में अपने-आप पढ़ा जाएगा। दोबारा सुनने के लिए नीचे का बटन दबाएँ।',
-    answerChoice: 'बोलें या लिखें — जो आपके लिए आसान हो उसे चुनें।',
-    confirmationHelp: 'जानकारी एक बार देख लें। सब सही है तो पुष्टि करके आगे बढ़ें। बदलने के लिए पिछला दबाएँ।',
-    languageLabel: 'जवाब की भाषा',
-  };
-  return {
-    heading: 'One simple question',
-    question: 'Question',
-    of: 'of',
-    confirm: '✓ Yes, this is correct — Next',
-    heard: 'We heard your answer',
-    checkAnswer: 'If this looks right, tap Next. Otherwise record it again.',
-    recordAgain: 'Record again',
-    saveVoice: 'Save answer & Next',
-    orType: 'Or type the answer',
-    placeholder: 'Type in your own language…',
-    save: 'Save & Next',
-    back: 'Back to Photo',
-    previous: 'Previous',
-    next: 'Next',
-    listenQuestion: 'Listen to question',
-    stopQuestion: 'Stop voice',
-    preparingVoice: 'Preparing natural voice…',
-    questionHelp: 'The assistant reads this aloud automatically. Tap below whenever you want to hear it again.',
-    answerChoice: 'Speak or type — choose whichever is easier for you.',
-    confirmationHelp: 'Check the details once. If everything is correct, confirm and continue. Use Previous to change an answer.',
-    languageLabel: 'Answer language',
-  };
-};
+const SELLER_LANGUAGE_OPTIONS = STUDIO_LANGUAGES;
+const questionUiCopyFor = studioCopyFor;
+const confirmationAnswerForLanguage = confirmationAnswerFor;
 
 // Guided listing flow: photo -> one question at a time -> review -> fair price -> submit.
 export default function AiListingStudio({ onProductCreated, onViewProducts, artisanId, artisanName }) {
-  const { locale, language, setLocale, t } = useLanguage();
+  const { locale, t } = useLanguage();
   const [step, setStep]           = useState(1);
   const [loading, setLoading]     = useState(false);
   const [loadMsg, setLoadMsg]     = useState('');
@@ -115,9 +28,13 @@ export default function AiListingStudio({ onProductCreated, onViewProducts, arti
   const [voiceLoading, setVoiceLoading] = useState(false);
 
   const [imgData, setImgData]     = useState(null);
+  const [cameraOpen, setCameraOpen] = useState(false);
   const [transcript, setTxt]      = useState('');
-  const detLang = language.name;
-  const [interviewLocale, setInterviewLocale] = useState(locale);
+  // Nine languages can be spoken here, whatever the portal's own interface
+  // language is: the artisan answers in the one they are comfortable with.
+  const [answerLocale, setAnswerLocale] = useState(() => localeForLanguage(locale));
+  const detLang = languageNameFor(answerLocale);
+  const [interviewLocale, setInterviewLocale] = useState(() => localeForLanguage(locale));
   const [languageChanging, setLanguageChanging] = useState(false);
   const [attrs, setAttrs]         = useState(null);
   const [editMode, setEditMode]   = useState(false);
@@ -137,13 +54,15 @@ export default function AiListingStudio({ onProductCreated, onViewProducts, arti
   const lastAutoSpokenQuestionRef = useRef('');
   const speechRequestRef = useRef(0);
   const questionUi = questionUiCopyFor(detLang);
+  const cameraCopy = cameraCopyFor(detLang);
+  const isAmountQuestion = interview?.input_type === 'amount';
 
   const STEPS = [
-    { n: 1, label: 'Add Photo', sub: 'AI cleans the image' },
-    { n: 2, label: 'Answer Questions', sub: 'One simple question at a time' },
-    { n: 3, label: 'Check Details', sub: 'Review your words' },
-    { n: 4, label: 'See Fair Price', sub: 'Clear cost calculation' },
-    { n: 5, label: 'Send for Review', sub: 'Final submission' },
+    { n: 1, label: 'Your photo', sub: 'We clean up the background' },
+    { n: 2, label: 'A few questions', sub: 'One easy question at a time' },
+    { n: 3, label: 'Check details', sub: 'Your words, your product' },
+    { n: 4, label: 'Your price', sub: 'Based on your own costs' },
+    { n: 5, label: 'Send for checking', sub: 'We look before it goes live' },
   ];
 
   const clearQuestionFlow = () => {
@@ -174,7 +93,7 @@ export default function AiListingStudio({ onProductCreated, onViewProducts, arti
   // Language belongs to the user, not the transcription engine. Re-localize
   // the current prompt without submitting an answer or resetting saved facts.
   useEffect(() => {
-    if (step !== 2 || !interview || interviewLocale === locale || loading) return undefined;
+    if (step !== 2 || !interview || interviewLocale === answerLocale || loading) return undefined;
     let cancelled = false;
     voiceAssistant.stopSpeaking();
     speechRequestRef.current += 1;
@@ -187,11 +106,11 @@ export default function AiListingStudio({ onProductCreated, onViewProducts, arti
       if (cancelled) return;
       lastAutoSpokenQuestionRef.current = '';
       setInterview(result);
-      setInterviewLocale(locale);
+      setInterviewLocale(answerLocale);
     }).catch(e => { if (!cancelled) setError(e.message); })
       .finally(() => { if (!cancelled) setLanguageChanging(false); });
     return () => { cancelled = true; };
-  }, [locale, detLang, step, interviewLocale, loading, interview, transcript, imgData, attrs, costs]);
+  }, [answerLocale, detLang, step, interviewLocale, loading, interview, transcript, imgData, attrs, costs]);
 
   useEffect(() => () => { speechRequestRef.current += 1; voiceAssistant.stopSpeaking(); }, []);
 
@@ -201,7 +120,7 @@ export default function AiListingStudio({ onProductCreated, onViewProducts, arti
   // visible a moment later.
   useEffect(() => {
     const message = interview?.assistant_message;
-    if (step !== 2 || loading || languageChanging || interviewLocale !== locale || !message) return undefined;
+    if (step !== 2 || loading || languageChanging || interviewLocale !== answerLocale || !message) return undefined;
 
     const questionKey = [interview?.question_number || 0, detLang, message].join('|');
     if (lastAutoSpokenQuestionRef.current === questionKey) return undefined;
@@ -210,10 +129,10 @@ export default function AiListingStudio({ onProductCreated, onViewProducts, arti
       speakPrompt(message, detLang);
     }, 180);
     return () => window.clearTimeout(timer);
-  }, [step, loading, languageChanging, interviewLocale, locale, interview?.assistant_message, interview?.question_number, detLang, speakPrompt]);
+  }, [step, loading, languageChanging, interviewLocale, answerLocale, interview?.assistant_message, interview?.question_number, detLang, speakPrompt]);
 
-  const handleImageUpload = async (e) => {
-    const file = e.target.files?.[0]; if (!file) return;
+  const enhancePhoto = async (file) => {
+    if (!file) return;
     setLoading(true); setError(null);
     setLoadMsg('AI Computer Vision: Removing background & enhancing studio quality...');
     try {
@@ -223,6 +142,8 @@ export default function AiListingStudio({ onProductCreated, onViewProducts, arti
     } catch (e) { setError(e.message); }
     finally { setLoading(false); setLoadMsg(''); }
   };
+
+  const handleImageUpload = (e) => enhancePhoto(e.target.files?.[0]);
 
   const beginInterview = async () => {
     if (!imgData) return;
@@ -238,9 +159,10 @@ export default function AiListingStudio({ onProductCreated, onViewProducts, arti
         known_attributes: {},
         cost_inputs: {},
         last_question_key: null,
+        artisan_name: artisanName,
       });
       setInterview(result);
-      setInterviewLocale(locale);
+      setInterviewLocale(answerLocale);
       setAttrs(result.attributes);
       setCosts({ ...result.cost_inputs, production_time: result.attributes.production_time || '' });
       setInterviewTurns([{ role: 'assistant', text: result.assistant_message }]);
@@ -302,10 +224,10 @@ export default function AiListingStudio({ onProductCreated, onViewProducts, arti
         interviewTurns,
         answer: text,
         language: lang,
-        locale,
+        locale: answerLocale,
       }]);
       setInterview(result);
-      setInterviewLocale(locale);
+      setInterviewLocale(answerLocale);
       setAttrs(result.attributes);
       setCosts(mergedCosts);
       setInterviewTurns(turns => [...turns, { role: 'artisan', text }, { role: 'assistant', text: result.assistant_message }]);
@@ -482,6 +404,14 @@ export default function AiListingStudio({ onProductCreated, onViewProducts, arti
         </ol>
       </nav>
 
+      {cameraOpen && (
+        <CameraCapture
+          language={detLang}
+          onCapture={enhancePhoto}
+          onClose={() => setCameraOpen(false)}
+        />
+      )}
+
       {error && <Notice tone="error" onDismiss={() => setError(null)}>{t(error)}</Notice>}
 
       {loading && (
@@ -510,6 +440,38 @@ export default function AiListingStudio({ onProductCreated, onViewProducts, arti
               <span className="mt-4 text-[15px] font-semibold text-ink-900">{t(imgData ? 'Choose a different photo' : 'Tap here and choose a photo')}</span>
               <span className="mt-1 text-xs text-ink-500">{t('JPG, PNG or WebP — up to 15MB')}</span>
             </label>
+
+            <button
+              type="button"
+              onClick={() => setCameraOpen(true)}
+              className="btn btn-primary btn-lg mt-4 w-full rounded-2xl"
+            >
+              <Camera className="h-5 w-5" />{cameraCopy.open}
+            </button>
+
+            <div className="mt-5 rounded-2xl border border-line bg-paper-50 p-4">
+              <p className="flex items-center gap-2 text-[15px] font-semibold text-ink-900">
+                <Globe className="h-4 w-4 text-clay-500" />{questionUi.languageLabel}
+              </p>
+              <p className="mt-1 text-sm text-ink-500">{questionUi.answerChoice}</p>
+              <div className="mt-3 flex flex-wrap gap-2">
+                {SELLER_LANGUAGE_OPTIONS.map((option) => (
+                  <button
+                    key={option.locale}
+                    type="button"
+                    aria-pressed={answerLocale === option.locale}
+                    onClick={() => setAnswerLocale(option.locale)}
+                    className={`rounded-full border px-4 py-2 text-[15px] font-semibold transition ${
+                      answerLocale === option.locale
+                        ? 'border-brand-600 bg-brand-600 text-white shadow-xs'
+                        : 'border-line-strong bg-white text-ink-700 hover:border-brand-400'
+                    }`}
+                  >
+                    {option.label}
+                  </button>
+                ))}
+              </div>
+            </div>
 
             <ul className="mt-5 grid gap-2 text-sm text-ink-600">
               <li className="flex gap-2"><Check className="mt-0.5 h-4 w-4 flex-shrink-0 text-brand-600" />{t('Choose a clear photo with the whole product visible.')}</li>
@@ -541,87 +503,133 @@ export default function AiListingStudio({ onProductCreated, onViewProducts, arti
       {/* STEP 2 — guided questions */}
       {step === 2 && !loading && (
         <div className="mx-auto max-w-3xl space-y-4" data-testid="guided-question-page">
-          <section className="card card-pad" aria-live="polite">
-            <div className="flex items-center justify-between gap-3">
-              <div className="flex items-center gap-3">
-                <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-brand-600 text-white"><MessageSquare className="h-5 w-5" /></span>
-                <div>
-                  <p className="text-base font-semibold text-ink-950">{questionUi.heading}</p>
-                  <p className="text-sm text-ink-500">{questionUi.question} {interview?.question_number || 1} {questionUi.of} {interview?.total_questions || 7}</p>
-                </div>
-              </div>
-              {interview?.turn_summary && <span className="hidden rounded-full bg-paper-200 px-3 py-1 text-xs font-medium text-ink-600 sm:block">{interview.turn_summary}</span>}
+          <section className="card overflow-hidden" aria-live="polite">
+            <div className="flex items-center justify-between gap-3 bg-brand-600 px-5 py-3 text-white">
+              <span className="flex items-center gap-2.5 text-sm font-semibold">
+                <MessageSquare className="h-[18px] w-[18px]" />
+                {questionUi.question} {interview?.question_number || 1} / {interview?.total_questions || 7}
+              </span>
+              <span className="flex items-center gap-1.5" aria-hidden="true">
+                {Array.from({ length: interview?.total_questions || 7 }, (_, index) => (
+                  <span key={index} className={`h-2 rounded-full transition-all ${index < (interview?.answered_count ?? 0) ? 'w-2 bg-clay-400' : index === (interview?.answered_count ?? 0) ? 'w-6 bg-white' : 'w-2 bg-white/35'}`} />
+                ))}
+              </span>
             </div>
-            <div className="mt-5 h-1.5 overflow-hidden rounded-full bg-paper-200">
-              <div className="h-full rounded-full bg-brand-700 transition-all duration-500" style={{ width: `${Math.max(4, (interview?.readiness_score || 0) * 100)}%` }} />
-            </div>
-            <div className="mt-6 rounded-2xl bg-brand-50 p-5 text-lg font-medium leading-relaxed text-ink-950 sm:text-xl" data-testid="current-question">
-              {languageChanging || interviewLocale !== locale ? <span role="status" className="text-ink-500">{t('Updating the question language…')}</span> : interview?.assistant_message}
-            </div>
-            <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
-              <p className="text-sm text-ink-500">{questionUi.questionHelp}</p>
+
+            <div className="p-5 sm:p-7">
+              {languageChanging || interviewLocale !== answerLocale ? (
+                <p role="status" className="text-lg text-ink-500">{t('Updating the question language…')}</p>
+              ) : (
+                <>
+                  <h2 className="text-2xl font-extrabold leading-snug text-ink-950 sm:text-[28px]" data-testid="current-question">
+                    {interview?.question_title || interview?.assistant_message}
+                  </h2>
+                  {interview?.question_help && <p className="mt-2 text-[15px] leading-relaxed text-ink-600">{interview.question_help}</p>}
+                </>
+              )}
+
               <button
                 type="button"
                 aria-pressed={speaking}
                 aria-busy={voiceLoading}
-                disabled={languageChanging || interviewLocale !== locale}
+                disabled={languageChanging || interviewLocale !== answerLocale}
                 onClick={() => {
                   if (speaking || voiceLoading) { voiceAssistant.stopSpeaking(); setSpeaking(false); setVoiceLoading(false); }
                   else speakPrompt(interview?.assistant_message, detLang);
                 }}
-                className="btn btn-secondary"
+                className="btn btn-secondary mt-4 rounded-full"
               >
                 {speaking || voiceLoading ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
                 {voiceLoading ? questionUi.preparingVoice : speaking ? questionUi.stopQuestion : questionUi.listenQuestion}
               </button>
+
+              {interview?.status === 'needs_confirmation' && interview?.summary_items?.length > 0 && (
+                <dl className="mt-6 divide-y divide-line overflow-hidden rounded-2xl border border-line">
+                  {interview.summary_items.filter((item) => item.value).map((item) => (
+                    <div key={item.label} className="grid grid-cols-[42%_1fr] gap-3 bg-white px-4 py-3 text-[15px]">
+                      <dt className="text-ink-500">{item.label}</dt>
+                      <dd className="font-semibold text-ink-950">{item.value}</dd>
+                    </div>
+                  ))}
+                </dl>
+              )}
             </div>
           </section>
-
-          {interview?.status === 'needs_confirmation' ? (
-            <Notice tone="success"><p className="font-semibold">{questionUi.heard}</p><p className="mt-0.5">{questionUi.confirmationHelp}</p></Notice>
-          ) : (
-            <p className="text-center text-sm font-medium text-ink-600">{questionUi.answerChoice}</p>
-          )}
 
           {interview?.status !== 'needs_confirmation' && !pendingAnswer && (
             <VoiceRecorder
               onAudioRecorded={captureVoiceAnswer}
               isProcessing={loading || languageChanging}
               initialLanguage={speechCodeForLanguage(detLang)}
-              onLanguageChange={(value) => setLocale(value)}
+              onLanguageChange={(value) => setAnswerLocale(localeForLanguage(value))}
               languageOptionsOverride={SELLER_LANGUAGE_OPTIONS.map((item) => ({ code: item.code, name: item.name, label: item.label }))}
               onRecordingStart={() => { setSpeaking(false); setVoiceLoading(false); }}
             />
           )}
 
           {interview?.status !== 'needs_confirmation' && (pendingAnswer ? (
-            <section className="card card-pad">
+            <section className="card card-pad border-emerald-300">
               <p className="text-xs font-semibold uppercase tracking-wide text-emerald-700">{questionUi.heard}</p>
-              <p className="mt-2 rounded-xl bg-emerald-50 p-4 text-base font-medium leading-relaxed text-ink-950">“{pendingAnswer.text}”</p>
+              <p className="mt-2 rounded-xl bg-emerald-50 p-4 text-lg font-medium leading-relaxed text-ink-950">“{pendingAnswer.text}”</p>
               <p className="mt-2 text-sm text-ink-500">{questionUi.checkAnswer}</p>
-              <button type="button" onClick={() => setPendingAnswer(null)} className="btn btn-secondary mt-3"><RefreshCw className="h-4 w-4" />{questionUi.recordAgain}</button>
+              <button type="button" onClick={() => setPendingAnswer(null)} className="btn btn-secondary mt-3 rounded-full"><RefreshCw className="h-4 w-4" />{questionUi.recordAgain}</button>
             </section>
           ) : (
             <section className="card card-pad">
-              <label htmlFor="typed-answer" className="label">{questionUi.orType}</label>
-              <input
-                id="typed-answer"
-                value={typedAnswer}
-                onChange={(event) => setTypedAnswer(event.target.value)}
-                onKeyDown={(event) => { if (event.key === 'Enter' && typedAnswer.trim()) submitInterviewAnswer(); }}
-                placeholder={questionUi.placeholder}
-                className="field py-3 text-base"
-              />
+              <label htmlFor="typed-answer" className="label text-[15px]">{questionUi.orType}</label>
+              {isAmountQuestion ? (
+                <div className="relative">
+                  <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-xl font-bold text-ink-500">₹</span>
+                  <input
+                    id="typed-answer"
+                    type="text"
+                    inputMode="numeric"
+                    autoComplete="off"
+                    value={typedAnswer}
+                    onChange={(event) => setTypedAnswer(event.target.value.replace(/[^\d.]/g, ''))}
+                    onKeyDown={(event) => { if (event.key === 'Enter' && typedAnswer.trim()) submitInterviewAnswer(); }}
+                    placeholder={interview?.placeholder || questionUi.placeholder}
+                    className="field py-4 pl-10 text-2xl font-bold tabular-nums"
+                  />
+                </div>
+              ) : (
+                <input
+                  id="typed-answer"
+                  value={typedAnswer}
+                  onChange={(event) => setTypedAnswer(event.target.value)}
+                  onKeyDown={(event) => { if (event.key === 'Enter' && typedAnswer.trim()) submitInterviewAnswer(); }}
+                  placeholder={interview?.placeholder || questionUi.placeholder}
+                  className="field py-3.5 text-lg"
+                />
+              )}
+
+              {interview?.question_examples?.length > 0 && (
+                <div className="mt-4">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-ink-400">{questionUi.tapExample}</p>
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    {interview.question_examples.map((example) => (
+                      <button
+                        key={example}
+                        type="button"
+                        onClick={() => setTypedAnswer(example)}
+                        className="rounded-full border border-line bg-paper-50 px-3.5 py-2 text-left text-sm text-ink-700 transition hover:border-brand-600 hover:bg-brand-50 hover:text-brand-700"
+                      >
+                        {isAmountQuestion ? `₹${example}` : example}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
             </section>
           ))}
 
-          <nav className="sticky bottom-3 z-10 grid grid-cols-2 gap-3 rounded-2xl border border-line bg-white/95 p-3 shadow-lift backdrop-blur" aria-label={t('Question navigation')}>
-            <button type="button" onClick={goToPreviousQuestion} className="btn btn-secondary btn-lg"><ArrowLeft className="h-5 w-5" />{questionUi.previous}</button>
+          <nav className="sticky bottom-3 z-10 grid grid-cols-[auto_1fr] gap-3 rounded-2xl border border-line bg-white/95 p-3 shadow-lift backdrop-blur" aria-label={t('Question navigation')}>
+            <button type="button" onClick={goToPreviousQuestion} className="btn btn-secondary btn-lg rounded-full"><ArrowLeft className="h-5 w-5" /><span className="hidden sm:inline">{questionUi.previous}</span></button>
             <button
               type="button"
               onClick={() => (interview?.status === 'needs_confirmation' ? submitInterviewAnswer(confirmationAnswerForLanguage(detLang), detLang) : submitInterviewAnswer())}
-              disabled={languageChanging || interviewLocale !== locale || (interview?.status !== 'needs_confirmation' && !pendingAnswer?.text && !typedAnswer.trim())}
-              className="btn btn-primary btn-lg"
+              disabled={languageChanging || interviewLocale !== answerLocale || (interview?.status !== 'needs_confirmation' && !pendingAnswer?.text && !typedAnswer.trim())}
+              className={`btn btn-lg rounded-full ${interview?.status === 'needs_confirmation' ? 'btn-success' : 'btn-primary'}`}
             >
               <span className="truncate">{interview?.status === 'needs_confirmation' ? questionUi.confirm : questionUi.next}</span><ArrowRight className="h-5 w-5 flex-shrink-0" />
             </button>

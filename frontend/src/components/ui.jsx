@@ -170,3 +170,52 @@ export function downloadCsv(filename, rows) {
   link.remove();
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
+
+// "just now", "5 min ago", "2 days ago" — keeps dashboards feeling live.
+export function timeAgo(value, t = (text) => text) {
+  if (!value) return '';
+  const then = new Date(value);
+  if (Number.isNaN(then.getTime())) return '';
+  const seconds = Math.max(0, Math.round((Date.now() - then.getTime()) / 1000));
+  if (seconds < 60) return t('just now');
+  const minutes = Math.round(seconds / 60);
+  if (minutes < 60) return `${minutes} ${t(minutes === 1 ? 'minute ago' : 'minutes ago')}`;
+  const hours = Math.round(minutes / 60);
+  if (hours < 24) return `${hours} ${t(hours === 1 ? 'hour ago' : 'hours ago')}`;
+  const days = Math.round(hours / 24);
+  if (days < 30) return `${days} ${t(days === 1 ? 'day ago' : 'days ago')}`;
+  return formatDate(value);
+}
+
+// Small celebratory / informational toast stack shown bottom-right.
+export function Toasts({ toasts = [], onDismiss }) {
+  if (!toasts.length) return null;
+  return (
+    <div className="pointer-events-none fixed bottom-4 right-4 z-[90] flex w-[min(360px,calc(100vw-2rem))] flex-col gap-2" role="status" aria-live="polite">
+      {toasts.map((toast) => (
+        <div key={toast.id} className={cx('pointer-events-auto flex items-start gap-3 rounded-2xl border px-4 py-3 shadow-lift animate-fade-up', toast.tone === 'celebrate' ? 'border-clay-200 bg-clay-50' : 'border-line bg-white')}>
+          {toast.emoji && <span className="text-xl leading-none" aria-hidden="true">{toast.emoji}</span>}
+          <div className="min-w-0 flex-1">
+            <p className="text-sm font-semibold text-ink-950">{toast.title}</p>
+            {toast.detail && <p className="mt-0.5 text-[13px] text-ink-600">{toast.detail}</p>}
+            {toast.action && <button type="button" onClick={toast.action.onClick} className="link mt-1.5 text-[13px]">{toast.action.label}</button>}
+          </div>
+          <button type="button" onClick={() => onDismiss?.(toast.id)} className="-mr-1 -mt-1 rounded-md p-1 text-ink-400 hover:text-ink-800" aria-label="Dismiss"><X className="h-4 w-4" /></button>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// Green pulsing dot + "updated X ago", so the workspace feels connected.
+export function LiveDot({ label }) {
+  return (
+    <span className="inline-flex items-center gap-1.5 text-xs font-medium text-ink-500">
+      <span className="relative flex h-2 w-2">
+        <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-500 opacity-60" />
+        <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-600" />
+      </span>
+      {label}
+    </span>
+  );
+}

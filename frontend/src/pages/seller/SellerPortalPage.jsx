@@ -1,10 +1,10 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { BarChart3, Eye, LayoutDashboard, LogOut, Package, Plus, RefreshCw, ShieldCheck, Sparkles, Store, Truck, Wallet } from 'lucide-react';
 import { api } from '../../services/api';
 import { useLanguage } from '../../context/LanguageContext';
 import WorkspaceShell from '../../components/WorkspaceShell';
-import { Notice } from '../../components/ui';
-import { computeSellerMetrics } from './sellerData';
+import { LiveDot, Notice, Toasts, formatINR, timeAgo } from '../../components/ui';
+import { computeSellerMetrics, storeLines } from './sellerData';
 import SellerOverview from './SellerOverview';
 import SellerInventory from './SellerInventory';
 import SellerOrders from './SellerOrders';
@@ -14,14 +14,16 @@ import SellerStoreProfile from './SellerStoreProfile';
 import AiListingStudio from './AiListingStudio';
 
 const TITLES = {
-  overview: ['Overview', 'How your store is doing today'],
-  studio: ['Create a listing', 'Photo, a few questions, a fair price — then review'],
-  inventory: ['Products', 'Everything you have listed on CraftLink'],
-  orders: ['Orders', 'Confirm, pack and ship what buyers ordered'],
-  payouts: ['Payments', 'Money from your delivered orders'],
-  insights: ['Insights', 'What sells, and what needs attention'],
-  store: ['Store profile', 'The details buyers and our team see'],
+  overview: ['My shop today', 'A quick look at what is happening'],
+  studio: ['Add a new product', 'One photo, a few easy questions, and you are done'],
+  inventory: ['My products', 'Everything you have put up for sale'],
+  orders: ['My orders', 'Confirm, pack and send what buyers ordered'],
+  payouts: ['My money', 'What you have earned and what is on the way'],
+  insights: ['How I am doing', 'What sells well, and what needs care'],
+  store: ['My shop details', 'What buyers and our team can see'],
 };
+
+const REFRESH_MS = 30000;
 
 export default function SellerPortalPage({ currentUser, onNavigateToAdmin, onNavigateToStore, onNavigateToOnboarding, onSignOut }) {
   const { t } = useLanguage();
@@ -34,6 +36,11 @@ export default function SellerPortalPage({ currentUser, onNavigateToAdmin, onNav
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [lastUpdated, setLastUpdated] = useState(null);
+  const [tick, setTick] = useState(0);
+  const [toasts, setToasts] = useState([]);
+  const knownOrders = useRef(null);
+  const dismissToast = (id) => setToasts((list) => list.filter((toast) => toast.id !== id));
 
   // Operations staff can open any store; sellers only ever see their own.
   useEffect(() => {
@@ -44,9 +51,9 @@ export default function SellerPortalPage({ currentUser, onNavigateToAdmin, onNav
     }).catch(() => setError('Could not load stores.'));
   }, [isAdmin]);
 
-  const load = useCallback(async () => {
+  const load = useCallback(async (quiet = false) => {
     if (storeId == null) { setLoading(false); return; }
-    setLoading(true);
+    if (!quiet) setLoading(true);
     setError('');
     try {
       const [productList, orderList, artisan] = await Promise.all([
@@ -57,14 +64,43 @@ export default function SellerPortalPage({ currentUser, onNavigateToAdmin, onNav
       setProducts(productList || []);
       setOrders(orderList || []);
       if (artisan) setProfile(artisan);
-    } catch (loadError) {
-      setError(loadError.message || 'Could not load your store data.');
-    } finally {
-      setLoading(false);
-    }
-  }, [storeId]);
+      setLastUpdated(new Date());
 
-  useEffect(() => { load(); }, [load]);
+      // Celebrate orders that arrived while the seller was on the page.
+      const seen = knownOrders.current;
+      const numbers = new Set((orderList || []).map((order) => order.order_number));
+      if (seen) {
+        const fresh = (orderList || []).filter((order) => !seen.has(order.order_number));
+        fresh.slice(0, 3).forEach((order) => {
+          const amount = storeLines(order, storeId).reduce((sum, item) => sum + Number(item.line_total || 0), 0);
+          setToasts((list) => [...list, {
+            id: order.order_number,
+            tone: 'celebrate',
+            emoji: '\ud83c\udf89',
+            title: `${t('New order')} · ${formatINR(amount)}`,
+            detail: `${order.buyer_name} · ${order.city}`,
+            action: { label: t('Open orders'), onClick: () => { setTab('orders'); dismissToast(order.order_number); } },
+          }]);
+        });
+      }
+      knownOrders.current = numbers;
+    } catch (loadError) {
+      if (!quiet) setError(loadError.message || 'Could not load your store data.');
+    } finally {
+      if (!quiet) setLoading(false);
+    }
+  }, [storeId, t]);
+
+  useEffect(() => { knownOrders.current = null; load(); }, [load]);
+
+  // Keep the workspace live: refresh quietly, and re-render the "updated" label.
+  useEffect(() => {
+    const refresh = setInterval(() => { if (!document.hidden) load(true); }, REFRESH_MS);
+    const clock = setInterval(() => setTick((value) => value + 1), 20000);
+    const onFocus = () => load(true);
+    window.addEventListener('focus', onFocus);
+    return () => { clearInterval(refresh); clearInterval(clock); window.removeEventListener('focus', onFocus); };
+  }, [load]);
 
   const metrics = useMemo(() => computeSellerMetrics(products, orders, storeId), [products, orders, storeId]);
   const storeName = profile?.store_name || profile?.name || t('Your store');
@@ -72,15 +108,15 @@ export default function SellerPortalPage({ currentUser, onNavigateToAdmin, onNav
 
   const nav = [
     { label: t('Store'), items: [
-      { id: 'overview', label: t('Overview'), icon: LayoutDashboard },
+      { id: 'overview', label: t('My shop'), icon: LayoutDashboard },
       { id: 'orders', label: t('Orders'), icon: Truck, count: metrics.toFulfil.length },
-      { id: 'inventory', label: t('Products'), icon: Package, count: products.length },
-      { id: 'studio', label: t('Create a listing'), icon: Sparkles },
+      { id: 'inventory', label: t('My products'), icon: Package, count: products.length },
+      { id: 'studio', label: t('Add a product'), icon: Sparkles },
     ] },
     { label: t('Business'), items: [
-      { id: 'payouts', label: t('Payments'), icon: Wallet },
-      { id: 'insights', label: t('Insights'), icon: BarChart3 },
-      { id: 'store', label: t('Store profile'), icon: Store },
+      { id: 'payouts', label: t('My money'), icon: Wallet },
+      { id: 'insights', label: t('How I am doing'), icon: BarChart3 },
+      { id: 'store', label: t('My shop details'), icon: Store },
       ...(isAdmin ? [{ id: 'admin', label: t('Administration'), icon: ShieldCheck, onClick: onNavigateToAdmin }] : []),
     ] },
   ];
@@ -114,8 +150,11 @@ export default function SellerPortalPage({ currentUser, onNavigateToAdmin, onNav
 
   const actions = (
     <>
-      <button type="button" onClick={load} disabled={loading} className="btn btn-secondary btn-icon" aria-label={t('Refresh')} title={t('Refresh')}><RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} /></button>
-      {tab !== 'studio' && <button type="button" onClick={() => setTab('studio')} className="btn btn-primary"><Plus className="h-4 w-4" /><span className="hidden sm:inline">{t('New listing')}</span></button>}
+      <span className="hidden sm:block" key={tick}>
+        {lastUpdated && <LiveDot label={`${t('Live')} · ${t('updated')} ${timeAgo(lastUpdated, t)}`} />}
+      </span>
+      <button type="button" onClick={() => load()} disabled={loading} className="btn btn-secondary btn-icon" aria-label={t('Refresh')} title={t('Refresh')}><RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} /></button>
+      {tab !== 'studio' && <button type="button" onClick={() => setTab('studio')} className="btn btn-primary rounded-full"><Plus className="h-4 w-4" /><span className="hidden sm:inline">{t('Add a product')}</span></button>}
     </>
   );
 
@@ -144,6 +183,7 @@ export default function SellerPortalPage({ currentUser, onNavigateToAdmin, onNav
           )}
         </div>
       )}
+      <Toasts toasts={toasts} onDismiss={dismissToast} />
     </WorkspaceShell>
   );
 }

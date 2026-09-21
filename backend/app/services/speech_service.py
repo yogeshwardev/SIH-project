@@ -5,11 +5,11 @@ import math
 import requests
 import importlib.util
 import threading
-from concurrent.futures import ThreadPoolExecutor
 import numpy as np
 from pathlib import Path
 from typing import Dict, Any, Optional
 from backend.app.config import settings
+from backend.app.services import interview_content
 
 class SpeechService:
     def __init__(self):
@@ -19,6 +19,10 @@ class SpeechService:
         self._whisper_lock = threading.Lock()
         self._tts_cache: Dict[tuple[str, str], bytes] = {}
         self._tts_cache_lock = threading.Lock()
+        # edge-tts bridges async streaming into a sync call through a shared
+        # runner. Two threads entering it at once can wedge each other, so only
+        # one voice is generated at a time.
+        self._tts_engine_lock = threading.Lock()
 
     def transcribe_audio(self, audio_file_path: str, hint_language: Optional[str] = None) -> Dict[str, Any]:
         """
@@ -106,23 +110,14 @@ class SpeechService:
         if settings.AI_PROVIDER.lower() != "openai" and self.neural_voiceover_available():
             from backend.app.services.product_interview_service import product_interview_service
 
-            language_codes = {"en": "en-IN", "hi": "hi-IN", "te": "te-IN"}
-            warmup_phrases = tuple(
-                (
-                    product_interview_service.QUESTIONS[locale]["product_description"],
-                    language_code,
-                )
-                for locale, language_code in language_codes.items()
-            )
-
-            def warm_voice(item: tuple[str, str]) -> None:
+            for locale in interview_content.CONTENT:
                 try:
-                    self.synthesize_speech(item[0], item[1])
+                    self.synthesize_speech(
+                        product_interview_service.CONTENT[locale]["product_description"]["speak"],
+                        interview_content.speech_code(locale),
+                    )
                 except Exception:
                     pass
-
-            with ThreadPoolExecutor(max_workers=len(warmup_phrases)) as pool:
-                list(pool.map(warm_voice, warmup_phrases))
 
     def _transcribe_with_local_whisper(self, file_path: Path, hint_language: Optional[str]) -> tuple[str, str, float, str, Dict[str, float]]:
         language_code = self._normalize_language_code(hint_language)
@@ -286,8 +281,7 @@ class SpeechService:
     def neural_voiceover_available() -> bool:
         return importlib.util.find_spec("edge_tts") is not None
 
-    @staticmethod
-    def _synthesize_with_edge(text: str, language_code: str) -> bytes:
+    def _synthesize_with_edge(self, text: str, language_code: str) -> bytes:
         import edge_tts
 
         voice_map = {
@@ -297,20 +291,46 @@ class SpeechService:
             "ta": "ta-IN-PallaviNeural",
             "bn": "bn-IN-TanishaaNeural",
             "mr": "mr-IN-AarohiNeural",
+            "kn": "kn-IN-SapnaNeural",
+            "gu": "gu-IN-DhwaniNeural",
+            "ml": "ml-IN-SobhanaNeural",
         }
         voice = voice_map.get(language_code.split("-")[0], "en-IN-NeerjaNeural")
-        communication = edge_tts.Communicate(
-            text,
-            voice,
-            rate="-8%",
-            volume="+0%",
-            pitch="+2Hz",
-        )
-        chunks = [
-            chunk["data"]
-            for chunk in communication.stream_sync()
-            if chunk["type"] == "audio"
-        ]
+        result: Dict[str, Any] = {}
+
+        def render() -> None:
+            try:
+                communication = edge_tts.Communicate(
+                    text,
+                    voice,
+                    rate="-8%",
+                    volume="+0%",
+                    pitch="+2Hz",
+                )
+                result["chunks"] = [
+                    chunk["data"]
+                    for chunk in communication.stream_sync()
+                    if chunk["type"] == "audio"
+                ]
+            except Exception as error:  # surfaced to the caller below
+                result["error"] = error
+
+        # Deliberately a plain thread: edge-tts bridges its async stream into a
+        # synchronous call, and that bridge never returns when it is started on
+        # a worker thread that already carries an async context — which is
+        # exactly what FastAPI's run_in_threadpool hands us. Only one voice is
+        # rendered at a time, and a stalled render gives up instead of pinning
+        # the request forever (the browser falls back to its own voice).
+        with self._tts_engine_lock:
+            worker = threading.Thread(target=render, name="edge-tts-render", daemon=True)
+            worker.start()
+            worker.join(25)
+
+        if worker.is_alive():
+            raise RuntimeError("Neural voice service timed out.")
+        if "error" in result:
+            raise result["error"]
+        chunks = result.get("chunks") or []
         if not chunks:
             raise RuntimeError("Neural voice service returned no audio.")
         return b"".join(chunks)
@@ -344,16 +364,29 @@ class SpeechService:
     def _normalize_language_code(language: Optional[str]) -> Optional[str]:
         if not language:
             return None
-        value = language.lower().split("-")[0]
-        names = {"hindi": "hi", "english": "en", "tamil": "ta", "telugu": "te", "bengali": "bn", "marathi": "mr"}
-        return names.get(value, value if len(value) == 2 else None)
+        value = language.strip().lower().split("-")[0].split("_")[0]
+        if value in interview_content.ALIASES:
+            return interview_content.ALIASES[value]
+        return value if len(value) == 2 else None
 
     @staticmethod
     def _language_name(code: Optional[str], transcript: str) -> str:
-        names = {"hi": "Hindi", "en": "English", "ta": "Tamil", "te": "Telugu", "bn": "Bengali", "mr": "Marathi"}
-        if code in names:
-            return names[code]
-        return "Hindi" if any("\u0900" <= char <= "\u097f" for char in transcript) else "English"
+        if code in interview_content.LANGUAGES:
+            return interview_content.LANGUAGES[code]["name"]
+        # Fall back to the script the artisan actually spoke in.
+        scripts = (
+            (0x0900, 0x097F, "Hindi"),
+            (0x0980, 0x09FF, "Bengali"),
+            (0x0A80, 0x0AFF, "Gujarati"),
+            (0x0B80, 0x0BFF, "Tamil"),
+            (0x0C00, 0x0C7F, "Telugu"),
+            (0x0C80, 0x0CFF, "Kannada"),
+            (0x0D00, 0x0D7F, "Malayalam"),
+        )
+        for low, high, name in scripts:
+            if any(low <= ord(char) <= high for char in transcript):
+                return name
+        return "English"
 
     @staticmethod
     def _content_type(suffix: str) -> str:

@@ -33,3 +33,4 @@ Thumbs.db
 .claude/
 test_*.pptx
 extracted_*.png
+tests/craftlink_test.db

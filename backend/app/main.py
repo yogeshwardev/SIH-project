@@ -18,6 +18,8 @@ from backend.app.api.export import router as export_router
 from backend.app.api.admin import router as admin_router, inquiries_router
 from backend.app.api.artisans import router as artisans_router
 from backend.app.api.orders import router as orders_router
+from backend.app.api.bulk_requests import router as bulk_requests_router
+from backend.app.api.impact import router as impact_router
 from backend.app.services.image_service import image_service
 from backend.app.services.speech_service import speech_service
 
@@ -111,6 +113,8 @@ app.include_router(admin_router, prefix=settings.API_PREFIX)
 app.include_router(inquiries_router, prefix=settings.API_PREFIX)
 app.include_router(artisans_router, prefix=settings.API_PREFIX)
 app.include_router(orders_router, prefix=settings.API_PREFIX)
+app.include_router(bulk_requests_router, prefix=settings.API_PREFIX)
+app.include_router(impact_router, prefix=settings.API_PREFIX)
 
 @app.get("/")
 def root():

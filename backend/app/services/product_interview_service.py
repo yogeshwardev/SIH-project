@@ -1,6 +1,7 @@
 import re
 from typing import Any, Dict, List, Optional
 
+from backend.app.services import interview_content
 from backend.app.services.product_intelligence import product_intelligence_service
 
 
@@ -21,35 +22,17 @@ class ProductInterviewService:
     ]
     PRICING_REQUIRED = set(QUESTION_ORDER)
 
-    QUESTIONS = {
-        "en": {
-            "product_description": "Hello! I am here to help you create your product listing. First, please describe your product in your own words. What is it called, what makes it special, and how is it used? There is no wrong answer.",
-            "material": "Thank you. What is your product made from? You can name the main material in simple words.",
-            "production_time": "Great. About how long does one item take you to make? You can answer in hours or days.",
-            "material_cost": "You are doing well. About how much do the materials for one item cost, in rupees?",
-            "labor_cost": "And how much should you be paid fairly for your work on one item, in rupees?",
-            "packaging_cost": "Just one more cost question. How much does packing one item cost? You can say zero if there is no cost.",
-            "confirmation": "Is this information correct? Choose Yes to continue, or tell me what to change.",
-        },
-        "hi": {
-            "product_description": "नमस्ते! मैं आपकी उत्पाद सूची बनाने में मदद करूँगी। सबसे पहले, अपने उत्पाद के बारे में अपने शब्दों में बताइए। इसका नाम क्या है, इसकी खास बात क्या है और इसका उपयोग कैसे होता है? जैसा आसान लगे वैसा बोलिए।",
-            "material": "धन्यवाद। आपका उत्पाद किस चीज़ से बना है? मुख्य सामग्री का नाम आसान शब्दों में बताइए।",
-            "production_time": "बहुत अच्छा। एक उत्पाद बनाने में लगभग कितना समय लगता है? घंटे या दिन में बता सकते हैं।",
-            "material_cost": "आप बहुत अच्छा कर रहे हैं। एक उत्पाद की सामग्री पर लगभग कितने रुपये खर्च होते हैं?",
-            "labor_cost": "एक उत्पाद बनाने की आपकी मेहनत के उचित कितने रुपये मिलने चाहिए?",
-            "packaging_cost": "खर्च से जुड़ा बस एक आखिरी सवाल। एक उत्पाद की पैकिंग में कितने रुपये लगते हैं? खर्च नहीं है तो शून्य कहें।",
-            "confirmation": "क्या यह जानकारी सही है? आगे बढ़ने के लिए हाँ चुनें, या जो बदलना है वह बताइए।",
-        },
-        "te": {
-            "product_description": "నమస్కారం! మీ ఉత్పత్తి జాబితాను తయారు చేయడంలో నేను మీకు సహాయం చేస్తాను. ముందుగా, మీ ఉత్పత్తి గురించి మీ మాటల్లో చెప్పండి. దాని పేరు ఏమిటి, దాని ప్రత్యేకత ఏమిటి, దాన్ని ఎలా ఉపయోగిస్తారు? మీకు సులభంగా అనిపించినట్లు చెప్పండి.",
-            "material": "ధన్యవాదాలు. మీ ఉత్పత్తి దేనితో తయారైంది? ముఖ్యమైన పదార్థం పేరును సులభమైన మాటల్లో చెప్పండి.",
-            "production_time": "చాలా బాగుంది. ఒక ఉత్పత్తి తయారు చేయడానికి సుమారుగా ఎంత సమయం పడుతుంది? గంటలు లేదా రోజుల్లో చెప్పవచ్చు.",
-            "material_cost": "మీరు చాలా బాగా చేస్తున్నారు. ఒక ఉత్పత్తికి కావలసిన పదార్థాల ఖర్చు సుమారుగా ఎన్ని రూపాయలు?",
-            "labor_cost": "ఒక ఉత్పత్తి తయారుచేసిన మీ పనికి న్యాయంగా ఎన్ని రూపాయలు రావాలి?",
-            "packaging_cost": "ఖర్చుకు సంబంధించిన చివరి ప్రశ్న. ఒక ఉత్పత్తి ప్యాకింగ్‌కు ఎన్ని రూపాయలు ఖర్చవుతుంది? ఖర్చు లేకపోతే సున్నా అని చెప్పండి.",
-            "confirmation": "ఈ సమాచారం సరైందా? ముందుకు వెళ్లడానికి అవును ఎంచుకోండి, లేదా మార్చాల్సింది చెప్పండి.",
-        },
-    }
+    # Every question carries: the spoken sentence (read aloud), a short on-screen
+    # title, one line of help, tappable examples and the kind of answer expected.
+    # Questions, praise lines and labels live in interview_content.py, one
+    # block per language, so adding a language is a data change.
+    CONTENT = interview_content.CONTENT
+    GREETING = interview_content.GREETING
+    PRAISE = interview_content.PRAISE
+    RETRY = interview_content.RETRY
+    DONE = interview_content.DONE
+    SUMMARY_LABELS = interview_content.SUMMARY_LABELS
+    LANGUAGES = interview_content.LANGUAGES
 
     def continue_interview(
         self,
@@ -60,6 +43,7 @@ class ProductInterviewService:
         known_attributes: Optional[Dict[str, Any]] = None,
         cost_inputs: Optional[Dict[str, Any]] = None,
         last_question_key: Optional[str] = None,
+        artisan_name: str = "",
     ) -> Dict[str, Any]:
         utterance = " ".join((utterance or "").split()).strip()
         full_transcript = " ".join(filter(None, [conversation_transcript, utterance])).strip()
@@ -92,38 +76,41 @@ class ProductInterviewService:
 
         next_key = missing[0] if missing else None
         locale = self._locale(language)
+        content = self.CONTENT[locale]
+        summary_items: List[Dict[str, str]] = []
+        question: Dict[str, Any] = {}
+
         if completed and human_confirmed:
-            assistant_message = {
-                "hi": "धन्यवाद। जानकारी पूरी है। अब अपने उत्पाद का विवरण और उचित मूल्य देखिए।",
-                "te": "ధన్యవాదాలు. సమాచారం పూర్తైంది. ఇప్పుడు మీ ఉత్పత్తి వివరణ మరియు సరైన ధరను చూడండి.",
-                "en": "Thank you. The information is complete. You can now review your product description and fair price.",
-            }[locale]
+            assistant_message = self.DONE[locale]
             status = "ready_for_pricing"
             confidence_score = 0.99
         elif completed:
-            summary_text = self._confirmation_summary(attrs, costs, locale)
-            assistant_message = f"{summary_text} {self.QUESTIONS[locale]['confirmation']}"
+            question = content["confirmation"]
+            summary_items = self._summary_items(attrs, costs, locale)
+            spoken_summary = self._spoken_summary(summary_items, locale)
+            assistant_message = f"{spoken_summary} {question['speak']}"
             next_key = "confirmation"
             status = "needs_confirmation"
             confidence_score = round(min(0.94, 0.72 + readiness * 0.22), 2)
         else:
-            assistant_message = self.QUESTIONS[locale][next_key]
-            if answer_was_invalid:
-                retry = {
-                    "hi": "कोई बात नहीं, मैं वह जवाब समझ नहीं पाया। कृपया एक बार फिर आसान शब्दों में बताइए।",
-                    "te": "పరవాలేదు, ఆ సమాధానం నాకు అర్థం కాలేదు. దయచేసి మరోసారి సులభంగా చెప్పండి.",
-                    "en": "No problem, I could not understand that answer. Please try once more in simple words.",
-                }[locale]
-                assistant_message = f"{retry} {assistant_message}"
+            question = content[next_key]
+            first_turn = not utterance and not conversation_transcript and not last_question_key
+            lead = ""
+            if first_turn:
+                name = str(artisan_name or "").strip().split(" ")[0]
+                lead = self.GREETING[locale].format(name=f" {name}" if name and name.lower() != "artisan" else "")
+            elif not answer_was_invalid and answered_count > 0:
+                lead = self.PRAISE[locale][min(answered_count - 1, len(self.PRAISE[locale]) - 1)]
+            elif answer_was_invalid:
+                lead = self.RETRY[locale]
+            assistant_message = " ".join(filter(None, [lead, question["speak"]]))
             status = "needs_information"
             confidence_score = round(0.45 + readiness * 0.45, 2)
 
         confirmed = [label for label in self.QUESTION_ORDER if label not in missing]
-        summary = {
-            "hi": f"{len(confirmed)} में से {len(self.QUESTION_ORDER)} आसान सवाल पूरे हुए।",
-            "te": f"{len(self.QUESTION_ORDER)} సులభమైన ప్రశ్నల్లో {len(confirmed)} పూర్తయ్యాయి.",
-            "en": f"Completed {len(confirmed)} of {len(self.QUESTION_ORDER)} simple questions.",
-        }[locale]
+        summary = interview_content.PROGRESS[locale].format(
+            done=len(confirmed), total=len(self.QUESTION_ORDER)
+        )
         return {
             "status": status,
             "assistant_message": assistant_message,
@@ -136,6 +123,13 @@ class ProductInterviewService:
             "cost_inputs": costs,
             "evidence": evidence,
             "turn_summary": summary,
+            "question_title": question.get("title", ""),
+            "question_help": question.get("help", ""),
+            "question_examples": list(question.get("examples", [])),
+            "input_type": question.get("input", "text"),
+            "placeholder": question.get("placeholder", ""),
+            "summary_items": summary_items,
+            "answered_count": answered_count,
             "question_number": (
                 len(self.QUESTION_ORDER) + 1
                 if next_key in {None, "confirmation"}
@@ -167,10 +161,7 @@ class ProductInterviewService:
             return False
         if question_key == "confirmation":
             normalized = answer.strip().lower()
-            confirmed = bool(re.search(
-                r"\b(yes|correct|confirm|confirmed|right|ok|okay)\b|^(हाँ|हां|जी|सही|అవును|సరే|సరి|కరెక్ట్)",
-                normalized,
-            ))
+            confirmed = bool(re.search(interview_content.YES_WORDS, normalized))
             attrs["_human_confirmed"] = confirmed
             evidence["human_confirmation"] = "confirmed by artisan" if confirmed else "correction requested"
             return False
@@ -245,28 +236,23 @@ class ProductInterviewService:
         }
         return [field for field in self.QUESTION_ORDER if not present[field]]
 
+    def _summary_items(self, attrs: Dict[str, Any], costs: Dict[str, Any], locale: str) -> List[Dict[str, str]]:
+        labels = self.SUMMARY_LABELS[locale]
+        rupees = lambda value: f"\u20b9{float(value or 0):,.0f}"
+        return [
+            {"label": labels["product"], "value": str(attrs.get("artisan_description") or attrs.get("product_name") or "")[:140]},
+            {"label": labels["material"], "value": str(attrs.get("material") or "")},
+            {"label": labels["time"], "value": str(attrs.get("production_time") or "")},
+            {"label": labels["material_cost"], "value": rupees(costs.get("material_cost"))},
+            {"label": labels["labor_cost"], "value": rupees(costs.get("labor_cost"))},
+            {"label": labels["packaging_cost"], "value": rupees(costs.get("packaging_cost"))},
+        ]
+
     @staticmethod
-    def _confirmation_summary(attrs: Dict[str, Any], costs: Dict[str, Any], locale: str) -> str:
-        if locale == "hi":
-            return (
-                f"मैंने समझा: {attrs.get('craft_type') or attrs.get('product_name')}, "
-                f"सामग्री {attrs.get('material')}, समय {attrs.get('production_time')}, "
-                f"सामग्री लागत ₹{costs.get('material_cost', 0):,.0f}, मजदूरी ₹{costs.get('labor_cost', 0):,.0f}, "
-                f"और पैकिंग ₹{costs.get('packaging_cost', 0):,.0f}."
-            )
-        if locale == "te":
-            return (
-                f"నేను అర్థం చేసుకున్నది: {attrs.get('craft_type') or attrs.get('product_name')}, "
-                f"పదార్థం {attrs.get('material')}, తయారీ సమయం {attrs.get('production_time')}, "
-                f"పదార్థాల ఖర్చు ₹{costs.get('material_cost', 0):,.0f}, మీ పని ₹{costs.get('labor_cost', 0):,.0f}, "
-                f"ప్యాకింగ్ ₹{costs.get('packaging_cost', 0):,.0f}."
-            )
-        return (
-            f"I understood: {attrs.get('craft_type') or attrs.get('product_name')}; "
-            f"material {attrs.get('material')}; production time {attrs.get('production_time')}; "
-            f"material ₹{costs.get('material_cost', 0):,.0f}, labor ₹{costs.get('labor_cost', 0):,.0f}, "
-            f"and packaging ₹{costs.get('packaging_cost', 0):,.0f}."
-        )
+    def _spoken_summary(items: List[Dict[str, str]], locale: str) -> str:
+        parts = ", ".join(f"{item['label']}: {item['value']}" for item in items if item["value"])
+        lead = interview_content.SUMMARY_LEAD[locale]
+        return f"{lead} {parts}."
 
     @staticmethod
     def _normalize_costs(costs: Dict[str, Any]) -> Dict[str, Any]:
@@ -289,7 +275,7 @@ class ProductInterviewService:
             return float(match.group(1).replace(",", ""))
 
         normalized = str(text or "").strip().lower().replace("-", " ")
-        if any(word in normalized for word in ("zero", "शून्य", "सिफर", "సున్నా", "శూన్యం")):
+        if any(word in normalized for word in interview_content.ZERO_WORDS):
             return 0.0
 
         english_values = {
@@ -315,20 +301,16 @@ class ProductInterviewService:
         if found:
             return float(total + current)
 
-        simple_numbers = {
-            "एक": 1, "दो": 2, "तीन": 3, "चार": 4, "पांच": 5, "पाँच": 5,
-            "छह": 6, "सात": 7, "आठ": 8, "नौ": 9, "दस": 10,
-            "ఒకటి": 1, "ఒక": 1, "రెండు": 2, "మూడు": 3, "నాలుగు": 4,
-            "ఐదు": 5, "ఆరు": 6, "ఏడు": 7, "ఎనిమిది": 8, "తొమ్మిది": 9, "పది": 10,
-        }
         base = next((
-            value for word, value in sorted(simple_numbers.items(), key=lambda item: len(item[0]), reverse=True)
+            value for word, value in sorted(
+                interview_content.NUMBER_WORDS.items(), key=lambda item: len(item[0]), reverse=True
+            )
             if word in normalized
         ), None)
         if base is not None:
-            if any(word in normalized for word in ("हजार", "వెయ్యి", "వేలు")):
+            if any(word in normalized for word in interview_content.THOUSAND_WORDS):
                 return float(base * 1000)
-            if any(word in normalized for word in ("सौ", "వంద")):
+            if any(word in normalized for word in interview_content.HUNDRED_WORDS):
                 return float(base * 100)
             return float(base)
         return None
@@ -344,56 +326,47 @@ class ProductInterviewService:
 
     @staticmethod
     def _duration(text: str) -> Optional[str]:
-        unit_pattern = r"hours?|hrs?|days?|weeks?|घंटे?|घंटा|दिन|सप्ताह|గంటలు?|గంట|రోజులు?|రోజు|వారాలు?|వారం"
+        units = sorted(
+            interview_content.HOUR_WORDS + interview_content.DAY_WORDS + interview_content.WEEK_WORDS,
+            key=len, reverse=True,
+        )
+        unit_pattern = "|".join(re.escape(word) for word in units)
         match = re.search(rf"(\d+(?:\.\d+)?)\s*({unit_pattern})", text, flags=re.IGNORECASE)
         amount: Optional[float] = float(match.group(1)) if match else None
-        unit = match.group(2).lower() if match else None
+        unit = match.group(2) if match else None
 
         if amount is None:
             unit_match = re.search(unit_pattern, text, flags=re.IGNORECASE)
             if not unit_match:
                 return None
-            unit = unit_match.group(0).lower()
+            unit = unit_match.group(0)
             prefix = text[:unit_match.start()].strip().lower()
-            if any(value in prefix for value in ("half", "आधा", "అర")):
+            if any(value in prefix for value in interview_content.HALF_WORDS):
                 amount = 0.5
             else:
                 spoken_numbers = {
                     "one": 1, "two": 2, "three": 3, "four": 4,
                     "five": 5, "six": 6, "seven": 7, "eight": 8, "nine": 9, "ten": 10,
-                    "एक": 1, "दो": 2, "तीन": 3, "चार": 4, "पांच": 5, "पाँच": 5,
-                    "छह": 6, "सात": 7, "आठ": 8, "नौ": 9, "दस": 10,
-                    "ఒక": 1, "ఒకటి": 1, "రెండు": 2, "మూడు": 3, "నాలుగు": 4,
-                    "ఐదు": 5, "ఆరు": 6, "ఏడు": 7, "ఎనిమిది": 8, "తొమ్మిది": 9, "పది": 10,
+                    **interview_content.NUMBER_WORDS,
                 }
                 amount = next((
                     float(value)
                     for word, value in sorted(spoken_numbers.items(), key=lambda item: len(item[0]), reverse=True)
                     if word in prefix
                 ), None)
-                if amount is None and re.search(r"\b(?:a|an)\s*$", prefix):
+                if amount is None and re.search(r"(?:a|an)\s*$", prefix):
                     amount = 1.0
-                if amount is not None and re.search(r"\b(?:and a half|and half)\b", prefix):
+                if amount is not None and re.search(r"(?:and a half|and half)", prefix):
                     amount += 0.5
 
         if amount is None or unit is None:
             return None
-        normalized = (
-            "hours" if unit.startswith(("hour", "hr", "घंट", "గంట"))
-            else "weeks" if unit.startswith(("week", "सप्त", "వార"))
-            else "days"
-        )
-        amount_text = str(int(amount)) if amount.is_integer() else str(amount)
-        return f"{amount_text} {normalized}"
+        amount_text = str(int(amount)) if float(amount).is_integer() else str(amount)
+        return f"{amount_text} {interview_content.duration_unit(unit)}"
 
     @staticmethod
     def _locale(language: str) -> str:
-        value = str(language or "").strip().lower()
-        if value.startswith("te") or "telugu" in value or "తెలుగు" in value:
-            return "te"
-        if value.startswith("hi") or "hindi" in value or "हिन्द" in value or "हिंदी" in value:
-            return "hi"
-        return "en"
+        return interview_content.resolve_locale(language)
 
 
 product_interview_service = ProductInterviewService()

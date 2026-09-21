@@ -39,6 +39,7 @@ class ProductInterviewRequest(BaseModel):
     known_attributes: Dict[str, Any] = Field(default_factory=dict)
     cost_inputs: Dict[str, Any] = Field(default_factory=dict)
     last_question_key: Optional[str] = None
+    artisan_name: Optional[str] = ""
 
 class ProductInterviewResponse(BaseModel):
     status: str
@@ -54,6 +55,14 @@ class ProductInterviewResponse(BaseModel):
     turn_summary: str
     question_number: int = 1
     total_questions: int = 7
+    # On-screen helpers for the guided studio.
+    question_title: str = ""
+    question_help: str = ""
+    question_examples: List[str] = Field(default_factory=list)
+    input_type: str = "text"
+    placeholder: str = ""
+    summary_items: List[Dict[str, str]] = Field(default_factory=list)
+    answered_count: int = 0
 
 # --- Product Intelligence Extraction Schemas ---
 class ProductExtractRequest(BaseModel):

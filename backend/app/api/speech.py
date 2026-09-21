@@ -95,6 +95,7 @@ async def continue_product_interview(req: ProductInterviewRequest):
             known_attributes=req.known_attributes,
             cost_inputs=req.cost_inputs,
             last_question_key=req.last_question_key,
+            artisan_name=req.artisan_name or "",
         )
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Product interview failed: {str(e)}")

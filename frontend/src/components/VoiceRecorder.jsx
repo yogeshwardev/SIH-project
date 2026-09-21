@@ -8,6 +8,7 @@ import {
   VolumeX
 } from 'lucide-react';
 import { voiceAssistant } from '../services/voiceAssistant';
+import { STUDIO_LANGUAGES, recorderCopyFor } from '../i18n/studioCopy';
 
 export default function VoiceRecorder({
   onAudioRecorded,
@@ -31,80 +32,11 @@ export default function VoiceRecorder({
   const transcriptRef = useRef('');
   const streamRef = useRef(null);
 
-  const languageOptions = languageOptionsOverride || [
-    { code: 'hi-IN', name: 'Hindi', label: 'हिन्दी (Hindi)' },
-    { code: 'te-IN', name: 'Telugu', label: 'తెలుగు (Telugu)' },
-    { code: 'en-IN', name: 'English', label: 'English (India)' },
-    { code: 'ta-IN', name: 'Tamil', label: 'தமிழ் (Tamil)' },
-    { code: 'bn-IN', name: 'Bengali', label: 'বাংলা (Bengali)' },
-    { code: 'mr-IN', name: 'Marathi', label: 'मराठी (Marathi)' }
-  ];
+  const languageOptions = languageOptionsOverride
+    || STUDIO_LANGUAGES.map(({ code, name, full }) => ({ code, name, label: full }));
 
-  const primaryLanguage = String(selectedLang || '').split('-')[0].toLowerCase();
-  const copy = primaryLanguage === 'te' ? {
-    title: 'వాయిస్‌తో సమాధానం చెప్పండి',
-    instruction: 'మీ భాషను ఎంచుకుని మైక్ నొక్కి మాట్లాడండి. పూర్తయ్యాక ఎరుపు బటన్ నొక్కండి.',
-    listening: 'వింటున్నాం… నెమ్మదిగా మీ మాటల్లో చెప్పండి',
-    tapMic: 'సమాధానం చెప్పడానికి మైక్ నొక్కండి',
-    recording: 'రికార్డింగ్',
-    finish: 'పూర్తయ్యాక ఎరుపు బటన్ నొక్కండి',
-    answerOnly: 'పైన ఉన్న సులభమైన ప్రశ్నకు సమాధానం చెప్పండి',
-    yourWords: 'మీ మాటలు',
-    stopVoice: 'వాయిస్ ఆపండి',
-    listen: 'విని చూడండి',
-    listeningToYou: 'మీ మాటలు వింటున్నాం…',
-    captionsUnavailable: 'ఈ బ్రౌజర్‌లో వెంటనే మాటలు చూపడం లేదు. మీరు ఆపిన తర్వాత రికార్డింగ్‌ను చదువుతాం.',
-    captionsStopped: 'వెంటనే మాటలు చూపడం ఆగింది. రికార్డ్ చేసిన వాయిస్‌ను ఇంకా చదవవచ్చు.',
-    micFailed: 'మైక్ అనుమతి ఇవ్వండి, తర్వాత మళ్లీ ప్రయత్నించండి.',
-    noRecording: 'వాయిస్ రికార్డ్ కాలేదు. మైక్ అనుమతి ఇచ్చి మళ్లీ ప్రయత్నించండి.',
-    language: 'మీ భాష',
-    languages: '6 భాషలు',
-    startRecording: 'వాయిస్ సమాధానం రికార్డ్ చేయడం ప్రారంభించండి',
-    stopRecording: 'రికార్డింగ్ ఆపి సమాధానాన్ని సేవ్ చేయండి',
-    processing: 'మీ సమాధానాన్ని సిద్ధం చేస్తున్నాం…',
-  } : primaryLanguage === 'hi' ? {
-    title: 'आवाज़ में जवाब दें',
-    instruction: 'अपनी भाषा चुनें, माइक दबाकर बोलें और पूरा होने पर लाल बटन दबाएँ।',
-    listening: 'सुन रहे हैं… अपने शब्दों में धीरे बोलिए',
-    tapMic: 'जवाब देने के लिए माइक दबाएँ',
-    recording: 'रिकॉर्डिंग',
-    finish: 'पूरा होने पर लाल बटन दबाएँ',
-    answerOnly: 'ऊपर दिए आसान सवाल का जवाब दें',
-    yourWords: 'आपके शब्द',
-    stopVoice: 'आवाज़ रोकें',
-    listen: 'सुनें',
-    listeningToYou: 'आपको सुन रहे हैं…',
-    captionsUnavailable: 'इस ब्राउज़र में तुरंत शब्द नहीं दिखेंगे। रोकने के बाद रिकॉर्डिंग पढ़ी जाएगी।',
-    captionsStopped: 'तुरंत शब्द दिखना रुक गया। रिकॉर्ड की गई आवाज़ अभी भी पढ़ी जा सकती है।',
-    micFailed: 'माइक की अनुमति दें और फिर कोशिश करें।',
-    noRecording: 'आवाज़ रिकॉर्ड नहीं हुई। माइक की अनुमति देकर फिर कोशिश करें।',
-    language: 'आपकी भाषा',
-    languages: '6 भाषाएँ',
-    startRecording: 'आवाज़ में जवाब रिकॉर्ड करना शुरू करें',
-    stopRecording: 'रिकॉर्डिंग रोकें और जवाब सहेजें',
-    processing: 'आपका जवाब तैयार हो रहा है…',
-  } : {
-    title: 'Answer by Voice',
-    instruction: 'Choose your language, tap the microphone, speak, then tap the red button.',
-    listening: 'Listening… speak slowly in your own words',
-    tapMic: 'Tap the microphone to answer',
-    recording: 'Recording',
-    finish: 'tap the red button when finished',
-    answerOnly: 'Answer the simple question shown above',
-    yourWords: 'Your words',
-    stopVoice: 'Stop voice',
-    listen: 'Listen',
-    listeningToYou: 'Listening to you…',
-    captionsUnavailable: 'Live captions are unavailable. The recording will be transcribed after you stop.',
-    captionsStopped: 'Live captions stopped. The recorded audio can still be transcribed.',
-    micFailed: 'Allow microphone permission and try again.',
-    noRecording: 'No voice was recorded. Allow microphone permission and try again.',
-    language: 'Your language',
-    languages: '6 languages',
-    startRecording: 'Start recording your voice answer',
-    stopRecording: 'Stop recording and save your answer',
-    processing: 'Preparing your answer…',
-  };
+  // The recorder speaks the artisan's language, not the portal's.
+  const copy = recorderCopyFor(selectedLang);
 
   useEffect(() => {
     if (!isRecording && initialLanguage && initialLanguage !== selectedLang) {

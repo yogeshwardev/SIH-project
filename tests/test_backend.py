@@ -110,7 +110,9 @@ def test_mask_confidence_rewards_coherence_and_rejects_clutter():
     assert clutter_quality < quality
     assert clutter_details["component_coherence"] < 0.9
 
-def test_speech_capabilities_are_explicit():
+def test_speech_capabilities_are_explicit(monkeypatch):
+    from backend.app.api.speech import speech_service
+    monkeypatch.setattr(speech_service, "local_transcription_available", lambda: True)
     response = client.get("/api/speech/capabilities")
     assert response.status_code == 200
     assert response.json()["browser_dictation_fallback"] is True
@@ -416,3 +418,234 @@ def test_catalog_exports():
     assert json_res.status_code == 200
     assert "application/json" in json_res.headers["content-type"]
     assert isinstance(json_res.json(), list)
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# B2B market linkage, government feeds and scheme impact
+# ──────────────────────────────────────────────────────────────────────────────
+
+def _published_product_id() -> int:
+    """Create a published product the bulk-quote tests can ask about."""
+    db = SessionLocal()
+    try:
+        artisan = db.query(Artisan).first()
+        product = Product(
+            artisan_id=artisan.id,
+            product_name="Test Bulk Terracotta Diya Set",
+            category="Pottery & Ceramics",
+            craft_type="Terracotta Pottery",
+            material="River clay",
+            region="Khurja, Uttar Pradesh",
+            suggested_price=399.0,
+            total_cost=235.0,
+            stock_quantity=60,
+            status="Published",
+        )
+        db.add(product)
+        db.commit()
+        db.refresh(product)
+        return product.id
+    finally:
+        db.close()
+
+
+def test_bulk_request_quote_and_acceptance_flow():
+    product_id = _published_product_id()
+
+    created = client.post("/api/bulk-requests", json={
+        "product_id": product_id,
+        "buyer_name": "Procurement Officer",
+        "organisation": "State Handicrafts Emporium",
+        "buyer_type": "Government emporium",
+        "buyer_email": "Procurement@Example.com",
+        "buyer_phone": "9000000001",
+        "gstin": "09aaacg1234f1z5",
+        "delivery_city": "New Delhi",
+        "delivery_state": "Delhi",
+        "quantity": 200,
+        "target_price": 320,
+        "needed_by": "Before Diwali",
+        "message": "Need 200 sets for the festive counter.",
+    })
+    assert created.status_code == 201
+    request = created.json()
+    reference = request["reference"]
+    assert reference.startswith("RFQ-")
+    assert request["status"] == "Open"
+    assert request["buyer_email"] == "procurement@example.com"   # normalised
+    assert request["gstin"] == "09AAACG1234F1Z5"
+    assert request["quote_total"] is None
+
+    # The artisan answers with a price and lead time.
+    quoted = client.post(f"/api/bulk-requests/{reference}/quote", json={
+        "quoted_unit_price": 349,
+        "quoted_lead_time": "12 days",
+        "quote_note": "Includes packing; transport billed at actuals.",
+    })
+    assert quoted.status_code == 200
+    assert quoted.json()["status"] == "Quoted"
+    assert quoted.json()["quote_total"] == 69800.0
+
+    # Only the buyer who raised it can accept it.
+    wrong_buyer = client.post(f"/api/bulk-requests/{reference}/decision", json={
+        "decision": "Accepted", "buyer_email": "someone@else.com",
+    })
+    assert wrong_buyer.status_code == 403
+
+    accepted = client.post(f"/api/bulk-requests/{reference}/decision", json={
+        "decision": "Accepted", "buyer_email": "procurement@example.com",
+    })
+    assert accepted.status_code == 200
+    assert accepted.json()["status"] == "Accepted"
+
+    # A decided request cannot be re-quoted.
+    assert client.post(f"/api/bulk-requests/{reference}/quote", json={
+        "quoted_unit_price": 300, "quoted_lead_time": "5 days",
+    }).status_code == 409
+
+    inbox = client.get("/api/bulk-requests", params={"artisan_id": request["artisan_id"]})
+    assert inbox.status_code == 200
+    assert any(item["reference"] == reference for item in inbox.json())
+
+
+def test_bulk_request_rejects_unpublished_product():
+    db = SessionLocal()
+    try:
+        artisan = db.query(Artisan).first()
+        draft = Product(
+            artisan_id=artisan.id,
+            product_name="Draft piece awaiting review",
+            category="Pottery & Ceramics",
+            suggested_price=500.0,
+            status="Pending Approval",
+        )
+        db.add(draft)
+        db.commit()
+        draft_id = draft.id
+    finally:
+        db.close()
+
+    response = client.post("/api/bulk-requests", json={
+        "product_id": draft_id,
+        "buyer_name": "Buyer",
+        "organisation": "Org",
+        "buyer_email": "buyer@example.com",
+        "buyer_phone": "9000000002",
+        "quantity": 10,
+    })
+    assert response.status_code == 409
+
+
+def test_government_marketplace_feeds():
+    ondc = client.get("/api/catalog/export/ondc.json")
+    assert ondc.status_code == 200
+    payload = ondc.json()
+    assert payload["context"]["domain"] == "ONDC:RET10"
+    assert payload["catalog"]["count"] == len(payload["catalog"]["items"])
+    for item in payload["catalog"]["items"]:
+        assert item["price"]["currency"] == "INR"
+        assert "descriptor" in item and item["descriptor"]["name"]
+
+    gem = client.get("/api/catalog/export/gem.csv")
+    assert gem.status_code == 200
+    assert "text/csv" in gem.headers["content-type"]
+    assert "Seller Item ID,Product Title,Category" in gem.text
+    assert "India" in gem.text
+
+
+def test_impact_summary_counts_only_real_records():
+    response = client.get("/api/impact/summary")
+    assert response.status_code == 200
+    data = response.json()
+    assert data["artisans"]["onboarded"] >= 1
+    assert data["catalogue"]["live_listings"] >= 1
+    assert data["earnings"]["platform_commission"] == 0.0
+    # Earnings are derived from order lines, never invented.
+    assert data["earnings"]["total_to_artisans"] >= 0
+    assert len(data["trend"]) == 12
+    assert all({"month", "orders", "earnings"} <= set(entry) for entry in data["trend"])
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Multilingual cataloguing: the interview must run in every listed language
+# ──────────────────────────────────────────────────────────────────────────────
+
+def test_interview_runs_end_to_end_in_kannada():
+    opening = client.post("/api/speech/product-interview", json={
+        "utterance": "", "language": "Kannada", "artisan_name": "Shivamma",
+    })
+    assert opening.status_code == 200
+    data = opening.json()
+    assert data["next_question_key"] == "product_description"
+    assert "ನಮಸ್ಕಾರ" in data["assistant_message"]
+    assert "ಮಾರಾಟ" in data["question_title"]
+    assert data["question_examples"]
+
+    described = client.post("/api/speech/product-interview", json={
+        "utterance": "ಇದು ಕೈಯಿಂದ ಮಾಡಿದ ಮಣ್ಣಿನ ಹಣತೆ. ಹಬ್ಬಗಳಿಗೆ ಬಳಸುತ್ತಾರೆ.",
+        "language": "Kannada",
+        "known_attributes": data["attributes"],
+        "cost_inputs": data["cost_inputs"],
+        "last_question_key": "product_description",
+    })
+    assert described.status_code == 200
+    described_data = described.json()
+    assert described_data["next_question_key"] == "material"
+    assert "ಸಾಮಗ್ರಿ" in described_data["assistant_message"]
+
+    material = client.post("/api/speech/product-interview", json={
+        "utterance": "ನದಿಯ ಮಣ್ಣು",
+        "language": "Kannada",
+        "known_attributes": described_data["attributes"],
+        "cost_inputs": described_data["cost_inputs"],
+        "last_question_key": "material",
+    })
+    material_data = material.json()
+    assert material_data["next_question_key"] == "production_time"
+
+    timed = client.post("/api/speech/product-interview", json={
+        "utterance": "ಎರಡು ದಿನ",
+        "language": "Kannada",
+        "known_attributes": material_data["attributes"],
+        "cost_inputs": material_data["cost_inputs"],
+        "last_question_key": "production_time",
+    })
+    timed_data = timed.json()
+    # A duration dictated in Kannada words is still understood.
+    assert timed_data["attributes"]["production_time"] == "2 days"
+    assert timed_data["next_question_key"] == "material_cost"
+    assert timed_data["input_type"] == "amount"
+
+    priced = client.post("/api/speech/product-interview", json={
+        "utterance": "ಐದು ನೂರು",
+        "language": "Kannada",
+        "known_attributes": timed_data["attributes"],
+        "cost_inputs": timed_data["cost_inputs"],
+        "last_question_key": "material_cost",
+    })
+    assert priced.json()["cost_inputs"]["material_cost"] == 500.0
+
+
+def test_every_supported_language_has_a_complete_question_bank():
+    from backend.app.services import interview_content
+    from backend.app.services.speech_service import speech_service
+
+    assert set(interview_content.CONTENT) == set(interview_content.LANGUAGES)
+    expected_keys = set(interview_content.QUESTION_KEYS) | {"confirmation"}
+
+    for locale, questions in interview_content.CONTENT.items():
+        assert set(questions) == expected_keys, locale
+        for key, question in questions.items():
+            assert question["title"] and question["speak"], f"{locale}.{key}"
+            assert question["input"] in {"text", "duration", "amount", "confirm"}
+            if key != "confirmation":
+                assert question["help"] and question["examples"], f"{locale}.{key}"
+        # Every language needs its own helper copy, not an English fallback.
+        for table in (interview_content.GREETING, interview_content.RETRY,
+                      interview_content.DONE, interview_content.PROGRESS,
+                      interview_content.SUMMARY_LEAD, interview_content.PRAISE,
+                      interview_content.SUMMARY_LABELS):
+            assert locale in table
+        # And a speech code the recogniser and the voice can both use.
+        assert speech_service._normalize_language_code(interview_content.LANGUAGES[locale]["name"]) == locale
+        assert interview_content.speech_code(locale).endswith("-IN") or locale == "en"

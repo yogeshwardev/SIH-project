@@ -17,7 +17,7 @@ export default function LanguageSelector({ className = '', disabled = false, ton
         value={locale}
         disabled={disabled}
         onChange={(event) => setLocale(event.target.value)}
-        className={`cursor-pointer appearance-none bg-transparent outline-none ${compact ? 'w-[4.5rem]' : ''}`}
+        className={`cursor-pointer appearance-none bg-transparent outline-none ${compact ? 'max-w-[7.5rem]' : ''}`}
       >
         {LANGUAGE_OPTIONS.map((item) => <option key={item.code} value={item.code}>{item.label}</option>)}
       </select>

@@ -400,7 +400,7 @@ export default function BuyerDashboardPage({ onAddToCart, onBuyNow, searchTerm =
             <div className="relative flex h-full flex-col justify-center p-6 sm:p-10">
               <span className="eyebrow text-clay-300">{t('For artisans')}</span>
               <h2 className="mt-2 max-w-md text-2xl font-extrabold text-white sm:text-3xl">{t('Your craft deserves buyers across India')}</h2>
-              <p className="mt-3 max-w-md text-brand-100">{t('Take one photo, answer a few questions in Hindi, Telugu or English, and we write your listing and suggest a fair price. No listing fees to start.')}</p>
+              <p className="mt-3 max-w-md text-brand-100">{t('Take one photo, answer a few questions in your own language, and we write your listing and suggest a fair price. No listing fees to start.')}</p>
               <button type="button" onClick={onOpenSeller} className="btn btn-lg btn-accent mt-6 w-fit rounded-full">{t('Start selling')}<ArrowRight className="h-5 w-5" /></button>
             </div>
           </div>

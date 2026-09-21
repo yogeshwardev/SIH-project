@@ -1,3 +1,9 @@
+const INDIC_FACES = [
+  '"Noto Sans Devanagari"', '"Noto Sans Telugu"', '"Noto Sans Tamil"',
+  '"Noto Sans Bengali"', '"Noto Sans Kannada"', '"Noto Sans Gujarati"',
+  '"Noto Sans Malayalam"', '"Nirmala UI"',
+];
+
 /** @type {import('tailwindcss').Config} */
 export default {
   content: ['./index.html', './src/**/*.{js,ts,jsx,tsx}'],
@@ -23,8 +29,17 @@ export default {
         line: { DEFAULT: '#E4E4EE', strong: '#CFCFDD' },
       },
       fontFamily: {
-        sans: ['Inter', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'sans-serif'],
-        display: ['"Plus Jakarta Sans"', 'Inter', '-apple-system', 'Segoe UI', 'sans-serif'],
+        // The Noto faces sit after the Latin ones: browsers choose a font per
+        // character, so Devanagari, Telugu, Tamil, Bengali, Kannada, Gujarati
+        // and Malayalam all render in a proper face with no per-page switching.
+        sans: [
+          'Inter', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI',
+          ...INDIC_FACES, 'sans-serif',
+        ],
+        display: [
+          '"Plus Jakarta Sans"', 'Inter', '-apple-system', 'Segoe UI',
+          ...INDIC_FACES, 'sans-serif',
+        ],
       },
       boxShadow: {
         xs: '0 1px 2px rgba(17, 26, 21, 0.05)',

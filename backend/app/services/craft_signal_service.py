@@ -52,7 +52,10 @@ class CraftSignalService:
         dimensions: str = "",
     ) -> Dict[str, Any]:
         visual = self._analyse_image(image_path)
-        textual = self._analyse_text(" ".join(filter(None, [description, craft_type, material, dimensions])))
+        textual = self._analyse_text(
+            " ".join(filter(None, [description, craft_type, material, dimensions])),
+            description or "",
+        )
 
         factors: List[Dict[str, Any]] = []
         multiplier = 1.0
@@ -87,7 +90,8 @@ class CraftSignalService:
 
         # Studio photos are RGBA on a flat background; use the alpha channel as
         # the subject mask when it is there, otherwise take the whole frame.
-        if image.ndim == 3 and image.shape[2] == 4:
+        has_cutout = image.ndim == 3 and image.shape[2] == 4
+        if has_cutout:
             alpha = image[:, :, 3]
             bgr = image[:, :, :3]
             mask = alpha >= 128
@@ -97,6 +101,7 @@ class CraftSignalService:
 
         if mask.sum() < 64:
             mask = np.ones(bgr.shape[:2], dtype=bool)
+            has_cutout = False
 
         gray = cv2.cvtColor(bgr, cv2.COLOR_BGR2GRAY)
         hsv = cv2.cvtColor(bgr, cv2.COLOR_BGR2HSV)
@@ -141,7 +146,9 @@ class CraftSignalService:
                 0.02,
             ))
 
-        if subject_ratio >= 0.55:
+        # Only meaningful against a removed background: otherwise the "subject"
+        # is simply the whole photo.
+        if has_cutout and subject_ratio >= 0.55:
             factors.append(self._factor(
                 "Large piece",
                 f"the piece fills {subject_ratio * 100:.0f}% of the frame",
@@ -153,7 +160,7 @@ class CraftSignalService:
             "factors": factors,
             "metrics": {
                 "detail_density": round(detail_density, 4),
-                "subject_ratio": round(subject_ratio, 4),
+                "subject_ratio": round(subject_ratio, 4) if has_cutout else None,
                 "colour_tones": int(hue_spread),
                 "saturation": round(saturation, 3),
             },
@@ -161,7 +168,7 @@ class CraftSignalService:
 
     # ── Words ────────────────────────────────────────────────────────────────
 
-    def _analyse_text(self, text: str) -> Dict[str, Any]:
+    def _analyse_text(self, text: str, description: str = "") -> Dict[str, Any]:
         lowered = (text or "").lower()
         factors: List[Dict[str, Any]] = []
 
@@ -180,8 +187,10 @@ class CraftSignalService:
         if any(term in lowered for term in SIZE_TERMS):
             factors.append(self._factor("Larger format", "your description mentions a large piece", 0.03))
 
-        words = len(re.findall(r"\w+", lowered))
-        if words < 8:
+        # Counted on what the artisan actually said, not on the attribute words
+        # the app filled in around it.
+        words = len(re.findall(r"\w+", description.lower()))
+        if description.strip() and words < 8:
             factors.append(self._factor(
                 "Short description",
                 "buyers pay more when they know the story; add a line or two",

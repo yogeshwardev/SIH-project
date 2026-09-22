@@ -120,7 +120,8 @@ CraftLink now ships as an installable PWA and a Capacitor Android application. T
 | Authentication and RBAC | Prototype only | Current local login/token behavior is for demonstration and must not be used on the public internet |
 | Cross-platform mobile app | Implemented | Installable PWA plus Capacitor Android project, camera/microphone permissions, phone navigation, and a verified debug APK |
 | Offline behavior | Partial | The app shell, public catalog, and product media can be cached; writes are blocked honestly while offline and offline draft synchronization is pending |
-| Production deployment | Not complete | PostgreSQL, migrations, object storage, monitoring, notification providers, and production security are pending |
+| Containerized deployment | Implemented | A multi-stage Dockerfile serves the built frontend from the API as one service, with a Render blueprint that keeps the database, uploads, and models on one persistent disk |
+| Production hardening | Not complete | PostgreSQL, migrations, object storage, monitoring, notification providers, and production authentication are pending |
 
 ## Core user journeys
 
@@ -381,6 +382,10 @@ npm run android:debug
 ```
 
 The debug APK is written to `frontend/android/app/build/outputs/apk/debug/app-debug.apk`. Its checked-in debug environment targets `http://10.0.2.2:8000/api`, the Android Emulator route to the host API. For a physical phone or release build, set `VITE_API_BASE` to the deployed HTTPS API before building; use `frontend/.env.mobile.example` as the template.
+
+The debug build is also served from `http://localhost` rather than the usual `https://localhost`: the dev API is plain HTTP, and from a secure origin the WebView blocks every product photo on it as mixed content. `frontend/scripts/android-debug-scheme.mjs` applies that override to the debug APK only, after `cap sync` and before Gradle packages it, so `capacitor.config.json` keeps the HTTPS scheme a release build needs. The API must allow that origin — `CORS_ORIGINS` in `backend/.env` includes `http://localhost` and `https://localhost` by default.
+
+Verified on an Android emulator: the installed APK loads the catalog, renders product photos from the host API, and reports no console, CORS, or mixed-content errors.
 
 ## Configuration
 
@@ -694,7 +699,10 @@ to a craft glossary and labels every listing with the engine that produced it
 - **Demo data:** `python backend/scripts/seed_demo.py` creates one artisan with
   listings, orders and bulk enquiries so the first screen is not empty;
   `--remove` deletes it again. A fresh install stays empty on purpose.
-- **One command locally:** `docker compose up --build`, then http://localhost:8000
+- **One command locally:** `docker compose up --build`, then http://localhost:8000.
+  The image has been built and run: 2.55 GB, it serves the single-page app at `/`,
+  the API at `/api`, and reports `translation_engine: craft-glossary` until the
+  image is built with `--build-arg WITH_TRANSLATION_MODEL=true`.
 - **Hosting:** `render.yaml` deploys the same image. The speech, image and
   translation models need roughly 3 GB of RAM; on a smaller plan set
   `VOICE_MODEL_PRELOAD=false` and `IMAGE_MODEL_PRELOAD=false` and the app falls

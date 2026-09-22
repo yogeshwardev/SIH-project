@@ -15,6 +15,12 @@ const EMPTY = {
   admin_id: '', officer_name: '', access_key: '',
 };
 
+const DEMO_ACCOUNTS = {
+  buyer: { label: 'buyer@craftlink.in', password: 'CraftLink@123', form: { identifier: 'buyer@craftlink.in', password: 'CraftLink@123' } },
+  seller: { label: 'mithila@sample.craftlink.in', password: 'CraftLink@123', form: { identifier: 'mithila@sample.craftlink.in', password: 'CraftLink@123' } },
+  admin: { label: 'MOSJE-101', password: 'CraftLink@123', form: { admin_id: 'MOSJE-101', officer_name: 'MoSJE Programme Officer', access_key: 'CraftLink@123' } },
+};
+
 export default function AuthModal({ isOpen, onClose, initialTab = 'buyer', onLoginSuccess, onNavigateToSellerOnboarding }) {
   const { t } = useLanguage();
   const dialogRef = useDialogFocus(isOpen, onClose);
@@ -33,6 +39,7 @@ export default function AuthModal({ isOpen, onClose, initialTab = 'buyer', onLog
 
   const update = (field) => (event) => setForm((current) => ({ ...current, [field]: event.target.value }));
   const switchRole = (next) => { setRole(next); setRegister(false); setError(''); };
+  const fillDemo = () => setForm((current) => ({ ...current, ...DEMO_ACCOUNTS[role].form }));
   const finish = (user, userRole) => { onLoginSuccess?.(user, userRole); onClose(); };
 
   const submit = async (event) => {
@@ -116,6 +123,12 @@ export default function AuthModal({ isOpen, onClose, initialTab = 'buyer', onLog
           </div>
           <h2 id="auth-title" className="mt-6 text-2xl font-semibold text-ink-950">{t(copy[0])}</h2>
           <p className="mt-1 text-sm text-ink-500">{t(copy[1])}</p>
+          {!register && (
+            <button type="button" onClick={fillDemo} className="mt-4 flex min-h-14 w-full items-center justify-between gap-3 rounded-xl border border-brand-200 bg-brand-50 px-4 py-3 text-left transition hover:border-brand-400 hover:bg-brand-100">
+              <span><span className="block text-xs font-semibold uppercase tracking-wide text-brand-700">{t('Demo account')}</span><span className="mt-0.5 block text-sm font-semibold text-ink-900">{DEMO_ACCOUNTS[role].label}</span></span>
+              <span className="text-right"><span className="block text-xs text-ink-500">{t('Password')}</span><span className="block text-sm font-semibold text-ink-800">{DEMO_ACCOUNTS[role].password}</span><span className="mt-0.5 block text-[11px] font-semibold text-brand-700">{t('Tap to fill')}</span></span>
+            </button>
+          )}
         </div>
 
         <form onSubmit={submit} className="space-y-4 px-6 pb-6 pt-5">

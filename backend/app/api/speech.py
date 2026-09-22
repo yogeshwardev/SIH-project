@@ -11,6 +11,8 @@ from backend.app.schemas.product import (
     SpeechSynthesizeRequest,
 )
 from backend.app.services.product_interview_service import product_interview_service
+from backend.app.services import interview_content
+from backend.app.services.translation_service import translation_service
 from backend.app.services.speech_service import speech_service
 from backend.app.utils.helpers import sanitize_filename
 
@@ -112,7 +114,13 @@ async def speech_capabilities():
         "local_fast_accept_confidence": settings.LOCAL_WHISPER_FAST_ACCEPT_CONFIDENCE,
         "cloud_voiceover": cloud_enabled,
         "neural_voiceover": cloud_enabled or speech_service.neural_voiceover_available(),
-        "neural_voice_languages": ["Telugu", "Hindi", "English", "Tamil", "Bengali", "Marathi"],
+        # Derived from the question bank, so this can never drift behind the
+        # languages the app actually speaks.
+        "neural_voice_languages": [
+            interview_content.LANGUAGES[locale]["name"] for locale in interview_content.CONTENT
+        ],
+        "interview_languages": list(interview_content.CONTENT),
+        "translation_engine": translation_service.engine_name(),
         "browser_dictation_fallback": True,
         "browser_voiceover_fallback": True,
         "guided_product_interview": True,

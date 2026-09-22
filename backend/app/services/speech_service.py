@@ -89,35 +89,22 @@ class SpeechService:
         )
 
     def warmup(self) -> None:
+        """Make the low-latency recognizer ready without delaying API startup.
+
+        The larger accuracy model remains a quality fallback and is loaded only
+        when a recording actually misses the fast-path confidence threshold.
+        Loading both models plus nine remote voices here made cold boot take
+        roughly a minute on the demo laptop.
+        """
         if self.local_transcription_available():
             try:
                 with self._whisper_lock:
                     if self._whisper_fast_model is None:
                         self._whisper_fast_model = self._create_whisper_model(settings.LOCAL_WHISPER_FAST_MODEL)
-                    if self._whisper_model is None:
-                        if settings.LOCAL_WHISPER_MODEL == settings.LOCAL_WHISPER_FAST_MODEL:
-                            self._whisper_model = self._whisper_fast_model
-                        else:
-                            self._whisper_model = self._create_whisper_model(settings.LOCAL_WHISPER_MODEL)
+                    if settings.LOCAL_WHISPER_MODEL == settings.LOCAL_WHISPER_FAST_MODEL:
+                        self._whisper_model = self._whisper_fast_model
             except Exception:
                 pass
-
-        # Edge Neural has a noticeable one-time connection/token startup cost.
-        # Pre-generate the exact opening question in the existing background
-        # warm-up thread. This both primes each language voice and puts the
-        # first interaction in the in-memory cache. Avoid an automatic paid
-        # OpenAI request.
-        if settings.AI_PROVIDER.lower() != "openai" and self.neural_voiceover_available():
-            from backend.app.services.product_interview_service import product_interview_service
-
-            for locale in interview_content.CONTENT:
-                try:
-                    self.synthesize_speech(
-                        product_interview_service.CONTENT[locale]["product_description"]["speak"],
-                        interview_content.speech_code(locale),
-                    )
-                except Exception:
-                    pass
 
     def _transcribe_with_local_whisper(self, file_path: Path, hint_language: Optional[str]) -> tuple[str, str, float, str, Dict[str, float]]:
         language_code = self._normalize_language_code(hint_language)

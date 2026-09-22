@@ -97,7 +97,16 @@ def upsert_catalog() -> None:
 
         for item in PRODUCTS:
             artisan = makers[item["maker"]]
-            image_path = f"/uploads/catalog/{item['slug']}.jpg"
+            local_image = PRODUCT_DIR / f"{item['slug']}.jpg"
+            # A fresh checkout should still render a complete storefront before
+            # the optional image-download command has run. Existing local
+            # catalog photos remain preferred; otherwise use the documented
+            # Pexels source directly.
+            image_path = (
+                f"/uploads/catalog/{item['slug']}.jpg"
+                if local_image.exists()
+                else pexels_url(item["photo"], 960)
+            )
             product = (
                 db.query(Product)
                 .filter(Product.ai_confidence.like(f'%"{item["slug"]}"%'), Product.ai_confidence.like(f"%{SEED_TAG}%"))

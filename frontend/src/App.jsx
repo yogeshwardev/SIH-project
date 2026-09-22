@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import StoreHeader from './components/StoreHeader';
+import InstallPrompt from './components/InstallPrompt';
 import BuyerDashboardPage from './pages/BuyerDashboardPage';
 import SellerPortalPage from './pages/seller/SellerPortalPage';
 import SellerOnboardingPage from './pages/SellerOnboardingPage';
@@ -12,6 +13,7 @@ import UserAccountModal from './components/UserAccountModal';
 import LanguageSelector from './components/LanguageSelector';
 import Logo from './components/Logo';
 import { useLanguage } from './context/LanguageContext';
+import { Home, PackageSearch, Search, ShoppingBag, Store } from 'lucide-react';
 
 const USER_KEY = 'craftlink_user';
 const CART_KEY = 'craftlink_cart';
@@ -66,6 +68,10 @@ export default function App() {
 
   useEffect(() => { writeStorage(CART_KEY, cartItems); }, [cartItems]);
   useEffect(() => { window.scrollTo({ top: 0 }); }, [activeTab]);
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('tab') === 'seller') setActiveTab('seller');
+  }, []);
 
   const openAuth = (tab = 'buyer') => setAuthModal({ open: true, tab });
 
@@ -121,6 +127,7 @@ export default function App() {
 
   return (
     <div className="flex min-h-screen flex-col bg-paper">
+      <InstallPrompt />
       {!inWorkspace && (
         <StoreHeader
           cartCount={cartCount}
@@ -140,7 +147,7 @@ export default function App() {
         />
       )}
 
-      <main className="flex-1">
+      <main className={`flex-1 ${!inWorkspace ? 'pb-[calc(4.5rem+env(safe-area-inset-bottom))] md:pb-0' : ''}`}>
         {activeTab === 'buyer' && (
           <BuyerDashboardPage
             searchTerm={searchTerm}
@@ -178,6 +185,16 @@ export default function App() {
           />
         )}
       </main>
+
+      {!inWorkspace && (
+        <nav className="fixed inset-x-0 bottom-0 z-40 grid grid-cols-5 border-t border-line bg-white/95 pb-[env(safe-area-inset-bottom)] shadow-[0_-8px_24px_rgba(24,31,50,.10)] backdrop-blur md:hidden" aria-label={t('Mobile navigation')}>
+          <MobileNavButton icon={Home} label={t('Shop')} onClick={() => { setSelectedCategory('All'); setSearchTerm(''); window.scrollTo({ top: 0, behavior: 'smooth' }); }} />
+          <MobileNavButton icon={Search} label={t('Search')} onClick={() => document.querySelector('[type="search"]')?.focus()} />
+          <MobileNavButton icon={Store} label={t('Sell')} onClick={openSellerWorkspace} emphasis />
+          <MobileNavButton icon={PackageSearch} label={t('Orders')} onClick={() => setIsOrdersOpen(true)} />
+          <MobileNavButton icon={ShoppingBag} label={t('Cart')} onClick={() => setIsCartOpen(true)} count={cartCount} />
+        </nav>
+      )}
 
       {!inWorkspace && (
         <footer className="mt-16 bg-brand-900 text-brand-100">
@@ -249,6 +266,16 @@ export default function App() {
         onNavigateToAdmin={() => setActiveTab('admin')}
       />
     </div>
+  );
+}
+
+function MobileNavButton({ icon: Icon, label, onClick, count = 0, emphasis = false }) {
+  return (
+    <button type="button" onClick={onClick} className={`relative flex min-h-16 min-w-0 flex-col items-center justify-center gap-1 px-1 text-[11px] font-semibold ${emphasis ? 'text-clay-700' : 'text-ink-600'}`}>
+      <span className={emphasis ? 'flex h-8 w-11 items-center justify-center rounded-full bg-clay-100' : ''}><Icon className="h-5 w-5" aria-hidden="true" /></span>
+      <span className="w-full truncate">{label}</span>
+      {count > 0 && <span className="absolute right-[18%] top-1 min-w-[18px] rounded-full bg-clay-500 px-1 text-center text-[10px] leading-[18px] text-white">{count}</span>}
+    </button>
   );
 }
 

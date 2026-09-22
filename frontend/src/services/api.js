@@ -1,4 +1,6 @@
-const API_BASE = '/api';
+import { API_BASE } from './config';
+
+export { API_BASE, MEDIA_BASE, mediaUrl } from './config';
 
 // FastAPI returns `detail` as a string, or as a list of validation errors.
 async function errorMessage(res, fallback) {

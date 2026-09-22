@@ -1,11 +1,13 @@
 import React, { useState } from 'react';
-import { Menu, Sparkles, X } from 'lucide-react';
+import { Menu, MoreHorizontal, X } from 'lucide-react';
 import { LogoMark } from './Logo';
 import LanguageSelector from './LanguageSelector';
 import { cx } from './ui';
+import { useLanguage } from '../context/LanguageContext';
 
 // Full-screen app frame shared by the seller and operations workspaces.
 export default function WorkspaceShell({ badge, identity, nav, activeId, onNavigate, footer, title, subtitle, actions, children }) {
+  const { t } = useLanguage();
   const [mobileOpen, setMobileOpen] = useState(false);
   const go = (id) => { onNavigate(id); setMobileOpen(false); };
 
@@ -55,6 +57,10 @@ export default function WorkspaceShell({ badge, identity, nav, activeId, onNavig
     </div>
   );
 
+  // The four daily tasks stay under the artisan's thumb. Less frequent tools
+  // remain in the full drawer behind "More", keeping the mobile UI calm.
+  const mobileItems = nav.flatMap((group) => group.items).filter((item) => !item.onClick).slice(0, 4);
+
   return (
     <div className="flex h-[100dvh] overflow-hidden bg-paper">
       <aside className="hidden w-64 flex-shrink-0 bg-brand-900 lg:block">{sidebar}</aside>
@@ -77,9 +83,26 @@ export default function WorkspaceShell({ badge, identity, nav, activeId, onNavig
             {actions}
           </div>
         </header>
-        <main className="flex-1 overflow-y-auto">
-          <div className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6 lg:py-8">{children}</div>
+        <main className="flex-1 overflow-y-auto pb-[calc(4.5rem+env(safe-area-inset-bottom))] lg:pb-0">
+          <div className="mx-auto w-full max-w-7xl px-4 py-5 sm:px-6 lg:py-8">{children}</div>
         </main>
+
+        <nav className="fixed inset-x-0 bottom-0 z-50 grid grid-cols-5 border-t border-line bg-white/95 pb-[env(safe-area-inset-bottom)] shadow-[0_-8px_24px_rgba(24,31,50,.10)] backdrop-blur lg:hidden" aria-label="Quick workspace navigation">
+          {mobileItems.map(({ id, label, icon: Icon, count }) => {
+            const active = id === activeId;
+            return (
+              <button key={id} type="button" onClick={() => go(id)} aria-current={active ? 'page' : undefined} className={cx('relative flex min-h-16 min-w-0 flex-col items-center justify-center gap-1 px-1 text-[11px] font-semibold', active ? 'text-brand-700' : 'text-ink-500')}>
+                <Icon className="h-5 w-5" aria-hidden="true" />
+                <span className="w-full truncate">{label}</span>
+                {count > 0 && <span className="absolute right-[18%] top-2 min-w-[18px] rounded-full bg-clay-500 px-1 text-center text-[10px] leading-[18px] text-white">{count}</span>}
+              </button>
+            );
+          })}
+          <button type="button" onClick={() => setMobileOpen(true)} className="flex min-h-16 min-w-0 flex-col items-center justify-center gap-1 px-1 text-[11px] font-semibold text-ink-500" aria-label={t('Open all navigation')}>
+            <MoreHorizontal className="h-5 w-5" aria-hidden="true" />
+            <span>{t('More')}</span>
+          </button>
+        </nav>
       </div>
     </div>
   );

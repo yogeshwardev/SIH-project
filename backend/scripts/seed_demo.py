@@ -78,22 +78,6 @@ PRODUCTS = [
         "image": "madhubani-tussar-dupatta.jpg",
         "sold": 1,
     },
-    {
-        "product_name": "Madhubani Goddess Painting on Canvas",
-        "title": "Madhubani Goddess Painting on Canvas",
-        "short_description": "A large canvas in the bharni style, filled with colour by hand.",
-        "category": "Traditional Paintings",
-        "craft_type": "Madhubani Painting",
-        "material": "Canvas and acrylic",
-        "technique": "Hand-painted",
-        "region": "Madhubani, Bihar",
-        "production_time": "5 days",
-        "suggested_price": 5999.0,
-        "total_cost": 4200.0,
-        "stock_quantity": 2,
-        "image": "madhubani-goddess-painting.jpg",
-        "sold": 0,
-    },
 ]
 
 ORDERS = [

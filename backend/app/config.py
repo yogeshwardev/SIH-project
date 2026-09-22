@@ -36,6 +36,7 @@ class Settings(BaseSettings):
     LOCAL_WHISPER_BEAM_SIZE: int = 3
     LOCAL_WHISPER_CPU_THREADS: int = 8
     VOICE_MODEL_PRELOAD: bool = True
+    AUTO_SEED_SAMPLE_CATALOG: bool = True
     
     # Image enhancement config
     MAX_IMAGE_SIZE_MB: int = 15
@@ -50,7 +51,7 @@ class Settings(BaseSettings):
     # Host & Port
     HOST: str = "0.0.0.0"
     PORT: int = 8000
-    CORS_ORIGINS: str = "http://localhost:5173,http://127.0.0.1:5173"
+    CORS_ORIGINS: str = "http://localhost:5173,http://127.0.0.1:5173,https://localhost,capacitor://localhost"
 
 settings = Settings()
 
@@ -58,3 +59,10 @@ settings = Settings()
 os.makedirs(settings.UPLOAD_DIR, exist_ok=True)
 os.makedirs(settings.DATA_DIR, exist_ok=True)
 os.makedirs(settings.MODELS_DIR, exist_ok=True)
+
+# A deployment points DATABASE_URL at a mounted disk; SQLite will not create
+# the database file's own directory, so do it here.
+if settings.DATABASE_URL.startswith("sqlite:///"):
+    _db_path = Path(settings.DATABASE_URL.replace("sqlite:///", "", 1))
+    if _db_path.parent and str(_db_path.parent) not in {"", "."}:
+        os.makedirs(_db_path.parent, exist_ok=True)

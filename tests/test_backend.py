@@ -192,6 +192,20 @@ def test_local_speech_uses_fast_model_then_accuracy_fallback(monkeypatch, tmp_pa
     assert engine == "faster-whisper-small-int8"
     assert details["fallback_triggered"] == 1.0
 
+
+def test_speech_warmup_only_loads_fast_model(monkeypatch):
+    """Cold start must not block on the larger fallback model or remote TTS."""
+    service = SpeechService()
+    created = []
+    monkeypatch.setattr(service, "local_transcription_available", lambda: True)
+    monkeypatch.setattr(service, "_create_whisper_model", lambda name: created.append(name) or object())
+
+    service.warmup()
+
+    assert created == [settings.LOCAL_WHISPER_FAST_MODEL]
+    assert service._whisper_fast_model is not None
+    assert service._whisper_model is None
+
 def test_guided_product_interview_blocks_unverified_pricing():
     first = client.post("/api/speech/product-interview", json={
         "utterance": "This is a Jaipur Blue Pottery vase made with quartz and cobalt glaze. It takes 3 days.",

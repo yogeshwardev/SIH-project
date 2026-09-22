@@ -30,6 +30,15 @@ RUN pip install --no-cache-dir -r backend/requirements.txt
 
 COPY backend/ backend/
 COPY tests/ tests/
+
+# The offline translator needs its model inside the image. It is ~600 MB, so it
+# is opt-in: build with --build-arg WITH_TRANSLATION_MODEL=true on a plan with
+# the memory to run it. Without it the cataloguer falls back to the craft
+# glossary and says so in every response.
+ARG WITH_TRANSLATION_MODEL=false
+RUN if [ "$WITH_TRANSLATION_MODEL" = "true" ]; then \
+        python backend/scripts/download_translation_model.py; \
+    fi
 COPY --from=frontend /build/dist frontend/dist
 
 ENV PYTHONUNBUFFERED=1 \

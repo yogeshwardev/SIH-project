@@ -3,7 +3,19 @@
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='8' fill='%23232f3e'/><text x='6' y='24' font-size='20' font-family='Arial Black' fill='%23FFD814'>C</text></svg>" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+
+    <!-- Installable on a phone: an artisan keeps it on the home screen
+         and it opens without a browser bar. -->
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <link rel="icon" href="/favicon.ico" sizes="any" />
+    <link rel="icon" type="image/png" href="/icon-192.png" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <meta name="theme-color" content="#3B44A8" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="CraftLink" />
     <title>CraftLink.in — India's Direct Artisan Marketplace</title>
     <meta name="description" content="Shop authentic GI-certified handicrafts directly from master artisans across India. Zero middlemen, 100% fair trade, AI-powered cataloging." />
     <!-- Inter (body) + Plus Jakarta Sans (display), and a Noto Sans face for

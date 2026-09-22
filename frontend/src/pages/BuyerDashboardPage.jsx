@@ -64,6 +64,13 @@ export default function BuyerDashboardPage({ onAddToCart, onBuyNow, searchTerm =
     }
   };
   useEffect(() => { loadProducts(); return () => { requestRef.current += 1; }; }, []);
+  // Vite can become visible before FastAPI finishes importing the local AI
+  // stack. Recover automatically instead of leaving a judge on an empty page.
+  useEffect(() => {
+    if (!error || products.length) return undefined;
+    const retry = window.setTimeout(loadProducts, 2500);
+    return () => window.clearTimeout(retry);
+  }, [error, products.length]);
   useEffect(() => { setVisibleCount(PAGE_SIZE); }, [searchTerm, activeCategory, priceBucket, region, maker, inStockOnly, sort]);
 
   const matchesSearch = (product) => {

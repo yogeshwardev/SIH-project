@@ -34,3 +34,4 @@ Thumbs.db
 test_*.pptx
 extracted_*.png
 tests/craftlink_test.db
+artifacts/*.apk

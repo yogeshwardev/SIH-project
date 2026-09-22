@@ -71,9 +71,29 @@ def ensure_database_columns() -> None:
 
 ensure_database_columns()
 
+def ensure_default_catalog() -> None:
+    """Give a fresh demo database a useful storefront without manual steps."""
+    if not settings.AUTO_SEED_SAMPLE_CATALOG:
+        return
+    from backend.app.database.database import SessionLocal
+    from backend.app.models.product import Product
+
+    db = SessionLocal()
+    try:
+        has_live_products = db.query(Product.id).filter(Product.status == "Published").first() is not None
+    finally:
+        db.close()
+    if not has_live_products:
+        from backend.scripts.seed_catalog import upsert_catalog
+        upsert_catalog()
+
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
+    ensure_default_catalog()
+
     def warmup_models():
+        # Let health, catalog and login requests win the first CPU window.
+        threading.Event().wait(2.0)
         if settings.IMAGE_MODEL_PRELOAD:
             image_service.warmup(include_primary=False)
         if settings.VOICE_MODEL_PRELOAD:

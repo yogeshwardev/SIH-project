@@ -1,10 +1,16 @@
 # Render blueprint: push this repo, point Render at it, and it builds the image
 # and serves the app at one URL.
 #
+# Everything that must survive a redeploy — the database, the artisans' photos,
+# the downloaded models — lives on the mounted disk. Without that a redeploy
+# would take every listing and order with it.
+#
 # The starter plan (512 MB) cannot hold the speech and translation models, so
-# this blueprint turns preloading off and lets the browser handle speech. For
-# the full offline pipeline use a plan with at least 4 GB and set both preload
-# flags to true.
+# this blueprint turns preloading off: speech falls back to the browser and the
+# cataloguer to its craft glossary, and every response still reports which
+# engine produced it. For the full offline pipeline use a plan with at least
+# 4 GB, set both preload flags to true, and build the image with
+# --build-arg WITH_TRANSLATION_MODEL=true.
 services:
   - type: web
     name: craftlink
@@ -19,7 +25,16 @@ services:
         value: "false"
       - key: AI_PROVIDER
         value: local
+      # Persisted paths, all under the mounted disk.
+      - key: DATABASE_URL
+        value: sqlite:////var/craftlink/craftlink.db
+      - key: UPLOAD_DIR
+        value: /var/craftlink/uploads
+      - key: MODELS_DIR
+        value: /var/craftlink/models
+      - key: CORS_ORIGINS
+        value: https://localhost,capacitor://localhost
     disk:
       name: craftlink-data
-      mountPath: /app/backend/uploads
-      sizeGB: 1
+      mountPath: /var/craftlink
+      sizeGB: 5

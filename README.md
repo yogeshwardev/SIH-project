@@ -79,6 +79,24 @@ New products enter a manual review queue. Operations users can inspect the image
 
 ![CraftLink operations portal](docs/screenshots/operations-portal.png)
 
+### Bulk buyer enquiries
+
+Artisans receive institutional requests in a dedicated workspace with quantity, target price, delivery location, deadline, buyer contact, and quote controls.
+
+![CraftLink bulk enquiries](docs/screenshots/bulk-enquiries.png)
+
+### Programme impact
+
+The operations dashboard counts onboarding, live listings, artisan earnings, accepted bulk value, geographic reach, languages, verification, and fulfilment from database records.
+
+![CraftLink programme impact dashboard](docs/screenshots/impact-dashboard.png)
+
+### Mobile application
+
+CraftLink now ships as an installable PWA and a Capacitor Android application. The phone layout uses a persistent, thumb-sized task bar and retains the full nine-language interface.
+
+![CraftLink mobile marketplace](docs/screenshots/mobile-marketplace.png)
+
 ## Implementation status
 
 | Capability | Status | Current implementation |
@@ -95,12 +113,13 @@ New products enter a manual review queue. Operations users can inspect the image
 | Price guidance | Experimental | Cost floor plus a prototype ML benchmark model; bundled benchmark rows are synthetic and are not valid live-market evidence |
 | Product classification from image | Limited | The image service currently reports broad visual features, not a validated craft-category classifier |
 | Human approval | Implemented | New products enter `Pending Approval`; operations can approve or return them |
-| B2B quotation workflow | Backend implemented | RFQ, quotation, and buyer decision endpoints exist; dedicated buyer/seller screens are still required |
-| Impact metrics | Backend implemented | Database-derived impact summary endpoint exists; a programme dashboard is still required |
+| B2B quotation workflow | Implemented | Buyer RFQ, seller inbox and quotation, buyer decision, and status tracking |
+| Impact metrics | Implemented | Database-derived programme dashboard with earnings, reach, languages, verification, and exports |
 | ONDC linkage | Export prototype | An ONDC-style catalog feed exists; it is not a certified network integration |
 | GeM linkage | Export prototype | A GeM-style CSV exists; it is not a direct GeM connection |
 | Authentication and RBAC | Prototype only | Current local login/token behavior is for demonstration and must not be used on the public internet |
-| Installable/offline PWA | Not implemented | The responsive web UI works on mobile-sized screens, but manifest, service worker, and offline queue are pending |
+| Cross-platform mobile app | Implemented | Installable PWA plus Capacitor Android project, camera/microphone permissions, phone navigation, and a verified debug APK |
+| Offline behavior | Partial | The app shell, public catalog, and product media can be cached; writes are blocked honestly while offline and offline draft synchronization is pending |
 | Production deployment | Not complete | PostgreSQL, migrations, object storage, monitoring, notification providers, and production security are pending |
 
 ## Core user journeys
@@ -330,6 +349,39 @@ npm run dev
 
 Open `http://localhost:5173`. Vite proxies `/api` and `/uploads` to FastAPI.
 
+After the one-time dependency setup, Windows users can start both services with:
+
+```powershell
+.\start-craftlink.ps1
+```
+
+If a fresh database has no published products, the backend automatically adds the documented sample catalog. The storefront also retries while the API is starting, so opening the browser a few seconds early does not leave an empty collection.
+
+### Demo sign-in accounts
+
+The sign-in dialog shows these accounts and can fill each one with a single tap:
+
+| Role | User ID | Password |
+| --- | --- | --- |
+| Buyer | `buyer@craftlink.in` | `CraftLink@123` |
+| Seller | `mithila@sample.craftlink.in` | `CraftLink@123` |
+| Operations | `MOSJE-101` | `CraftLink@123` |
+
+These credentials are for local judging demonstrations only. The current authentication layer remains a prototype and must be replaced before public deployment.
+
+### 5. Build the Android app
+
+Install Android Studio/SDK and use its bundled JDK, then run:
+
+```powershell
+cd D:\sih\frontend
+$env:JAVA_HOME='C:\Program Files\Android\Android Studio\jbr'
+$env:ANDROID_HOME="$env:LOCALAPPDATA\Android\Sdk"
+npm run android:debug
+```
+
+The debug APK is written to `frontend/android/app/build/outputs/apk/debug/app-debug.apk`. Its checked-in debug environment targets `http://10.0.2.2:8000/api`, the Android Emulator route to the host API. For a physical phone or release build, set `VITE_API_BASE` to the deployed HTTPS API before building; use `frontend/.env.mobile.example` as the template.
+
 ## Configuration
 
 Configuration is loaded from `backend/.env`.
@@ -344,7 +396,7 @@ Configuration is loaded from `backend/.env`.
 | `LOCAL_WHISPER_FAST_MODEL` | `base` | Fast local transcription pass |
 | `LOCAL_WHISPER_MODEL` | `small` | Accuracy fallback model |
 | `LOCAL_WHISPER_DEVICE` | `cpu` | Faster Whisper device |
-| `VOICE_MODEL_PRELOAD` | `true` | Warm voice resources during startup |
+| `VOICE_MODEL_PRELOAD` | `true` | Warm only the fast Whisper model; the larger accuracy model loads on low-confidence fallback |
 | `IMAGE_FAST_SEGMENTATION_MODEL` | `u2netp` | Fast segmentation model |
 | `IMAGE_SEGMENTATION_MODEL` | `birefnet-general-lite` | Primary segmentation model |
 | `IMAGE_FAST_ACCEPT_CONFIDENCE` | `0.95` | Fast-path threshold, not a marketing accuracy score |
@@ -462,7 +514,9 @@ cd D:\sih
 .\backend\venv\Scripts\python.exe -m pytest tests\test_backend.py -q
 ```
 
-Latest local result: **26 backend tests passed**.
+Latest local result: **27 backend tests passed**.
+
+The Android debug package also completed `assembleDebug` successfully. The generated APK is approximately 7 MB.
 
 ### AI evaluation warning
 
@@ -497,11 +551,11 @@ Do not expose the current build to the public internet with real personal or fin
 
 ### Mobile and offline
 
-- Responsive web is implemented, but installable PWA is not.
-- There is no service worker or offline draft queue.
+- PWA installation and an Android shell are implemented; Play Store signing and release publishing are not.
+- The service worker caches only the app shell and public catalog/media. There is no offline write queue or draft synchronization yet.
 - Camera and microphone support depend on browser capability and permission.
 - Edge neural TTS needs network access.
-- Local Whisper latency depends on the device.
+- The fast Whisper model warms in the background; a low-confidence answer may still pay the one-time larger-model load cost.
 
 ### Commerce and linkage
 
@@ -509,7 +563,7 @@ Do not expose the current build to the public internet with real personal or fin
 - Payment, refunds, tax, shipping rates, carrier labels, notifications, and returns are pending.
 - ONDC and GeM outputs are prototypes, not certified integrations.
 - Bharat-TULIP publishing is not implemented.
-- B2B and impact endpoints need complete interfaces.
+- Production B2B notifications, procurement verification, and settlement remain pending.
 
 ## Production roadmap
 
@@ -520,9 +574,9 @@ Do not expose the current build to the public internet with real personal or fin
 3. Build a real artisan-image benchmark and report IoU, Dice, boundary F1, failure rate, and device latency.
 4. Measure speech Word Error Rate and extracted-field accuracy with target-language speakers.
 5. Replace synthetic price rows with source-labelled, date-stamped comparables.
-6. Add installable PWA support, saved drafts, and offline synchronization.
+6. Add saved drafts, background synchronization, and signed Play Store releases.
 7. Complete one real staging or partner-led marketplace integration.
-8. Connect B2B quotation and MoSJE impact workflows to dedicated interfaces.
+8. Pilot B2B quotation and MoSJE impact workflows with verified programme users.
 9. Run moderated artisan usability sessions and report task completion, corrections, time, and assistance required.
 
 ### Production infrastructure

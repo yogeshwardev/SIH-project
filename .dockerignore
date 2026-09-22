@@ -1,0 +1,28 @@
+# Keep the build context small and the image clean. Without this, COPY backend/
+# drags the Windows virtualenv, the local database, every uploaded photo and the
+# downloaded models into the image — and a Windows venv inside a Linux
+# container is worse than useless.
+**/venv/
+**/__pycache__/
+**/*.pyc
+backend/craftlink.db
+backend/uploads/
+tests/craftlink_test.db
+
+# Downloaded model weights: fetched in the image when it is built with
+# WITH_TRANSLATION_MODEL=true, or at runtime. The small trained pricing model
+# (craft_pricing_rf.joblib) is kept, so prices do not need retraining on boot.
+backend/saved_models/nllb-*/
+backend/saved_models/whisper/
+
+# Built by the image itself, or irrelevant to it.
+node_modules/
+frontend/node_modules/
+frontend/dist/
+frontend/android/
+artifacts/
+.git/
+.github/
+docs/
+*.pptx
+*.pdf

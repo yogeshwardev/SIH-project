@@ -3,6 +3,7 @@ import { ArrowRight, BadgeCheck, Banknote, ChevronLeft, ChevronRight, Hand, MapP
 import { api } from '../services/api';
 import ProductCard from '../components/ProductCard';
 import ProductDetailModal from '../components/ProductDetailModal';
+import BulkQuoteModal from '../components/BulkQuoteModal';
 import { Notice, cx, formatINR } from '../components/ui';
 import { useLanguage } from '../context/LanguageContext';
 import { STOREFRONT_CATEGORIES, normalizeCategory, storefrontImage } from '../data/storefrontCategories';
@@ -28,7 +29,7 @@ const POPULAR = ['Kanchipuram', 'Blue pottery', 'Dhokra', 'Madhubani', 'Channapa
 const stateOf = (product) => (product.region || '').split(',').pop().trim();
 const imageOf = (product) => product?.enhanced_image || product?.original_image;
 
-export default function BuyerDashboardPage({ onAddToCart, onBuyNow, searchTerm = '', onSearch, onOpenSeller, onClearSearch, selectedCategory = 'All', onCategoryChange }) {
+export default function BuyerDashboardPage({ onAddToCart, onBuyNow, searchTerm = '', onSearch, onOpenSeller, onClearSearch, selectedCategory = 'All', onCategoryChange, currentUser = null }) {
   const { locale, t } = useLanguage();
   const [products, setProducts] = useState([]);
   const [stores, setStores] = useState({});
@@ -42,6 +43,7 @@ export default function BuyerDashboardPage({ onAddToCart, onBuyNow, searchTerm =
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [detailProduct, setDetailProduct] = useState(null);
+  const [bulkProduct, setBulkProduct] = useState(null);
   const requestRef = useRef(0);
   const activeCategory = normalizeCategory(selectedCategory);
 
@@ -429,8 +431,16 @@ export default function BuyerDashboardPage({ onAddToCart, onBuyNow, searchTerm =
           onBuyNow={onBuyNow}
           onViewProduct={setDetailProduct}
           onVisitMaker={(id) => { setDetailProduct(null); showCollection(() => setMaker(String(id))); }}
+          onRequestBulkQuote={(product) => { setDetailProduct(null); setBulkProduct(product); }}
         />
       )}
+
+      <BulkQuoteModal
+        isOpen={Boolean(bulkProduct)}
+        product={bulkProduct}
+        currentUser={currentUser}
+        onClose={() => setBulkProduct(null)}
+      />
     </div>
   );
 }

@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { BarChart3, Eye, LayoutDashboard, LogOut, Package, Plus, RefreshCw, ShieldCheck, Sparkles, Store, Truck, Wallet } from 'lucide-react';
+import { Building2, BarChart3, Eye, LayoutDashboard, LogOut, Package, Plus, RefreshCw, ShieldCheck, Sparkles, Store, Truck, Wallet } from 'lucide-react';
 import { api } from '../../services/api';
 import { useLanguage } from '../../context/LanguageContext';
 import WorkspaceShell from '../../components/WorkspaceShell';
@@ -12,12 +12,14 @@ import SellerPayouts from './SellerPayouts';
 import SellerInsights from './SellerInsights';
 import SellerStoreProfile from './SellerStoreProfile';
 import AiListingStudio from './AiListingStudio';
+import SellerBulkRequests from './SellerBulkRequests';
 
 const TITLES = {
   overview: ['My shop today', 'A quick look at what is happening'],
   studio: ['Add a new product', 'One photo, a few easy questions, and you are done'],
   inventory: ['My products', 'Everything you have put up for sale'],
   orders: ['My orders', 'Confirm, pack and send what buyers ordered'],
+  bulk: ['Bulk enquiries', 'Shops and emporiums asking for a quantity'],
   payouts: ['My money', 'What you have earned and what is on the way'],
   insights: ['How I am doing', 'What sells well, and what needs care'],
   store: ['My shop details', 'What buyers and our team can see'],
@@ -34,6 +36,7 @@ export default function SellerPortalPage({ currentUser, onNavigateToAdmin, onNav
   const [profile, setProfile] = useState(isAdmin ? null : currentUser);
   const [products, setProducts] = useState([]);
   const [orders, setOrders] = useState([]);
+  const [bulkRequests, setBulkRequests] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [lastUpdated, setLastUpdated] = useState(null);
@@ -56,13 +59,15 @@ export default function SellerPortalPage({ currentUser, onNavigateToAdmin, onNav
     if (!quiet) setLoading(true);
     setError('');
     try {
-      const [productList, orderList, artisan] = await Promise.all([
+      const [productList, orderList, artisan, bulkList] = await Promise.all([
         api.getProducts({ status: 'All', artisan_id: storeId }),
         api.getOrders({ artisan_id: storeId }),
         api.getArtisan(storeId).catch(() => null),
+        api.getBulkRequests({ artisan_id: storeId }).catch(() => []),
       ]);
       setProducts(productList || []);
       setOrders(orderList || []);
+      setBulkRequests(bulkList || []);
       if (artisan) setProfile(artisan);
       setLastUpdated(new Date());
 
@@ -112,6 +117,7 @@ export default function SellerPortalPage({ currentUser, onNavigateToAdmin, onNav
       { id: 'orders', label: t('Orders'), icon: Truck, count: metrics.toFulfil.length },
       { id: 'inventory', label: t('My products'), icon: Package, count: products.length },
       { id: 'studio', label: t('Add a product'), icon: Sparkles },
+      { id: 'bulk', label: t('Bulk enquiries'), icon: Building2, count: bulkRequests.filter((request) => request.status === 'Open').length },
     ] },
     { label: t('Business'), items: [
       { id: 'payouts', label: t('My money'), icon: Wallet },
@@ -170,6 +176,7 @@ export default function SellerPortalPage({ currentUser, onNavigateToAdmin, onNav
           {tab === 'overview' && <SellerOverview {...shared} storeName={storeName} profile={profile} />}
           {tab === 'inventory' && <SellerInventory {...shared} setProducts={setProducts} />}
           {tab === 'orders' && <SellerOrders {...shared} setOrders={setOrders} />}
+          {tab === 'bulk' && <SellerBulkRequests requests={bulkRequests} loading={loading} onRefresh={() => load(true)} />}
           {tab === 'payouts' && <SellerPayouts {...shared} profile={profile} />}
           {tab === 'insights' && <SellerInsights {...shared} />}
           {tab === 'store' && <SellerStoreProfile profile={profile} products={products} onNavigateToOnboarding={onNavigateToOnboarding} />}

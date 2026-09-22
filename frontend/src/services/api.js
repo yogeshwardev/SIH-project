@@ -363,7 +363,57 @@ export const api = {
     return res.json();
   },
 
+  // B2B market linkage: a buyer asks for a quantity, the artisan answers with a
+  // price and a lead time, the buyer accepts or declines.
+  async createBulkRequest(payload) {
+    const res = await fetch(`${API_BASE}/bulk-requests`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    if (!res.ok) throw new Error(await errorMessage(res, 'Could not send your enquiry. Please try again.'));
+    return res.json();
+  },
+
+  async getBulkRequests(params = {}) {
+    const query = new URLSearchParams(
+      Object.entries(params).filter(([, value]) => value !== undefined && value !== null && value !== ''),
+    ).toString();
+    const res = await fetch(`${API_BASE}/bulk-requests${query ? `?${query}` : ''}`);
+    if (!res.ok) throw new Error(await errorMessage(res, 'Could not load bulk enquiries.'));
+    return res.json();
+  },
+
+  async quoteBulkRequest(reference, payload) {
+    const res = await fetch(`${API_BASE}/bulk-requests/${encodeURIComponent(reference)}/quote`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    if (!res.ok) throw new Error(await errorMessage(res, 'Could not send your price.'));
+    return res.json();
+  },
+
+  async decideBulkRequest(reference, payload) {
+    const res = await fetch(`${API_BASE}/bulk-requests/${encodeURIComponent(reference)}/decision`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    if (!res.ok) throw new Error(await errorMessage(res, 'Could not record your decision.'));
+    return res.json();
+  },
+
+  // Scheme-level impact, counted from live records only.
+  async getImpactSummary() {
+    const res = await fetch(`${API_BASE}/impact/summary`);
+    if (!res.ok) throw new Error(await errorMessage(res, 'Could not load impact data.'));
+    return res.json();
+  },
+
   // Export URLs
   csvExportUrl: `${API_BASE}/catalog/export/csv`,
   jsonExportUrl: `${API_BASE}/catalog/export/json`,
+  ondcExportUrl: `${API_BASE}/catalog/export/ondc.json`,
+  gemExportUrl: `${API_BASE}/catalog/export/gem.csv`,
 };

@@ -151,6 +151,7 @@ export default function App() {
             onOpenSeller={openSellerWorkspace}
             onAddToCart={handleAddToCart}
             onBuyNow={handleBuyNow}
+            currentUser={currentUser}
           />
         )}
         {activeTab === 'seller' && canSell && (

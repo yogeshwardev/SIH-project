@@ -1,0 +1,21 @@
+# One command to run the whole thing:  docker compose up --build
+# Then open http://localhost:8000
+services:
+  craftlink:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      # Set these to false on a small instance (under ~3 GB RAM). The app still
+      # works: speech falls back to the browser, the cataloguer to its glossary.
+      IMAGE_MODEL_PRELOAD: "true"
+      VOICE_MODEL_PRELOAD: "true"
+    volumes:
+      # Keep the database, uploaded photos and downloaded models across restarts.
+      - craftlink-db:/app/backend/craftlink.db
+      - craftlink-uploads:/app/backend/uploads
+      - craftlink-models:/app/backend/saved_models
+volumes:
+  craftlink-db:
+  craftlink-uploads:
+  craftlink-models:

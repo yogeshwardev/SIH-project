@@ -1,0 +1,25 @@
+# Render blueprint: push this repo, point Render at it, and it builds the image
+# and serves the app at one URL.
+#
+# The starter plan (512 MB) cannot hold the speech and translation models, so
+# this blueprint turns preloading off and lets the browser handle speech. For
+# the full offline pipeline use a plan with at least 4 GB and set both preload
+# flags to true.
+services:
+  - type: web
+    name: craftlink
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    plan: starter
+    healthCheckPath: /health
+    envVars:
+      - key: IMAGE_MODEL_PRELOAD
+        value: "false"
+      - key: VOICE_MODEL_PRELOAD
+        value: "false"
+      - key: AI_PROVIDER
+        value: local
+    disk:
+      name: craftlink-data
+      mountPath: /app/backend/uploads
+      sizeGB: 1

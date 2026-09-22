@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { BarChart3, Check, ClipboardCheck, Download, Eye, FileSpreadsheet, LogOut, Mic, Package, RefreshCw, Search, Store, Truck, X } from 'lucide-react';
+import { HeartHandshake, BarChart3, Check, ClipboardCheck, Download, Eye, FileSpreadsheet, LogOut, Mic, Package, RefreshCw, Search, Store, Truck, X } from 'lucide-react';
 import { api } from '../services/api';
+import ImpactDashboard from './admin/ImpactDashboard';
 import { useLanguage } from '../context/LanguageContext';
 import WorkspaceShell from '../components/WorkspaceShell';
 import BeforeAfterSlider from '../components/BeforeAfterSlider';
@@ -16,6 +17,7 @@ const TITLES = {
   orders: ['Orders', 'Fulfilment across the marketplace'],
   stores: ['Stores', 'Registered sellers'],
   reports: ['Reports', 'Marketplace numbers and data exports'],
+  impact: ['Impact', 'What this has changed for artisans, counted from live records'],
 };
 
 export default function AdminPortalPage({ currentUser, onNavigateToMarketplace, onNavigateToSeller, onSignOut }) {
@@ -62,6 +64,7 @@ export default function AdminPortalPage({ currentUser, onNavigateToMarketplace, 
       { id: 'catalog', label: t('Catalog'), icon: Package },
       { id: 'stores', label: t('Stores'), icon: Store },
       { id: 'reports', label: t('Reports'), icon: BarChart3 },
+      { id: 'impact', label: t('Impact'), icon: HeartHandshake },
     ] },
     { label: t('Switch to'), items: [{ id: 'seller', label: t('Seller workspace'), icon: Store, onClick: onNavigateToSeller }] },
   ];
@@ -100,6 +103,7 @@ export default function AdminPortalPage({ currentUser, onNavigateToMarketplace, 
         {tab === 'orders' && <SellerOrders orders={orders} storeId={null} loading={loading} setOrders={setOrders} />}
         {tab === 'stores' && <Stores stores={stores} products={products} loading={loading} />}
         {tab === 'reports' && <Reports stats={stats} metrics={metrics} orders={orders} />}
+        {tab === 'impact' && <ImpactDashboard />}
       </div>
 
       {inspecting && (

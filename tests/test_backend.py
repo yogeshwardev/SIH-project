@@ -44,11 +44,20 @@ def setup_database():
     yield
 
 def test_root_endpoint():
-    response = client.get("/")
+    """/api describes the service; / serves the app when it has been built."""
+    response = client.get("/api")
     assert response.status_code == 200
     data = response.json()
     assert "CraftLink" in data["project"]
     assert data["status"] == "operational"
+
+    # One deployment, one URL: the built frontend is served from the same app.
+    root = client.get("/")
+    assert root.status_code == 200
+    if "text/html" in root.headers.get("content-type", ""):
+        assert "<div id=\"root\"" in root.text
+    else:
+        assert "CraftLink" in root.json()["project"]
 
 def test_health_endpoint():
     response = client.get("/health")

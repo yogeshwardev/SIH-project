@@ -127,7 +127,7 @@ app.include_router(orders_router, prefix=settings.API_PREFIX)
 app.include_router(bulk_requests_router, prefix=settings.API_PREFIX)
 app.include_router(impact_router, prefix=settings.API_PREFIX)
 
-@app.get("/")
+@app.get("/api")
 def root():
     return {
         "project": "CraftLink India",
@@ -140,3 +140,18 @@ def root():
 @app.get("/health")
 def health_check():
     return {"status": "healthy", "version": settings.VERSION}
+
+# The built frontend, when there is one. `npm run build` writes it to
+# frontend/dist; in development Vite serves the app itself and this is skipped.
+spa_dist = settings.BASE_DIR.parent / "frontend" / "dist"
+if (spa_dist / "index.html").exists():
+    app.mount("/", StaticFiles(directory=str(spa_dist), html=True), name="app")
+else:
+    @app.get("/")
+    def development_root():
+        return {
+            "project": "CraftLink India",
+            "status": "api only",
+            "note": "Run the Vite dev server for the UI, or build it into frontend/dist.",
+            "api_docs": "/docs",
+        }

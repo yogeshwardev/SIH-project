@@ -633,3 +633,16 @@ Roughly 600 MB into `backend/saved_models/`. Without it the cataloguer falls bac
 to a craft glossary and labels every listing with the engine that produced it
 (`translation_engine`), so nothing silently claims to be a translation. When
 `GEMINI_API_KEY` or `OPENAI_API_KEY` is configured, that model is preferred.
+
+## Demo and deployment
+
+- **Demo script, accounts and failure drills:** [docs/DEMO.md](docs/DEMO.md)
+- **Demo data:** `python backend/scripts/seed_demo.py` creates one artisan with
+  listings, orders and bulk enquiries so the first screen is not empty;
+  `--remove` deletes it again. A fresh install stays empty on purpose.
+- **One command locally:** `docker compose up --build`, then http://localhost:8000
+- **Hosting:** `render.yaml` deploys the same image. The speech, image and
+  translation models need roughly 3 GB of RAM; on a smaller plan set
+  `VOICE_MODEL_PRELOAD=false` and `IMAGE_MODEL_PRELOAD=false` and the app falls
+  back to browser speech and the craft glossary, labelling each response with
+  the engine that produced it.

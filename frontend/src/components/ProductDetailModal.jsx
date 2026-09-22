@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { ArrowRight, Banknote, Check, Minus, Plus, ShieldCheck, ShoppingBag, Store, Truck, Volume2, VolumeX, X, MapPin, Clock, Ruler } from 'lucide-react';
+import { ArrowRight, Banknote, Building2, Check, Minus, Plus, ShieldCheck, ShoppingBag, Store, Truck, Volume2, VolumeX, X, MapPin, Clock, Ruler } from 'lucide-react';
 import { voiceAssistant } from '../services/voiceAssistant';
 import { useLanguage } from '../context/LanguageContext';
 import useDialogFocus from '../hooks/useDialogFocus';
@@ -8,7 +8,7 @@ import ProductCard from './ProductCard';
 import { productTitle, productPrice } from '../utils/productMedia';
 import { cx, formatINR } from './ui';
 
-export default function ProductDetailModal({ product, allProducts = [], storeName, onClose, onAddToCart, onBuyNow, onViewProduct, onVisitMaker }) {
+export default function ProductDetailModal({ product, allProducts = [], storeName, onClose, onAddToCart, onBuyNow, onViewProduct, onVisitMaker, onRequestBulkQuote }) {
   const { locale, language, t } = useLanguage();
   const [quantity, setQuantity] = useState(1);
   const [speaking, setSpeaking] = useState(false);
@@ -81,6 +81,15 @@ export default function ProductDetailModal({ product, allProducts = [], storeNam
                 </button>
                 <button type="button" disabled={soldOut} onClick={() => { onClose(); onBuyNow?.({ ...product, quantity }); }} className="btn btn-buy btn-lg flex-1 rounded-full">{t('Buy now')}</button>
               </div>
+
+              {/* Shops and emporiums buy by the dozen; give them a way to ask. */}
+              <button
+                type="button"
+                onClick={() => onRequestBulkQuote?.(product)}
+                className="mt-3 flex w-full items-center justify-center gap-2 rounded-full border border-brand-200 bg-brand-50 px-4 py-3 text-sm font-semibold text-brand-800 transition hover:border-brand-400 hover:bg-brand-100"
+              >
+                <Building2 className="h-4 w-4" />{t('Buying in bulk? Ask the artisan for a quote')}
+              </button>
 
               <ul className="mt-5 grid grid-cols-3 gap-2 text-center text-xs text-ink-600">
                 {[[Banknote, 'Cash on delivery'], [Truck, 'Free delivery'], [ShieldCheck, 'Reviewed listing']].map(([Icon, label]) => (

@@ -67,9 +67,9 @@ export default function ProductCard({ product, onAddToCart, onViewDetail, compac
         <button type="button" onClick={() => onViewDetail?.(product)} className={cx('mt-1 text-left font-display font-semibold leading-snug text-ink-950 hover:text-brand-600', compact ? 'line-clamp-1 text-sm' : 'line-clamp-2 min-h-[2.6rem] text-[15px]')}>
           {title}
         </button>
-        <div className="mt-auto flex items-baseline justify-between gap-2 pt-2">
+        <div className="mt-auto flex flex-wrap items-baseline justify-between gap-x-2 gap-y-0.5 pt-2">
           <span className={cx('font-display font-bold text-ink-950', compact ? 'text-base' : 'text-lg')}>{formatINR(price)}</span>
-          {!compact && product.craft_type && <span className="truncate text-[11px] font-medium text-brand-600">{product.craft_type}</span>}
+          {!compact && product.craft_type && <span className="text-[11px] font-medium leading-tight text-brand-600">{product.craft_type}</span>}
         </div>
       </div>
     </article>

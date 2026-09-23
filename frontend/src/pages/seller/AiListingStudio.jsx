@@ -448,7 +448,7 @@ export default function AiListingStudio({ onProductCreated, onViewProducts, arti
             <div className="flex items-center gap-4 rounded-xl border border-line bg-paper-50 p-4 text-left">
               {imgData?.enhanced_image_url && <img src={imgData.enhanced_image_url} alt="" className="h-16 w-16 rounded-lg bg-white object-contain p-1" />}
               <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-semibold text-ink-950">{listing?.title_en || attrs?.product_name}</p>
+                <p className="text-sm font-semibold leading-snug text-ink-950">{listing?.title_en || attrs?.product_name}</p>
                 <p className="text-xs text-ink-500">#{productId} · {stockQuantity} {t('units')}</p>
               </div>
               <div className="text-right">
@@ -469,8 +469,25 @@ export default function AiListingStudio({ onProductCreated, onViewProducts, arti
   return (
     <div className="space-y-6">
       {/* Progress */}
-      <nav className="card p-2 sm:p-3" aria-label={t('Listing steps')}>
-        <ol className="flex items-center gap-1 overflow-x-auto scrollbar-none">
+      <nav className="card p-3 sm:p-3" aria-label={t('Listing steps')}>
+        {/* A phone shows where you are and how far is left; the five-stop rail
+            needs room the screen does not have. */}
+        <div className="sm:hidden">
+          <div className="flex items-baseline justify-between gap-3">
+            <p className="min-w-0 text-[15px] font-semibold text-ink-950">{t(STEPS[step - 1]?.label || '')}</p>
+            <p className="flex-shrink-0 text-xs font-semibold tabular-nums text-ink-500">
+              {t('Step')} {step} {t('of')} {STEPS.length}
+            </p>
+          </div>
+          <p className="mt-0.5 text-[13px] leading-snug text-ink-500">{t(STEPS[step - 1]?.sub || '')}</p>
+          <div className="mt-2.5 h-1.5 overflow-hidden rounded-full bg-paper-200" role="presentation">
+            <div
+              className="h-full rounded-full bg-brand-600 transition-all duration-500"
+              style={{ width: `${(step / STEPS.length) * 100}%` }}
+            />
+          </div>
+        </div>
+        <ol className="hidden items-center gap-1 overflow-x-auto scrollbar-none sm:flex">
           {STEPS.map((s, idx) => {
             const done = step > s.n;
             const cur = step === s.n;
@@ -558,14 +575,14 @@ export default function AiListingStudio({ onProductCreated, onViewProducts, arti
                       return (
                         <button key={option.id} type="button" disabled={changingImageIndex !== null} aria-pressed={selected} onClick={() => applyBackground(option.id)} className={`rounded-xl border p-1.5 text-left transition disabled:cursor-wait disabled:opacity-50 ${selected ? 'border-brand-600 bg-brand-50 ring-2 ring-brand-600/15' : 'border-line bg-white hover:border-brand-300'}`}>
                           <span className={`relative block aspect-[5/3] rounded-lg border border-black/5 shadow-inner ${option.swatch}`}>{selected && <Check className="absolute right-1 top-1 h-4 w-4 rounded-full bg-brand-700 p-0.5 text-white" />}</span>
-                          <span className="mt-1.5 block truncate text-[11px] font-bold text-ink-900">{t(option.label)}</span>
+                          <span className="mt-1.5 block text-[11px] font-bold leading-tight text-ink-900">{t(option.label)}</span>
                         </button>
                       );
                     })}
                     <label className={`flex flex-col rounded-xl border border-dashed border-brand-400 bg-brand-50 p-1.5 text-brand-800 hover:bg-brand-100 ${changingImageIndex !== null ? 'cursor-wait opacity-50' : 'cursor-pointer'}`}>
                       <input type="file" accept="image/jpeg,image/png,image/webp" onChange={handleCustomBackground} disabled={changingImageIndex !== null} className="sr-only" />
                       <span className="flex aspect-[5/3] items-center justify-center rounded-lg bg-white"><Upload className="h-5 w-5" /></span>
-                      <span className="mt-1.5 truncate text-[11px] font-bold">{t('Import yours')}</span>
+                      <span className="mt-1.5 text-[11px] font-bold leading-tight">{t('Import yours')}</span>
                     </label>
                   </div>
                 </div>

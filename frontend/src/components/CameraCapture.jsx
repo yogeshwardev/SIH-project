@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Check, Image as ImageIcon, RefreshCw, SwitchCamera, X, Zap, ZapOff } from 'lucide-react';
 import { cameraCopyFor } from '../i18n/studioCopy';
 
@@ -143,9 +144,11 @@ export default function CameraCapture({ language, onCapture, onClose }) {
 
   const close = () => { stopStream(); onClose(); };
 
-  return (
+  // On <body>, so no animated ancestor in the studio can turn this into a
+  // 358x1453 box wedged between the header and the tab bar.
+  return createPortal(
     <div
-      className="fixed inset-0 z-50 flex flex-col bg-black"
+      className="fixed inset-0 z-[90] flex flex-col bg-black"
       role="dialog"
       aria-modal="true"
       aria-label={copy.title}
@@ -276,6 +279,7 @@ export default function CameraCapture({ language, onCapture, onClose }) {
           </>
         )}
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }

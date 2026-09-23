@@ -135,7 +135,7 @@ export default function SellerOverview({ products, orders, metrics, storeId, loa
               <li key={item.title}>
                 <button type="button" onClick={() => onNavigate(item.go)} className="group flex w-full items-center gap-3 px-5 py-4 text-left hover:bg-paper-50">
                   <span className={cx('flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl', item.tone)}><item.icon className="h-5 w-5" /></span>
-                  <span className="min-w-0 flex-1"><span className="block font-semibold text-ink-900">{item.title}</span><span className="block truncate text-sm text-ink-500">{item.detail}</span></span>
+                  <span className="min-w-0 flex-1"><span className="block font-semibold text-ink-900">{item.title}</span><span className="block text-sm leading-snug text-ink-500">{item.detail}</span></span>
                   <ArrowRight className="h-4 w-4 text-ink-400 transition group-hover:translate-x-0.5 group-hover:text-ink-700" />
                 </button>
               </li>

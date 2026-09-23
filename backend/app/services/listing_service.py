@@ -118,7 +118,11 @@ class ListingService:
         )
 
         # 1. English Listings
-        title_en = f"Authentic {p_name} | Handcrafted in {region}"
+        # The name can already carry the word - from an earlier pass, or from
+        # the artisan's own sentence - and "Authentic Authentic ..." is what
+        # the artisan then reads back on the review screen.
+        lead = "" if p_name.strip().lower().startswith("authentic") else "Authentic "
+        title_en = f"{lead}{p_name} | Handcrafted in {region}"
         
         short_desc_en = (
             f"Handmade {p_name} created with authentic {mat} by master artisans of {region}. "

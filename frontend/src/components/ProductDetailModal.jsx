@@ -51,12 +51,15 @@ export default function ProductDetailModal({ product, allProducts = [], storeNam
         </button>
 
         <div ref={scrollRef} className="overflow-y-auto">
-          <div className="grid md:grid-cols-[1.05fr_1fr]">
-            <div className="relative bg-paper-200 md:sticky md:top-0 md:h-[min(720px,calc(100dvh-40px))]">
+          {/* min-w-0 on both columns: a grid track is sized by its content by
+              default, and the gallery's natural width was pushing the product
+              page 153 px wider than the phone it was open on. */}
+          <div className="grid grid-cols-1 md:grid-cols-[1.05fr_1fr]">
+            <div className="relative min-w-0 bg-paper-200 md:sticky md:top-0 md:h-[min(720px,calc(100dvh-40px))]">
               <ProductGallery product={product} alt={title} badge={product.badge} translate={t} />
             </div>
 
-            <div className="flex flex-col p-6 sm:p-9">
+            <div className="flex min-w-0 flex-col p-5 sm:p-9">
               <p className="text-xs font-semibold uppercase tracking-wider text-clay-600">{t(product.category || 'Handmade')}</p>
               <h1 id="product-dialog-title" className="mt-2 pr-8 text-[26px] font-extrabold leading-tight sm:text-3xl">{title}</h1>
 

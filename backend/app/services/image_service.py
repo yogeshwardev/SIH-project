@@ -178,12 +178,21 @@ class ComputerVisionStudioService:
             quality, valid, details = self._score_mask(refined)
             if valid:
                 return refined, settings.IMAGE_SEGMENTATION_MODEL, quality, details
+            if self._fills_the_frame(refined):
+                # Keep the whole photograph rather than cutting a hole in it.
+                full = np.full(refined.shape, 255, dtype=np.uint8)
+                return full, "no-cutout-needed", quality, details
         except Exception:
             # The app remains useful offline or before model weights finish downloading.
             pass
 
         fallback = self._grabcut_fallback(np.asarray(source))
         quality, _, details = self._score_mask(fallback)
+        if (fallback >= 96).mean() < 0.0025:
+            # grabcut found nothing to keep. Returning an empty mask would
+            # delete the artisan's photograph, so keep all of it instead.
+            full = np.full(fallback.shape, 255, dtype=np.uint8)
+            return full, "no-cutout-needed", min(quality, 0.5), details
         return fallback, "grabcut-fallback", min(quality, 0.72), details
 
     @staticmethod
@@ -268,6 +277,20 @@ class ComputerVisionStudioService:
         return quality, valid, details
 
     @staticmethod
+    def _fills_the_frame(alpha: np.ndarray) -> bool:
+        """True when the product covers the photograph, leaving no background.
+
+        A flat painting or a laid-out textile photographed close up has nothing
+        around it to remove. That is a normal photograph, not a failed one.
+        """
+        foreground = alpha >= 96
+        occupancy = float(foreground.sum()) / max(foreground.size, 1)
+        border = np.concatenate(
+            (foreground[0], foreground[-1], foreground[:, 0], foreground[:, -1])
+        )
+        return occupancy > 0.90 and float(border.mean()) > 0.55
+
+    @staticmethod
     def _composite_studio_scene(
         foreground_rgba: np.ndarray,
         background_style: str = "warm-studio",
@@ -276,7 +299,12 @@ class ComputerVisionStudioService:
         alpha = foreground_rgba[:, :, 3]
         points = cv2.findNonZero((alpha > 18).astype(np.uint8))
         if points is None:
-            raise ValueError("No foreground product was detected in the photo.")
+            # Nothing was separated from the background. The photograph is
+            # still the artisan's photograph, so use all of it.
+            alpha = np.full(alpha.shape, 255, dtype=np.uint8)
+            foreground_rgba = foreground_rgba.copy()
+            foreground_rgba[:, :, 3] = alpha
+            points = cv2.findNonZero((alpha > 18).astype(np.uint8))
         x, y, width, height = cv2.boundingRect(points)
         pad = max(8, int(max(width, height) * 0.035))
         x0, y0 = max(0, x - pad), max(0, y - pad)

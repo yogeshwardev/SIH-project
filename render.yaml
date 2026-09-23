@@ -1,30 +1,29 @@
 # Render blueprint: push this repo, point Render at it, and it builds the image
 # and serves the whole app — single-page app and API — at one URL.
 #
-# Everything that must survive a redeploy lives on the mounted disk: the
-# database, the artisans' photos, and any model downloaded later. Without that
-# a redeploy would take every listing and order with it.
+# The public judging deployment uses Render's free web-service plan so it can
+# be launched without billing details. Its filesystem is ephemeral: the
+# documented sample catalogue is recreated after a restart, while production
+# deployments should move the database/uploads to managed persistent storage.
 #
-# Plan: `starter` (512 MB) runs the app, but not the speech or translation
+# The 512 MB instance runs the app, but not the speech or translation
 # models, so this blueprint turns preloading off. Speech falls back to the
 # browser's own recogniser and the cataloguer to its craft glossary, and every
 # response reports which engine produced it, so nothing silently pretends to be
 # a neural translation.
 #
-# For the full offline pipeline, raise the plan to one with at least 2 GB, set
-# both preload flags to true, and — once the service is live — open a shell on
-# it and run:
+# For the full offline pipeline, raise the plan to one with persistent storage
+# and at least 2 GB RAM, set both preload flags to true, and run:
 #
 #     python backend/scripts/download_translation_model.py
 #
-# That writes ~600 MB into MODELS_DIR below, which is on the disk, so it is
-# downloaded once and survives every later deploy.
+# The free deployment intentionally does not download the ~600 MB model.
 services:
   - type: web
     name: craftlink
     runtime: docker
     dockerfilePath: ./Dockerfile
-    plan: starter
+    plan: free
     # Closest region to Indian users and judges.
     region: singapore
     healthCheckPath: /health
@@ -35,18 +34,13 @@ services:
         value: "false"
       - key: AI_PROVIDER
         value: local
-      # Persisted paths, all under the mounted disk.
       - key: DATABASE_URL
-        value: sqlite:////var/craftlink/craftlink.db
+        value: sqlite:////tmp/craftlink.db
       - key: UPLOAD_DIR
-        value: /var/craftlink/uploads
+        value: /tmp/craftlink/uploads
       - key: MODELS_DIR
-        value: /var/craftlink/models
+        value: /tmp/craftlink/models
       # The deployed site is same-origin, so it needs no entry here. These two
       # are for the Android build, which is served from its own local origin.
       - key: CORS_ORIGINS
         value: https://localhost,capacitor://localhost
-    disk:
-      name: craftlink-data
-      mountPath: /var/craftlink
-      sizeGB: 5

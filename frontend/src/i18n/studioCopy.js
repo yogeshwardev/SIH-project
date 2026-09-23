@@ -503,6 +503,8 @@ export const CAMERA_COPY = {
     starting: 'Starting the camera…',
     switch: 'Switch camera',
     denied: 'Camera permission is needed. Allow it, or choose a photo from your gallery instead.',
+    torch: 'Flash',
+    gallery: 'Choose a photo',
   },
   hi: {
     open: 'अभी फोटो लें',
@@ -515,6 +517,8 @@ export const CAMERA_COPY = {
     starting: 'कैमरा चालू हो रहा है…',
     switch: 'कैमरा बदलें',
     denied: 'कैमरे की अनुमति चाहिए। अनुमति दें, या गैलरी से फोटो चुनें।',
+    torch: 'फ्लैश',
+    gallery: 'फोटो चुनें',
   },
   te: {
     open: 'ఇప్పుడే ఫోటో తీయండి',
@@ -527,6 +531,8 @@ export const CAMERA_COPY = {
     starting: 'కెమెరా ప్రారంభమవుతోంది…',
     switch: 'కెమెరా మార్చండి',
     denied: 'కెమెరా అనుమతి కావాలి. అనుమతి ఇవ్వండి, లేదా గ్యాలరీ నుండి ఫోటో ఎంచుకోండి.',
+    torch: 'ఫ్లాష్',
+    gallery: 'ఫోటో ఎంచుకోండి',
   },
   ta: {
     open: 'இப்போதே புகைப்படம் எடுக்கவும்',
@@ -539,6 +545,8 @@ export const CAMERA_COPY = {
     starting: 'கேமரா தொடங்குகிறது…',
     switch: 'கேமராவை மாற்று',
     denied: 'கேமரா அனுமதி தேவை. அனுமதி கொடுங்கள், அல்லது கேலரியில் இருந்து படம் தேர்ந்தெடுங்கள்.',
+    torch: 'ஃப்ளாஷ்',
+    gallery: 'படத்தைத் தேர்ந்தெடுக்கவும்',
   },
   bn: {
     open: 'এখনই ছবি তুলুন',
@@ -551,6 +559,8 @@ export const CAMERA_COPY = {
     starting: 'ক্যামেরা চালু হচ্ছে…',
     switch: 'ক্যামেরা বদলান',
     denied: 'ক্যামেরার অনুমতি দরকার। অনুমতি দিন, অথবা গ্যালারি থেকে ছবি বেছে নিন।',
+    torch: 'ফ্ল্যাশ',
+    gallery: 'ছবি বাছুন',
   },
   mr: {
     open: 'आत्ताच फोटो काढा',
@@ -563,6 +573,8 @@ export const CAMERA_COPY = {
     starting: 'कॅमेरा सुरू होत आहे…',
     switch: 'कॅमेरा बदला',
     denied: 'कॅमेऱ्याची परवानगी हवी. परवानगी द्या, किंवा गॅलरीतून फोटो निवडा.',
+    torch: 'फ्लॅश',
+    gallery: 'फोटो निवडा',
   },
   kn: {
     open: 'ಈಗಲೇ ಫೋಟೋ ತೆಗೆಯಿರಿ',
@@ -575,6 +587,8 @@ export const CAMERA_COPY = {
     starting: 'ಕ್ಯಾಮೆರಾ ಪ್ರಾರಂಭವಾಗುತ್ತಿದೆ…',
     switch: 'ಕ್ಯಾಮೆರಾ ಬದಲಿಸಿ',
     denied: 'ಕ್ಯಾಮೆರಾ ಅನುಮತಿ ಬೇಕು. ಅನುಮತಿ ನೀಡಿ, ಅಥವಾ ಗ್ಯಾಲರಿಯಿಂದ ಫೋಟೋ ಆರಿಸಿ.',
+    torch: 'ಫ್ಲ್ಯಾಶ್',
+    gallery: 'ಫೋಟೋ ಆಯ್ಕೆಮಾಡಿ',
   },
   gu: {
     open: 'હમણાં ફોટો લો',
@@ -587,6 +601,8 @@ export const CAMERA_COPY = {
     starting: 'કેમેરા શરૂ થઈ રહ્યો છે…',
     switch: 'કેમેરા બદલો',
     denied: 'કેમેરાની પરવાનગી જોઈએ. પરવાનગી આપો, અથવા ગેલેરીમાંથી ફોટો પસંદ કરો.',
+    torch: 'ફ્લેશ',
+    gallery: 'ફોટો પસંદ કરો',
   },
   ml: {
     open: 'ഇപ്പോൾ ഫോട്ടോ എടുക്കൂ',
@@ -599,6 +615,8 @@ export const CAMERA_COPY = {
     starting: 'ക്യാമറ തുടങ്ങുന്നു…',
     switch: 'ക്യാമറ മാറ്റുക',
     denied: 'ക്യാമറ അനുമതി വേണം. അനുമതി നൽകുക, അല്ലെങ്കിൽ ഗാലറിയിൽ നിന്ന് ഫോട്ടോ തിരഞ്ഞെടുക്കുക.',
+    torch: 'ഫ്ലാഷ്',
+    gallery: 'ഫോട്ടോ തിരഞ്ഞെടുക്കുക',
   },
 };
 

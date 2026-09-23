@@ -186,22 +186,25 @@ export default function BuyerDashboardPage({ onAddToCart, onBuyNow, searchTerm =
   return (
     <div className="pb-6">
       {/* ── Hero ─────────────────────────────────────────── */}
-      <section className="mx-auto max-w-[1320px] px-4 pt-5 sm:px-6">
-        <div className="grid overflow-hidden rounded-3xl bg-brand-900 lg:grid-cols-[1.05fr_1fr]">
-          <div className="bg-buti relative flex flex-col justify-center px-6 py-10 sm:px-12 sm:py-14">
-            <span className="inline-flex w-fit items-center gap-2 rounded-full bg-white/10 px-3 py-1.5 text-xs font-semibold text-clay-200">
+      <section className="mx-auto max-w-[1320px] px-3 pt-3 sm:px-6 sm:pt-5">
+        <div className="grid overflow-hidden rounded-2xl bg-brand-900 sm:rounded-3xl lg:grid-cols-[1.05fr_1fr]">
+          <div className="bg-buti relative flex flex-col justify-center px-5 py-6 sm:px-12 sm:py-14">
+            <span className="inline-flex w-fit items-center gap-2 rounded-full bg-white/10 px-3 py-1.5 text-[11px] font-semibold text-clay-200 sm:text-xs">
               <Sparkles className="h-3.5 w-3.5" />
               {makers.length ? `${makers.length} ${t('makers')} · ${states.length} ${t('states')} · ${products.length} ${t('handmade pieces')}` : t('Handmade across India')}
             </span>
-            <h1 className="mt-5 text-[34px] font-extrabold leading-[1.08] text-white sm:text-5xl lg:text-[56px]">
+            <h1 className="mt-3 text-[26px] font-extrabold leading-[1.1] text-white sm:mt-5 sm:text-5xl lg:text-[56px]">
               {t('Made by hand.')}<br /><span className="text-clay-400">{t('Sent from the maker.')}</span>
             </h1>
-            <p className="mt-5 max-w-md text-base leading-relaxed text-brand-100">{t('Sarees, pottery, brass and folk art from artisan studios across India. Every piece is checked before it goes live, and you pay cash on delivery.')}</p>
-            <div className="mt-7 flex flex-wrap gap-3">
-              <button type="button" onClick={() => showCollection()} className="btn btn-lg btn-accent rounded-full">{t('Shop the collection')}<ArrowRight className="h-5 w-5" /></button>
-              <button type="button" onClick={() => scrollTo('makers')} className="btn btn-lg rounded-full border border-white/25 text-white hover:bg-white/10">{t('Meet the makers')}</button>
+            {/* The full pitch is for a browser tab you landed on, not a phone
+                screen you opened on purpose. */}
+            <p className="mt-3 hidden max-w-md text-base leading-relaxed text-brand-100 sm:mt-5 sm:block">{t('Sarees, pottery, brass and folk art from artisan studios across India. Every piece is checked before it goes live, and you pay cash on delivery.')}</p>
+            <p className="mt-2 text-[13px] leading-snug text-brand-100 sm:hidden">{t('Checked before it goes live. Cash on delivery.')}</p>
+            <div className="mt-4 flex flex-wrap gap-3 sm:mt-7">
+              <button type="button" onClick={() => showCollection()} className="btn btn-accent w-full rounded-full sm:btn-lg sm:w-auto">{t('Shop the collection')}<ArrowRight className="h-5 w-5" /></button>
+              <button type="button" onClick={() => scrollTo('makers')} className="btn btn-lg hidden rounded-full border border-white/25 text-white hover:bg-white/10 sm:inline-flex">{t('Meet the makers')}</button>
             </div>
-            <div className="mt-8">
+            <div className="mt-8 hidden sm:block">
               <p className="text-xs font-semibold uppercase tracking-wider text-brand-300">{t('Popular searches')}</p>
               <div className="mt-2 flex flex-wrap gap-2">
                 {POPULAR.map((term) => (
@@ -217,11 +220,16 @@ export default function BuyerDashboardPage({ onAddToCart, onBuyNow, searchTerm =
       </section>
 
       {/* ── Trust strip ───────────────────────────────────── */}
-      <section className="mx-auto mt-4 grid max-w-[1320px] grid-cols-2 gap-3 px-4 sm:px-6 lg:grid-cols-4" aria-label={t('Why CraftLink')}>
+      <section className="mx-auto mt-3 grid max-w-[1320px] grid-cols-2 gap-2.5 px-3 sm:mt-4 sm:gap-3 sm:px-6 lg:grid-cols-4" aria-label={t('Why CraftLink')}>
         {[[Hand, 'Made by hand', 'Direct from artisan studios'], [ShieldCheck, 'Checked before listing', 'Every piece is reviewed'], [Banknote, 'Cash on delivery', 'Pay when it reaches you'], [Truck, 'Free delivery', 'On every order in India']].map(([Icon, title, detail]) => (
-          <div key={title} className="flex items-center gap-3 rounded-2xl bg-white px-4 py-3.5 shadow-card">
-            <span className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-clay-50 text-clay-600"><Icon className="h-5 w-5" /></span>
-            <span className="min-w-0"><strong className="block truncate font-display text-sm font-bold text-ink-950">{t(title)}</strong><span className="block truncate text-xs text-ink-500">{t(detail)}</span></span>
+          <div key={title} className="flex flex-col gap-2 rounded-2xl bg-white px-3.5 py-3 shadow-card sm:flex-row sm:items-center sm:gap-3 sm:px-4 sm:py-3.5">
+            <span className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl bg-clay-50 text-clay-600 sm:h-10 sm:w-10"><Icon className="h-[18px] w-[18px] sm:h-5 sm:w-5" /></span>
+            {/* These four lines are the reasons to trust the app. Wrapping them
+                costs a few pixels of height; truncating them costs the point. */}
+            <span className="min-w-0">
+              <strong className="block font-display text-[13px] font-bold leading-tight text-ink-950 sm:truncate sm:text-sm">{t(title)}</strong>
+              <span className="mt-0.5 block text-[11px] leading-tight text-ink-500 sm:mt-0 sm:truncate sm:text-xs">{t(detail)}</span>
+            </span>
           </div>
         ))}
       </section>

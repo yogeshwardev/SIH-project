@@ -1032,4 +1032,5 @@ export default {
   'Demo account': 'ડેમો ખાતું',
   'Tap to fill': 'ભરવા માટે ટેપ કરો',
   'Tap to sign in': 'સાઇન ઇન કરવા માટે ટેપ કરો',
+  'Checked before it goes live. Cash on delivery.': 'લાઇવ થતાં પહેલાં તપાસ. ડિલિવરી પર રોકડ.',
 };

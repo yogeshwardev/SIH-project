@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import StoreHeader from './components/StoreHeader';
 import InstallPrompt from './components/InstallPrompt';
 import BuyerDashboardPage from './pages/BuyerDashboardPage';
@@ -39,6 +39,27 @@ const clampToStock = (item, quantity) => {
   return Math.max(1, Math.min(quantity, stock));
 };
 
+// The tab bar grows when a language wraps its labels onto a second line, so
+// the space kept clear above it is measured rather than assumed.
+function useTabBarHeight() {
+  const ref = useRef(null);
+  const [height, setHeight] = useState(72);
+  useEffect(() => {
+    const node = ref.current;
+    if (!node) return undefined;
+    const measure = () => setHeight(node.getBoundingClientRect().height || 72);
+    measure();
+    if (typeof ResizeObserver === 'undefined') {
+      window.addEventListener('resize', measure);
+      return () => window.removeEventListener('resize', measure);
+    }
+    const observer = new ResizeObserver(measure);
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, []);
+  return [ref, height];
+}
+
 export default function App() {
   const { t } = useLanguage();
   const [activeTab, setActiveTab] = useState('buyer'); // buyer | seller | seller-onboarding | admin
@@ -58,6 +79,7 @@ export default function App() {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All');
 
+  const [tabBarRef, tabBarHeight] = useTabBarHeight();
   const [cartItems, setCartItems] = useState(() => {
     const saved = readStorage(CART_KEY, []);
     return Array.isArray(saved) ? saved : [];
@@ -147,7 +169,7 @@ export default function App() {
         />
       )}
 
-      <main className={`flex-1 ${!inWorkspace ? 'pb-[calc(4.5rem+env(safe-area-inset-bottom))] md:pb-0' : ''}`}>
+      <main className={`flex-1 ${!inWorkspace ? 'md:!pb-0' : ''}`} style={!inWorkspace ? { paddingBottom: tabBarHeight } : undefined}>
         {activeTab === 'buyer' && (
           <BuyerDashboardPage
             searchTerm={searchTerm}
@@ -187,7 +209,7 @@ export default function App() {
       </main>
 
       {!inWorkspace && (
-        <nav className="fixed inset-x-0 bottom-0 z-40 grid grid-cols-5 border-t border-line bg-white/95 pb-[env(safe-area-inset-bottom)] shadow-[0_-8px_24px_rgba(24,31,50,.10)] backdrop-blur md:hidden" aria-label={t('Mobile navigation')}>
+        <nav ref={tabBarRef} className="fixed inset-x-0 bottom-0 z-40 grid grid-cols-5 border-t border-line bg-white/95 pb-[env(safe-area-inset-bottom)] shadow-[0_-8px_24px_rgba(24,31,50,.10)] backdrop-blur md:hidden" aria-label={t('Mobile navigation')}>
           <MobileNavButton icon={Home} label={t('Shop')} onClick={() => { setSelectedCategory('All'); setSearchTerm(''); window.scrollTo({ top: 0, behavior: 'smooth' }); }} />
           <MobileNavButton icon={Search} label={t('Search')} onClick={() => document.querySelector('[type="search"]')?.focus()} />
           <MobileNavButton icon={Store} label={t('Sell')} onClick={openSellerWorkspace} emphasis />
@@ -271,9 +293,11 @@ export default function App() {
 
 function MobileNavButton({ icon: Icon, label, onClick, count = 0, emphasis = false }) {
   return (
-    <button type="button" onClick={onClick} className={`relative flex min-h-16 min-w-0 flex-col items-center justify-center gap-1 px-1 text-[11px] font-semibold ${emphasis ? 'text-clay-700' : 'text-ink-600'}`}>
-      <span className={emphasis ? 'flex h-8 w-11 items-center justify-center rounded-full bg-clay-100' : ''}><Icon className="h-5 w-5" aria-hidden="true" /></span>
-      <span className="w-full truncate">{label}</span>
+    <button type="button" onClick={onClick} aria-label={label} className={`relative flex min-h-16 min-w-0 flex-col items-center justify-center gap-1 px-0.5 py-1.5 text-[11px] font-semibold ${emphasis ? 'text-clay-700' : 'text-ink-600'}`}>
+      <span className={emphasis ? 'flex h-8 w-11 flex-shrink-0 items-center justify-center rounded-full bg-clay-100' : 'flex-shrink-0'}><Icon className="h-5 w-5" aria-hidden="true" /></span>
+      {/* Wraps rather than truncates: most of the nine languages are longer
+          than the English these widths were picked for. */}
+      <span className="w-full text-center leading-[1.15] [overflow-wrap:anywhere]">{label}</span>
       {count > 0 && <span className="absolute right-[18%] top-1 min-w-[18px] rounded-full bg-clay-500 px-1 text-center text-[10px] leading-[18px] text-white">{count}</span>}
     </button>
   );

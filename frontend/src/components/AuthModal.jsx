@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { ArrowRight, Eye, EyeOff, ShieldCheck, Sparkles, Store, UserRound, X } from 'lucide-react';
 import Logo from './Logo';
-import { api } from '../services/api';
+import { api, isOffline } from '../services/api';
 import { useLanguage } from '../context/LanguageContext';
 import LanguageSelector from './LanguageSelector';
 import useDialogFocus from '../hooks/useDialogFocus';
@@ -35,18 +35,25 @@ export default function AuthModal({ isOpen, onClose, initialTab = 'buyer', onLog
   const update = (field) => (event) => setForm((current) => ({ ...current, [field]: event.target.value }));
   const switchRole = (next) => { setRole(next); setRegister(false); setError(''); };
   const finish = (user, userRole) => { onLoginSuccess?.(user, userRole); onClose(); };
-  const signInDemo = () => finish({ ...DEMO_ACCOUNTS[role].user }, role);
+  // The demo card fills the form and signs in through the same path as a typed
+  // sign-in, so it gets the real account from the server when there is one.
+  const signInDemo = () => {
+    const filled = { ...EMPTY, ...DEMO_ACCOUNTS[role].form };
+    setForm(filled);
+    setRegister(false);
+    submitCredentials(filled);
+  };
 
-  const submit = async (event) => {
+  const submit = (event) => {
     event.preventDefault();
+    submitCredentials(form);
+  };
+
+  async function submitCredentials(values) {
+    const form = values;
     setError('');
     setLoading(true);
     try {
-      const offlineDemo = !register && authenticateOfflineDemo(role, form);
-      if (offlineDemo) {
-        finish(offlineDemo, role);
-        return;
-      }
       if (role === 'buyer' && register) {
         const res = await api.registerBuyer({ name: form.name.trim(), email: form.identifier.trim(), phone: form.phone.trim(), password: form.password });
         finish(res.user, 'buyer');
@@ -67,11 +74,19 @@ export default function AuthModal({ isOpen, onClose, initialTab = 'buyer', onLog
         finish(res.user, 'admin');
       }
     } catch (submitError) {
+      // Only when the server could not be reached at all does the bundled
+      // demo account stand in for it. A server that answers and refuses is a
+      // real refusal, and the artisan should be told so.
+      const offlineDemo = !register && isOffline(submitError) && authenticateOfflineDemo(role, form);
+      if (offlineDemo) {
+        finish(offlineDemo, role);
+        return;
+      }
       setError(submitError.message || t('Something went wrong. Please try again.'));
     } finally {
       setLoading(false);
     }
-  };
+  }
 
   const input = (name, label, props = {}) => (
     <div className={props.wrapperClass}>
@@ -116,17 +131,29 @@ export default function AuthModal({ isOpen, onClose, initialTab = 'buyer', onLog
         <div className="px-6 pt-5">
           <div className="grid grid-cols-3 gap-1 rounded-xl bg-paper-200 p-1" role="tablist">
             {tabs.map(([id, label, Icon]) => (
-              <button key={id} type="button" role="tab" aria-selected={role === id} onClick={() => switchRole(id)} className={cx('flex h-9 items-center justify-center gap-1.5 rounded-lg text-[13px] font-semibold transition', role === id ? 'bg-white text-ink-950 shadow-card' : 'text-ink-500 hover:text-ink-900')}>
-                <Icon className="h-4 w-4" />{t(label)}
+              <button key={id} type="button" role="tab" aria-selected={role === id} onClick={() => switchRole(id)} className={cx('flex min-h-9 items-center justify-center gap-1.5 rounded-lg px-1 py-1.5 text-center text-[12px] font-semibold leading-tight transition sm:text-[13px]', role === id ? 'bg-white text-ink-950 shadow-card' : 'text-ink-500 hover:text-ink-900')}>
+                {/* The icon is decoration next to a word that has to fit in a
+                    third of a narrow screen, in nine languages. */}
+                <Icon className="hidden h-4 w-4 flex-shrink-0 sm:block" />
+                <span className="[overflow-wrap:anywhere]">{t(label)}</span>
               </button>
             ))}
           </div>
           <h2 id="auth-title" className="mt-6 text-2xl font-semibold text-ink-950">{t(copy[0])}</h2>
           <p className="mt-1 text-sm text-ink-500">{t(copy[1])}</p>
           {!register && (
-            <button type="button" onClick={signInDemo} className="mt-4 flex min-h-14 w-full items-center justify-between gap-3 rounded-xl border border-brand-200 bg-brand-50 px-4 py-3 text-left transition hover:border-brand-400 hover:bg-brand-100">
-              <span><span className="block text-xs font-semibold uppercase tracking-wide text-brand-700">{t('Demo account')}</span><span className="mt-0.5 block text-sm font-semibold text-ink-900">{DEMO_ACCOUNTS[role].label}</span></span>
-              <span className="text-right"><span className="block text-xs text-ink-500">{t('Password')}</span><span className="block text-sm font-semibold text-ink-800">{DEMO_ACCOUNTS[role].password}</span><span className="mt-0.5 block text-[11px] font-semibold text-brand-700">{t('Tap to sign in')}</span></span>
+            <button type="button" onClick={signInDemo} className="mt-4 flex min-h-14 w-full flex-col gap-2 rounded-xl border border-brand-200 bg-brand-50 px-4 py-3 text-left transition hover:border-brand-400 hover:bg-brand-100 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
+              <span className="min-w-0">
+                <span className="block text-xs font-semibold uppercase tracking-wide text-brand-700">{t('Demo account')}</span>
+                {/* An email is long and a phone is narrow, so it gets the whole
+                    width and breaks where it must rather than being clipped. */}
+                <span className="mt-0.5 block text-sm font-semibold text-ink-900 [overflow-wrap:anywhere]">{DEMO_ACCOUNTS[role].label}</span>
+              </span>
+              <span className="flex items-baseline gap-2 sm:block sm:text-right">
+                <span className="text-xs text-ink-500 sm:block">{t('Password')}</span>
+                <span className="text-sm font-semibold text-ink-800 sm:block">{DEMO_ACCOUNTS[role].password}</span>
+                <span className="ml-auto text-[11px] font-semibold text-brand-700 sm:ml-0 sm:mt-0.5 sm:block">{t('Tap to sign in')}</span>
+              </span>
             </button>
           )}
         </div>

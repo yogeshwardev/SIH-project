@@ -899,4 +899,5 @@ export default {
   'Demo account': 'ডেমো অ্যাকাউন্ট',
   'Tap to fill': 'পূরণ করতে চাপুন',
   'Tap to sign in': 'সাইন ইন করতে চাপুন',
+  'Checked before it goes live. Cash on delivery.': 'লাইভ হওয়ার আগে যাচাই। ডেলিভারিতে নগদ।',
 };

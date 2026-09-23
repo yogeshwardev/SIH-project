@@ -899,4 +899,5 @@ export default {
   'Demo account': 'डेमो खाते',
   'Tap to fill': 'भरण्यासाठी टॅप करा',
   'Tap to sign in': 'साइन इन करण्यासाठी टॅप करा',
+  'Checked before it goes live. Cash on delivery.': 'लाइव्ह होण्यापूर्वी तपासणी. डिलिव्हरीवर रोख.',
 };

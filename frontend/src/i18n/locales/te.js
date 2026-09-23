@@ -798,4 +798,5 @@ export default {
   'Demo account': 'డెమో ఖాతా',
   'Tap to fill': 'నింపడానికి నొక్కండి',
   'Tap to sign in': 'సైన్ ఇన్ చేయడానికి నొక్కండి',
+  'Checked before it goes live. Cash on delivery.': 'లైవ్‌కి వెళ్లే ముందు తనిఖీ. డెలివరీ సమయంలో నగదు.',
 };

@@ -899,4 +899,5 @@ export default {
   'Demo account': 'டெமோ கணக்கு',
   'Tap to fill': 'நிரப்ப தட்டவும்',
   'Tap to sign in': 'உள்நுழைய தட்டவும்',
+  'Checked before it goes live. Cash on delivery.': 'நேரலைக்கு வரும் முன் சரிபார்ப்பு. டெலிவரியின்போது பணம்.',
 };

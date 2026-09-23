@@ -781,4 +781,5 @@ export default {
   'Demo account': 'ഡെമോ അക്കൗണ്ട്',
   'Tap to fill': 'പൂരിപ്പിക്കാൻ ടാപ്പ് ചെയ്യുക',
   'Tap to sign in': 'സൈൻ ഇൻ ചെയ്യാൻ ടാപ്പ് ചെയ്യുക',
+  'Checked before it goes live. Cash on delivery.': 'ലൈവ് ആകും മുമ്പ് പരിശോധന. ഡെലിവറിയിൽ പണം.',
 };

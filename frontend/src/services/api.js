@@ -2,6 +2,19 @@ import { API_BASE } from './config';
 
 export { API_BASE, MEDIA_BASE, mediaUrl } from './config';
 
+// Thrown when the server answered and refused. A failed fetch - no server, no
+// network - throws a plain TypeError instead, and the difference decides
+// whether falling back to the bundled offline demo is honest.
+export class ApiError extends Error {
+  constructor(message, status) {
+    super(message);
+    this.name = 'ApiError';
+    this.status = status;
+  }
+}
+
+export const isOffline = (error) => !(error instanceof ApiError);
+
 // FastAPI returns `detail` as a string, or as a list of validation errors.
 async function errorMessage(res, fallback) {
   const body = await res.json().catch(() => null);
@@ -27,7 +40,7 @@ export const api = {
       body: JSON.stringify(payload),
     });
     if (!res.ok) {
-      throw new Error(await errorMessage(res, 'Login failed'));
+      throw new ApiError(await errorMessage(res, 'Login failed'), res.status);
     }
     return res.json();
   },
@@ -39,7 +52,7 @@ export const api = {
       body: JSON.stringify(payload),
     });
     if (!res.ok) {
-      throw new Error(await errorMessage(res, 'Registration failed'));
+      throw new ApiError(await errorMessage(res, 'Registration failed'), res.status);
     }
     return res.json();
   },
@@ -51,7 +64,7 @@ export const api = {
       body: JSON.stringify(payload),
     });
     if (!res.ok) {
-      throw new Error(await errorMessage(res, 'Seller registration failed'));
+      throw new ApiError(await errorMessage(res, 'Seller registration failed'), res.status);
     }
     return res.json();
   },
@@ -63,7 +76,7 @@ export const api = {
       body: JSON.stringify(payload),
     });
     if (!res.ok) {
-      throw new Error(await errorMessage(res, 'Admin login failed'));
+      throw new ApiError(await errorMessage(res, 'Admin login failed'), res.status);
     }
     return res.json();
   },
@@ -79,7 +92,7 @@ export const api = {
       body: formData,
     });
     if (!res.ok) {
-      throw new Error(await errorMessage(res, 'Image enhancement failed'));
+      throw new ApiError(await errorMessage(res, 'Image enhancement failed'));
     }
     return res.json();
   },
@@ -90,7 +103,7 @@ export const api = {
     formData.append('background_style', backgroundStyle);
     if (customBackground) formData.append('custom_background', customBackground);
     const res = await fetch(`${API_BASE}/products/image-rebackground`, { method: 'POST', body: formData });
-    if (!res.ok) throw new Error(await errorMessage(res, 'Could not change the image background'));
+    if (!res.ok) throw new ApiError(await errorMessage(res, 'Could not change the image background'));
     return res.json();
   },
 
@@ -106,7 +119,7 @@ export const api = {
       body: formData,
     });
     if (!res.ok) {
-      throw new Error(await errorMessage(res, 'Transcription failed'));
+      throw new ApiError(await errorMessage(res, 'Transcription failed'));
     }
     return res.json();
   },
@@ -118,7 +131,7 @@ export const api = {
       body: JSON.stringify(payload),
     });
     if (!res.ok) {
-      throw new Error(await errorMessage(res, 'Product interview failed'));
+      throw new ApiError(await errorMessage(res, 'Product interview failed'));
     }
     return res.json();
   },
@@ -135,7 +148,7 @@ export const api = {
       }),
     });
     if (!res.ok) {
-      throw new Error(await errorMessage(res, 'Extraction failed'));
+      throw new ApiError(await errorMessage(res, 'Extraction failed'));
     }
     return res.json();
   },
@@ -154,7 +167,7 @@ export const api = {
       }),
     });
     if (!res.ok) {
-      throw new Error(await errorMessage(res, 'Listing generation failed'));
+      throw new ApiError(await errorMessage(res, 'Listing generation failed'));
     }
     return res.json();
   },
@@ -167,7 +180,7 @@ export const api = {
       body: JSON.stringify(pricingData),
     });
     if (!res.ok) {
-      throw new Error(await errorMessage(res, 'Pricing failed'));
+      throw new ApiError(await errorMessage(res, 'Pricing failed'));
     }
     return res.json();
   },
@@ -180,7 +193,7 @@ export const api = {
       body: JSON.stringify(productData),
     });
     if (!res.ok) {
-      throw new Error(await errorMessage(res, 'Failed to submit product'));
+      throw new ApiError(await errorMessage(res, 'Failed to submit product'));
     }
     return res.json();
   },
@@ -216,7 +229,7 @@ export const api = {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(updateData),
     });
-    if (!res.ok) throw new Error(await errorMessage(res, 'Failed to update product'));
+    if (!res.ok) throw new ApiError(await errorMessage(res, 'Failed to update product'));
     return res.json();
   },
 
@@ -225,7 +238,7 @@ export const api = {
     const res = await fetch(`${API_BASE}/products/${id}`, {
       method: 'DELETE',
     });
-    if (!res.ok) throw new Error(await errorMessage(res, 'Failed to delete product'));
+    if (!res.ok) throw new ApiError(await errorMessage(res, 'Failed to delete product'));
     return res.json();
   },
 
@@ -244,7 +257,7 @@ export const api = {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ admin_notes: adminNotes }),
     });
-    if (!res.ok) throw new Error(await errorMessage(res, 'Failed to approve product'));
+    if (!res.ok) throw new ApiError(await errorMessage(res, 'Failed to approve product'));
     return res.json();
   },
 
@@ -254,7 +267,7 @@ export const api = {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ admin_notes: reason }),
     });
-    if (!res.ok) throw new Error(await errorMessage(res, 'Failed to reject product'));
+    if (!res.ok) throw new ApiError(await errorMessage(res, 'Failed to reject product'));
     return res.json();
   },
 
@@ -302,7 +315,7 @@ export const api = {
 
   async getArtisan(id) {
     const res = await fetch(`${API_BASE}/artisans/${id}`);
-    if (!res.ok) throw new Error(await errorMessage(res, 'Seller profile not found'));
+    if (!res.ok) throw new ApiError(await errorMessage(res, 'Seller profile not found'));
     return res.json();
   },
 
@@ -338,13 +351,13 @@ export const api = {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
     });
-    if (!res.ok) throw new Error(await errorMessage(res, 'We could not place your order. Please try again.'));
+    if (!res.ok) throw new ApiError(await errorMessage(res, 'We could not place your order. Please try again.'));
     return res.json();
   },
 
   async trackOrder(orderNumber, email) {
     const res = await fetch(`${API_BASE}/orders/track/${encodeURIComponent(orderNumber.trim().toUpperCase())}?email=${encodeURIComponent(email.trim())}`);
-    if (!res.ok) throw new Error(await errorMessage(res, 'Order not found for that email address.'));
+    if (!res.ok) throw new ApiError(await errorMessage(res, 'Order not found for that email address.'));
     return res.json();
   },
 
@@ -354,7 +367,7 @@ export const api = {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ status }),
     });
-    if (!res.ok) throw new Error(await errorMessage(res, 'Could not update the order status.'));
+    if (!res.ok) throw new ApiError(await errorMessage(res, 'Could not update the order status.'));
     return res.json();
   },
 
@@ -373,7 +386,7 @@ export const api = {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
     });
-    if (!res.ok) throw new Error(await errorMessage(res, 'Could not send your enquiry. Please try again.'));
+    if (!res.ok) throw new ApiError(await errorMessage(res, 'Could not send your enquiry. Please try again.'));
     return res.json();
   },
 
@@ -382,7 +395,7 @@ export const api = {
       Object.entries(params).filter(([, value]) => value !== undefined && value !== null && value !== ''),
     ).toString();
     const res = await fetch(`${API_BASE}/bulk-requests${query ? `?${query}` : ''}`);
-    if (!res.ok) throw new Error(await errorMessage(res, 'Could not load bulk enquiries.'));
+    if (!res.ok) throw new ApiError(await errorMessage(res, 'Could not load bulk enquiries.'));
     return res.json();
   },
 
@@ -392,7 +405,7 @@ export const api = {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
     });
-    if (!res.ok) throw new Error(await errorMessage(res, 'Could not send your price.'));
+    if (!res.ok) throw new ApiError(await errorMessage(res, 'Could not send your price.'));
     return res.json();
   },
 
@@ -402,14 +415,14 @@ export const api = {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
     });
-    if (!res.ok) throw new Error(await errorMessage(res, 'Could not record your decision.'));
+    if (!res.ok) throw new ApiError(await errorMessage(res, 'Could not record your decision.'));
     return res.json();
   },
 
   // Scheme-level impact, counted from live records only.
   async getImpactSummary() {
     const res = await fetch(`${API_BASE}/impact/summary`);
-    if (!res.ok) throw new Error(await errorMessage(res, 'Could not load impact data.'));
+    if (!res.ok) throw new ApiError(await errorMessage(res, 'Could not load impact data.'));
     return res.json();
   },
 

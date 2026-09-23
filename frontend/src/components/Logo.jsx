@@ -13,16 +13,23 @@ export function LogoMark({ className = 'h-10 w-10' }) {
   );
 }
 
-export default function Logo({ tone = 'dark', tagline, className = '' }) {
+export default function Logo({
+  tone = 'dark',
+  tagline,
+  className = '',
+  // A phone app bar shows a smaller mark and no tagline; the website keeps both.
+  markClassName = 'h-10 w-10',
+  taglineClassName = '',
+}) {
   const text = tone === 'light' ? 'text-white' : 'text-ink-950';
   return (
     <span className={`flex items-center gap-2.5 ${className}`}>
-      <LogoMark />
+      <LogoMark className={`${markClassName} shrink-0`} />
       <span className="leading-none">
-        <span className={`block font-display text-[22px] font-extrabold tracking-tight ${text}`}>
+        <span className={`block font-display text-[19px] font-extrabold tracking-tight sm:text-[22px] ${text}`}>
           craft<span className="text-clay-500">link</span>
         </span>
-        {tagline && <span className={`mt-1 block text-[11px] font-medium ${tone === 'light' ? 'text-brand-200' : 'text-ink-500'}`}>{tagline}</span>}
+        {tagline && <span className={`mt-1 text-[11px] font-medium ${taglineClassName || 'block'} ${tone === 'light' ? 'text-brand-200' : 'text-ink-500'}`}>{tagline}</span>}
       </span>
     </span>
   );

@@ -1,14 +1,37 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Menu, MoreHorizontal, X } from 'lucide-react';
 import { LogoMark } from './Logo';
 import LanguageSelector from './LanguageSelector';
 import { cx } from './ui';
 import { useLanguage } from '../context/LanguageContext';
 
+// The tab bar's height depends on how many lines its labels wrap onto, which
+// depends on the language. Measure it rather than guessing, so nothing is left
+// hidden underneath.
+function useTabBarHeight() {
+  const ref = useRef(null);
+  const [height, setHeight] = useState(72);
+  useEffect(() => {
+    const node = ref.current;
+    if (!node) return undefined;
+    const measure = () => setHeight(node.getBoundingClientRect().height || 72);
+    measure();
+    if (typeof ResizeObserver === 'undefined') {
+      window.addEventListener('resize', measure);
+      return () => window.removeEventListener('resize', measure);
+    }
+    const observer = new ResizeObserver(measure);
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, []);
+  return [ref, height];
+}
+
 // Full-screen app frame shared by the seller and operations workspaces.
 export default function WorkspaceShell({ badge, identity, nav, activeId, onNavigate, footer, title, subtitle, actions, children }) {
   const { t } = useLanguage();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [tabBarRef, tabBarHeight] = useTabBarHeight();
   const go = (id) => { onNavigate(id); setMobileOpen(false); };
 
   const sidebar = (
@@ -76,31 +99,35 @@ export default function WorkspaceShell({ badge, identity, nav, activeId, onNavig
           <button type="button" onClick={() => setMobileOpen(true)} className="btn btn-secondary btn-icon lg:hidden" aria-label="Open navigation"><Menu className="h-5 w-5" /></button>
           <div className="min-w-0 flex-1">
             <h1 className="truncate text-lg font-semibold text-ink-950">{title}</h1>
-            {subtitle && <p className="truncate text-[13px] text-ink-500">{subtitle}</p>}
+            {/* The title stays on one line; the subtitle is allowed a second
+                rather than losing its last word to an ellipsis. */}
+            {subtitle && <p className="line-clamp-2 text-[13px] leading-snug text-ink-500 sm:truncate">{subtitle}</p>}
           </div>
           <div className="flex items-center gap-2">
             <div className="hidden sm:block"><LanguageSelector compact /></div>
             {actions}
           </div>
         </header>
-        <main className="flex-1 overflow-y-auto pb-[calc(4.5rem+env(safe-area-inset-bottom))] lg:pb-0">
+        <main className="flex-1 overflow-y-auto lg:!pb-0" style={{ paddingBottom: tabBarHeight }}>
           <div className="mx-auto w-full max-w-7xl px-4 py-5 sm:px-6 lg:py-8">{children}</div>
         </main>
 
-        <nav className="fixed inset-x-0 bottom-0 z-50 grid grid-cols-5 border-t border-line bg-white/95 pb-[env(safe-area-inset-bottom)] shadow-[0_-8px_24px_rgba(24,31,50,.10)] backdrop-blur lg:hidden" aria-label="Quick workspace navigation">
+        <nav ref={tabBarRef} className="fixed inset-x-0 bottom-0 z-50 grid grid-cols-5 border-t border-line bg-white/95 pb-[env(safe-area-inset-bottom)] shadow-[0_-8px_24px_rgba(24,31,50,.10)] backdrop-blur lg:hidden" aria-label="Quick workspace navigation">
           {mobileItems.map(({ id, label, icon: Icon, count }) => {
             const active = id === activeId;
             return (
-              <button key={id} type="button" onClick={() => go(id)} aria-current={active ? 'page' : undefined} className={cx('relative flex min-h-16 min-w-0 flex-col items-center justify-center gap-1 px-1 text-[11px] font-semibold', active ? 'text-brand-700' : 'text-ink-500')}>
-                <Icon className="h-5 w-5" aria-hidden="true" />
-                <span className="w-full truncate">{label}</span>
+              <button key={id} type="button" onClick={() => go(id)} aria-current={active ? 'page' : undefined} className={cx('relative flex min-h-16 min-w-0 flex-col items-center justify-center gap-1 px-0.5 py-1.5 text-[11px] font-semibold', active ? 'text-brand-700' : 'text-ink-500')}>
+                <Icon className="h-5 w-5 flex-shrink-0" aria-hidden="true" />
+                {/* Two lines rather than an ellipsis: nine languages share this
+                    slot and most of them are longer than the English. */}
+                <span className="w-full text-center leading-[1.15] [overflow-wrap:anywhere]">{label}</span>
                 {count > 0 && <span className="absolute right-[18%] top-2 min-w-[18px] rounded-full bg-clay-500 px-1 text-center text-[10px] leading-[18px] text-white">{count}</span>}
               </button>
             );
           })}
-          <button type="button" onClick={() => setMobileOpen(true)} className="flex min-h-16 min-w-0 flex-col items-center justify-center gap-1 px-1 text-[11px] font-semibold text-ink-500" aria-label={t('Open all navigation')}>
-            <MoreHorizontal className="h-5 w-5" aria-hidden="true" />
-            <span>{t('More')}</span>
+          <button type="button" onClick={() => setMobileOpen(true)} className="flex min-h-16 min-w-0 flex-col items-center justify-center gap-1 px-0.5 py-1.5 text-[11px] font-semibold text-ink-500" aria-label={t('Open all navigation')}>
+            <MoreHorizontal className="h-5 w-5 flex-shrink-0" aria-hidden="true" />
+            <span className="w-full text-center leading-[1.15] [overflow-wrap:anywhere]">{t('More')}</span>
           </button>
         </nav>
       </div>

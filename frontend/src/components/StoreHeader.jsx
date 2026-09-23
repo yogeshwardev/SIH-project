@@ -33,7 +33,7 @@ export default function StoreHeader({
   const firstName = currentUser?.name?.split(' ')[0];
 
   const searchForm = (className, withCategory) => (
-    <form role="search" onSubmit={submitSearch} className={`flex h-12 items-stretch overflow-hidden rounded-full border-2 border-brand-600 bg-white transition focus-within:ring-4 focus-within:ring-brand-600/15 ${className}`}>
+    <form role="search" onSubmit={submitSearch} className={`flex h-11 items-stretch overflow-hidden rounded-full border border-line bg-paper-100 transition focus-within:border-brand-600 focus-within:bg-white focus-within:ring-4 focus-within:ring-brand-600/10 sm:h-12 sm:border-2 sm:border-brand-600 sm:bg-white ${className}`}>
       {withCategory && (
         <label className="relative hidden border-r border-line bg-paper-100 lg:flex">
           <span className="sr-only">{t('Category')}</span>
@@ -49,12 +49,12 @@ export default function StoreHeader({
         onChange={(event) => setSearchTerm?.(event.target.value)}
         placeholder={t('Search sarees, blue pottery, Dhokra, Madhubani…')}
         aria-label={t('Search')}
-        className="min-w-0 flex-1 bg-transparent px-5 text-[15px] text-ink-900 outline-none placeholder:text-ink-400"
+        className="min-w-0 flex-1 bg-transparent px-4 text-[15px] text-ink-900 outline-none placeholder:text-ink-400 sm:px-5"
       />
       {searchTerm && (
         <button type="button" onClick={() => setSearchTerm?.('')} className="px-2 text-ink-400 hover:text-ink-800" aria-label={t('Clear search')}><X className="h-4 w-4" /></button>
       )}
-      <button type="submit" className="m-1 flex items-center gap-2 rounded-full bg-clay-400 px-4 text-sm font-bold text-ink-950 hover:bg-clay-500 sm:px-5" aria-label={t('Search')}>
+      <button type="submit" className="m-1 flex w-9 items-center justify-center gap-2 rounded-full text-ink-500 hover:text-brand-700 sm:w-auto sm:bg-clay-400 sm:px-5 sm:text-sm sm:font-bold sm:text-ink-950 sm:hover:bg-clay-500" aria-label={t('Search')}>
         <Search className="h-[18px] w-[18px]" /><span className="hidden sm:inline">{t('Search')}</span>
       </button>
     </form>
@@ -74,24 +74,25 @@ export default function StoreHeader({
       </div>
       <div className="border-motif hidden md:block" aria-hidden="true" />
 
-      <div className="mx-auto flex h-[72px] max-w-[1320px] items-center gap-3 px-4 sm:gap-8 sm:px-6">
-        <button type="button" onClick={() => setMenuOpen((open) => !open)} className="btn btn-ghost btn-icon -ml-2 lg:hidden" aria-expanded={menuOpen} aria-controls="store-mobile-menu" aria-label={t(menuOpen ? 'Close navigation' : 'Open navigation')}>
+      <div className="mx-auto flex h-14 max-w-[1320px] items-center gap-2 px-3 sm:h-[72px] sm:gap-8 sm:px-6">
+        <button type="button" onClick={() => setMenuOpen((open) => !open)} className="btn btn-ghost btn-icon -ml-1 shrink-0 lg:hidden" aria-expanded={menuOpen} aria-controls="store-mobile-menu" aria-label={t(menuOpen ? 'Close navigation' : 'Open navigation')}>
           {menuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
         </button>
-        <button type="button" onClick={onHome} className="flex-shrink-0 rounded-xl" aria-label="CraftLink home">
-          <Logo tagline={t('Handmade in India')} />
+        <button type="button" onClick={onHome} className="min-w-0 shrink rounded-xl" aria-label="CraftLink home">
+          {/* The tagline is a website flourish; an app bar has room for the name. */}
+          <Logo tagline={t('Handmade in India')} taglineClassName="hidden sm:block" markClassName="h-8 w-8 sm:h-10 sm:w-10" className="gap-2" />
         </button>
 
         {searchForm('hidden flex-1 md:flex', true)}
 
-        <div className="ml-auto flex items-center gap-1 sm:gap-2">
+        <div className="ml-auto flex shrink-0 items-center gap-0.5 sm:gap-2">
           <div className="relative" ref={accountRef}>
             <button
               type="button"
               onClick={() => (currentUser ? setAccountOpen((open) => !open) : onOpenAuth?.('buyer'))}
               aria-expanded={currentUser ? accountOpen : undefined}
               aria-label={t(currentUser ? 'Account' : 'Sign in')}
-              className="flex h-12 items-center gap-2.5 rounded-full px-2 hover:bg-paper-100 sm:px-3"
+              className="flex h-11 items-center justify-center gap-2.5 rounded-full px-1 hover:bg-paper-100 sm:h-12 sm:px-3"
             >
               <span className="flex h-9 w-9 items-center justify-center rounded-full bg-brand-50 text-sm font-bold text-brand-700">
                 {currentUser ? (currentUser.name || 'U').charAt(0).toUpperCase() : <UserRound className="h-[18px] w-[18px]" />}
@@ -114,14 +115,19 @@ export default function StoreHeader({
             )}
           </div>
 
-          <button type="button" onClick={onOpenCart} className="relative flex h-12 items-center gap-2 rounded-full bg-brand-600 pl-3.5 pr-4 font-semibold text-white hover:bg-brand-700" aria-label={`${t('Cart')} (${cartCount})`}>
-            <ShoppingBag className="h-5 w-5" />
+          <button type="button" onClick={onOpenCart} className="relative flex h-11 w-11 items-center justify-center rounded-full text-brand-700 hover:bg-paper-100 sm:h-12 sm:w-auto sm:gap-2 sm:bg-brand-600 sm:pl-3.5 sm:pr-4 sm:font-semibold sm:text-white sm:hover:bg-brand-700" aria-label={`${t('Cart')} (${cartCount})`}>
+            <ShoppingBag className="h-[22px] w-[22px] sm:h-5 sm:w-5" />
             <span className="hidden sm:inline">{t('Cart')}</span>
-            <span className="flex h-6 min-w-6 items-center justify-center rounded-full bg-clay-400 px-1.5 text-xs font-bold text-ink-950">{cartCount > 99 ? '99+' : cartCount}</span>
+            {/* A badge on a phone, an inline count once there is room for one. */}
+            {cartCount > 0 && (
+              <span className="absolute right-0.5 top-1 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-clay-400 px-1 text-[11px] font-bold text-ink-950 ring-2 ring-white sm:static sm:h-6 sm:min-w-6 sm:px-1.5 sm:text-xs sm:ring-0">
+                {cartCount > 99 ? '99+' : cartCount}
+              </span>
+            )}
           </button>
         </div>
       </div>
-      <div className="px-4 pb-3 md:hidden">{searchForm('w-full', false)}</div>
+      <div className="px-3 pb-2.5 md:hidden">{searchForm('w-full', false)}</div>
 
       <nav className="hidden border-t border-line lg:block" aria-label={t('Shop by category')}>
         <div className="mx-auto flex h-11 max-w-[1320px] items-center gap-1 px-6">

@@ -899,4 +899,5 @@ export default {
   'Demo account': 'ಡೆಮೊ ಖಾತೆ',
   'Tap to fill': 'ತುಂಬಲು ಒತ್ತಿ',
   'Tap to sign in': 'ಸೈನ್ ಇನ್ ಮಾಡಲು ಒತ್ತಿ',
+  'Checked before it goes live. Cash on delivery.': 'ಲೈವ್ ಆಗುವ ಮೊದಲು ಪರಿಶೀಲನೆ. ಡೆಲಿವರಿಯಲ್ಲಿ ನಗದು.',
 };

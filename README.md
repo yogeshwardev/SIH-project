@@ -360,7 +360,10 @@ If a fresh database has no published products, the backend automatically adds th
 
 ### Demo sign-in accounts
 
-The sign-in dialog shows these accounts and can fill each one with a single tap:
+The sign-in dialog shows these accounts and signs in with a single tap. The
+three documented demo identities are verified on-device, so judging can enter
+the buyer, seller, and operations workspaces even when a physical phone cannot
+reach the development API.
 
 | Role | User ID | Password |
 | --- | --- | --- |
@@ -372,16 +375,16 @@ These credentials are for local judging demonstrations only. The current authent
 
 ### 5. Build the Android app
 
-Install Android Studio/SDK and use its bundled JDK, then run:
+Install Android Studio/SDK and JDK 21, then run:
 
 ```powershell
 cd D:\sih\frontend
-$env:JAVA_HOME='C:\Program Files\Android\Android Studio\jbr'
+$env:JAVA_HOME='C:\Program Files\Java\jdk-21'
 $env:ANDROID_HOME="$env:LOCALAPPDATA\Android\Sdk"
 npm run android:debug
 ```
 
-The debug APK is written to `frontend/android/app/build/outputs/apk/debug/app-debug.apk`. Its checked-in debug environment targets `http://10.0.2.2:8000/api`, the Android Emulator route to the host API. For a physical phone or release build, set `VITE_API_BASE` to the deployed HTTPS API before building; use `frontend/.env.mobile.example` as the template.
+The debug APK is written to `frontend/android/app/build/outputs/apk/debug/app-debug.apk`. Its checked-in debug environment targets `http://10.0.2.2:8000/api`, the Android Emulator route to the host API. On a physical phone, the bundled demo login, catalog, photos, seller inventory, and operations catalog remain available offline. AI processing, checkout, registration, and database writes still require a deployed backend; set `VITE_API_BASE` to its HTTPS URL before a release build, using `frontend/.env.mobile.example` as the template.
 
 The debug build is also served from `http://localhost` rather than the usual `https://localhost`: the dev API is plain HTTP, and from a secure origin the WebView blocks every product photo on it as mixed content. `frontend/scripts/android-debug-scheme.mjs` applies that override to the debug APK only, after `cap sync` and before Gradle packages it, so `capacitor.config.json` keeps the HTTPS scheme a release build needs. The API must allow that origin — `CORS_ORIGINS` in `backend/.env` includes `http://localhost` and `https://localhost` by default.
 

@@ -6,7 +6,7 @@
  * they must never see is a stale price or a stale order status presented as
  * current, so anything that changes money or state goes to the network first.
  */
-const VERSION = 'craftlink-v1';
+const VERSION = 'craftlink-v2';
 const SHELL_CACHE = `${VERSION}-shell`;
 const ASSET_CACHE = `${VERSION}-assets`;
 const DATA_CACHE = `${VERSION}-data`;

@@ -119,7 +119,7 @@ CraftLink now ships as an installable PWA and a Capacitor Android application. T
 | GeM linkage | Export prototype | A GeM-style CSV exists; it is not a direct GeM connection |
 | Authentication and RBAC | Prototype only | Current local login/token behavior is for demonstration and must not be used on the public internet |
 | Cross-platform mobile app | Implemented | Installable PWA plus Capacitor Android project, camera/microphone permissions, phone navigation, and a verified debug APK |
-| Offline behavior | Partial | The app shell, public catalog, and product media can be cached; writes are blocked honestly while offline and offline draft synchronization is pending |
+| Offline behavior | Partial | The app shell, public catalog, and product media can be cached; Android also bundles ten stocked sample products so the buyer screen is never empty; writes still require a backend connection |
 | Containerized deployment | Implemented | A multi-stage Dockerfile serves the built frontend from the API as one service, with a Render blueprint that keeps the database, uploads, and models on one persistent disk |
 | Production hardening | Not complete | PostgreSQL, migrations, object storage, monitoring, notification providers, and production authentication are pending |
 

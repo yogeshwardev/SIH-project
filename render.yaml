@@ -1,22 +1,32 @@
 # Render blueprint: push this repo, point Render at it, and it builds the image
-# and serves the app at one URL.
+# and serves the whole app — single-page app and API — at one URL.
 #
-# Everything that must survive a redeploy — the database, the artisans' photos,
-# the downloaded models — lives on the mounted disk. Without that a redeploy
-# would take every listing and order with it.
+# Everything that must survive a redeploy lives on the mounted disk: the
+# database, the artisans' photos, and any model downloaded later. Without that
+# a redeploy would take every listing and order with it.
 #
-# The starter plan (512 MB) cannot hold the speech and translation models, so
-# this blueprint turns preloading off: speech falls back to the browser and the
-# cataloguer to its craft glossary, and every response still reports which
-# engine produced it. For the full offline pipeline use a plan with at least
-# 4 GB, set both preload flags to true, and build the image with
-# --build-arg WITH_TRANSLATION_MODEL=true.
+# Plan: `starter` (512 MB) runs the app, but not the speech or translation
+# models, so this blueprint turns preloading off. Speech falls back to the
+# browser's own recogniser and the cataloguer to its craft glossary, and every
+# response reports which engine produced it, so nothing silently pretends to be
+# a neural translation.
+#
+# For the full offline pipeline, raise the plan to one with at least 2 GB, set
+# both preload flags to true, and — once the service is live — open a shell on
+# it and run:
+#
+#     python backend/scripts/download_translation_model.py
+#
+# That writes ~600 MB into MODELS_DIR below, which is on the disk, so it is
+# downloaded once and survives every later deploy.
 services:
   - type: web
     name: craftlink
     runtime: docker
     dockerfilePath: ./Dockerfile
     plan: starter
+    # Closest region to Indian users and judges.
+    region: singapore
     healthCheckPath: /health
     envVars:
       - key: IMAGE_MODEL_PRELOAD
@@ -32,6 +42,8 @@ services:
         value: /var/craftlink/uploads
       - key: MODELS_DIR
         value: /var/craftlink/models
+      # The deployed site is same-origin, so it needs no entry here. These two
+      # are for the Android build, which is served from its own local origin.
       - key: CORS_ORIGINS
         value: https://localhost,capacitor://localhost
     disk:

@@ -1031,4 +1031,5 @@ export default {
   'Open all navigation': 'બધું નેવિગેશન ખોલો',
   'Demo account': 'ડેમો ખાતું',
   'Tap to fill': 'ભરવા માટે ટેપ કરો',
+  'Tap to sign in': 'સાઇન ઇન કરવા માટે ટેપ કરો',
 };

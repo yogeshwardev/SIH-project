@@ -10,6 +10,7 @@ import { EmptyState, Modal, Notice, Spinner, StatCard, StatusPill, cx, formatDat
 import SellerOrders from './seller/SellerOrders';
 import { HorizontalBars } from './seller/SellerInsights';
 import { computeSellerMetrics } from './seller/sellerData';
+import { OFFLINE_CATALOG, OFFLINE_STORES } from '../data/offlineCatalog';
 
 const TITLES = {
   review: ['Review queue', 'Check each listing before it goes live'],
@@ -35,6 +36,24 @@ export default function AdminPortalPage({ currentUser, onNavigateToMarketplace, 
   const load = useCallback(async () => {
     setLoading(true);
     setError('');
+    if (currentUser?.offline_demo) {
+      const categories = Object.entries(OFFLINE_CATALOG.reduce((counts, product) => ({ ...counts, [product.category]: (counts[product.category] || 0) + 1 }), {})).map(([name, count]) => ({ name, count }));
+      const regions = Object.entries(OFFLINE_CATALOG.reduce((counts, product) => ({ ...counts, [product.region]: (counts[product.region] || 0) + 1 }), {})).map(([region, count]) => ({ region, count }));
+      setProducts(OFFLINE_CATALOG);
+      setOrders([]);
+      setStores(Object.entries(OFFLINE_STORES).map(([id, name]) => ({ id, name, store_name: name, kyc_status: 'Verified' })));
+      setStats({
+        published_products: OFFLINE_CATALOG.length,
+        total_products: OFFLINE_CATALOG.length,
+        total_artisans: Object.keys(OFFLINE_STORES).length,
+        average_margin_percentage: 36,
+        average_price: Math.round(OFFLINE_CATALOG.reduce((sum, product) => sum + product.suggested_price, 0) / OFFLINE_CATALOG.length),
+        categories,
+        regions,
+      });
+      setLoading(false);
+      return;
+    }
     try {
       const [productList, orderList, storeList, dashboard] = await Promise.all([
         api.getProducts({ status: 'All' }), api.getOrders(), api.getArtisans(), api.getDashboardStats(),
@@ -48,7 +67,7 @@ export default function AdminPortalPage({ currentUser, onNavigateToMarketplace, 
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [currentUser]);
   useEffect(() => { load(); }, [load]);
 
   const pending = products.filter((product) => product.status === 'Pending Approval');

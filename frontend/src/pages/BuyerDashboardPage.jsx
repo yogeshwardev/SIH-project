@@ -8,6 +8,7 @@ import { Notice, cx, formatINR } from '../components/ui';
 import { useLanguage } from '../context/LanguageContext';
 import { STOREFRONT_CATEGORIES, normalizeCategory, storefrontImage } from '../data/storefrontCategories';
 import { productPrice, productTitle } from '../utils/productMedia';
+import { OFFLINE_CATALOG, OFFLINE_STORES } from '../data/offlineCatalog';
 
 const PAGE_SIZE = 16;
 const CATEGORIES = [{ id: 'All', label: 'All crafts' }, ...STOREFRONT_CATEGORIES];
@@ -44,6 +45,7 @@ export default function BuyerDashboardPage({ onAddToCart, onBuyNow, searchTerm =
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [detailProduct, setDetailProduct] = useState(null);
   const [bulkProduct, setBulkProduct] = useState(null);
+  const [usingOfflineCatalog, setUsingOfflineCatalog] = useState(false);
   const requestRef = useRef(0);
   const activeCategory = normalizeCategory(selectedCategory);
 
@@ -52,13 +54,22 @@ export default function BuyerDashboardPage({ onAddToCart, onBuyNow, searchTerm =
     setLoading(true);
     setError('');
     try {
-      const [data, artisans] = await Promise.all([api.getProducts({ status: 'Published' }), api.getArtisans().catch(() => [])]);
+      const liveRequest = Promise.all([api.getProducts({ status: 'Published' }), api.getArtisans().catch(() => [])]);
+      const timeout = new Promise((_, reject) => window.setTimeout(() => reject(new Error('Catalog request timed out')), 3500));
+      const [data, artisans] = await Promise.race([liveRequest, timeout]);
       if (!Array.isArray(data)) throw new Error('Invalid collection response');
+      if (!data.length) throw new Error('The live collection is empty');
       if (request !== requestRef.current) return;
       setProducts(data.map((product) => ({ ...product, _catalogKey: 'database-' + product.id })));
       setStores(Object.fromEntries((artisans || []).map((artisan) => [artisan.id, artisan.store_name || artisan.name])));
+      setUsingOfflineCatalog(false);
     } catch {
-      if (request === requestRef.current) setError('Could not load the collection.');
+      if (request === requestRef.current) {
+        setProducts(OFFLINE_CATALOG.map((product) => ({ ...product, _catalogKey: product.id })));
+        setStores(OFFLINE_STORES);
+        setUsingOfflineCatalog(true);
+        setError('');
+      }
     } finally {
       if (request === requestRef.current) setLoading(false);
     }
@@ -67,10 +78,10 @@ export default function BuyerDashboardPage({ onAddToCart, onBuyNow, searchTerm =
   // Vite can become visible before FastAPI finishes importing the local AI
   // stack. Recover automatically instead of leaving a judge on an empty page.
   useEffect(() => {
-    if (!error || products.length) return undefined;
-    const retry = window.setTimeout(loadProducts, 2500);
+    if (!usingOfflineCatalog) return undefined;
+    const retry = window.setTimeout(loadProducts, 15000);
     return () => window.clearTimeout(retry);
-  }, [error, products.length]);
+  }, [usingOfflineCatalog]);
   useEffect(() => { setVisibleCount(PAGE_SIZE); }, [searchTerm, activeCategory, priceBucket, region, maker, inStockOnly, sort]);
 
   const matchesSearch = (product) => {

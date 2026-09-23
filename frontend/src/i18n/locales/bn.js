@@ -898,4 +898,5 @@ export default {
   'Open all navigation': 'সব নেভিগেশন খুলুন',
   'Demo account': 'ডেমো অ্যাকাউন্ট',
   'Tap to fill': 'পূরণ করতে চাপুন',
+  'Tap to sign in': 'সাইন ইন করতে চাপুন',
 };

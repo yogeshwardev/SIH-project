@@ -898,4 +898,5 @@ export default {
   'Open all navigation': 'ಎಲ್ಲಾ ನ್ಯಾವಿಗೇಶನ್ ತೆರೆಯಿರಿ',
   'Demo account': 'ಡೆಮೊ ಖಾತೆ',
   'Tap to fill': 'ತುಂಬಲು ಒತ್ತಿ',
+  'Tap to sign in': 'ಸೈನ್ ಇನ್ ಮಾಡಲು ಒತ್ತಿ',
 };

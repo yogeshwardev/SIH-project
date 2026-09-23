@@ -15,5 +15,8 @@ export const MEDIA_BASE = configuredApiBase
 export const mediaUrl = (path) => {
   if (typeof path !== 'string' || !path) return path;
   if (/^https?:\/\//i.test(path) || path.startsWith('data:')) return path;
-  return path.startsWith('/') ? `${MEDIA_BASE}${path}` : path;
+  // Only uploaded media belongs to the API server. Paths such as
+  // /images/catalog/... are assets packaged with the web/Android app and must
+  // stay local so the offline buyer catalogue works on physical phones.
+  return path.startsWith('/uploads/') ? `${MEDIA_BASE}${path}` : path;
 };

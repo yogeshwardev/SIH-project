@@ -795,4 +795,5 @@ export default {
   'Open all navigation': 'सभी नेविगेशन खोलें',
   'Demo account': 'डेमो खाता',
   'Tap to fill': 'भरने के लिए दबाएँ',
+  'Tap to sign in': 'साइन इन करने के लिए दबाएँ',
 };

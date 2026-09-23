@@ -898,4 +898,5 @@ export default {
   'Open all navigation': 'संपूर्ण नेव्हिगेशन उघडा',
   'Demo account': 'डेमो खाते',
   'Tap to fill': 'भरण्यासाठी टॅप करा',
+  'Tap to sign in': 'साइन इन करण्यासाठी टॅप करा',
 };

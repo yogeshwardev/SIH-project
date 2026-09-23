@@ -898,4 +898,5 @@ export default {
   'Open all navigation': 'அனைத்து வழிசெலுத்தலையும் திறக்கவும்',
   'Demo account': 'டெமோ கணக்கு',
   'Tap to fill': 'நிரப்ப தட்டவும்',
+  'Tap to sign in': 'உள்நுழைய தட்டவும்',
 };

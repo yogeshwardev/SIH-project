@@ -797,4 +797,5 @@ export default {
   'Open all navigation': 'అన్ని నావిగేషన్ తెరవండి',
   'Demo account': 'డెమో ఖాతా',
   'Tap to fill': 'నింపడానికి నొక్కండి',
+  'Tap to sign in': 'సైన్ ఇన్ చేయడానికి నొక్కండి',
 };

@@ -6,6 +6,7 @@ import { useLanguage } from '../context/LanguageContext';
 import LanguageSelector from './LanguageSelector';
 import useDialogFocus from '../hooks/useDialogFocus';
 import { Notice, Spinner, cx } from './ui';
+import { authenticateOfflineDemo, DEMO_ACCOUNTS } from '../services/offlineAuth';
 
 export const CRAFT_CATEGORIES = ['Handloom & Textiles', 'Pottery & Ceramics', 'Woodcraft & Carving', 'Metal Craft & Bell Metal', 'Cane & Bamboo', 'Traditional Paintings', 'Leather Craft', 'Stone Carving', 'Jewelry & Accessories'];
 
@@ -13,12 +14,6 @@ const EMPTY = {
   identifier: '', password: '', name: '', phone: '',
   owner_name: '', store_name: '', email: '', craft_category: CRAFT_CATEGORIES[0], region: '',
   admin_id: '', officer_name: '', access_key: '',
-};
-
-const DEMO_ACCOUNTS = {
-  buyer: { label: 'buyer@craftlink.in', password: 'CraftLink@123', form: { identifier: 'buyer@craftlink.in', password: 'CraftLink@123' } },
-  seller: { label: 'mithila@sample.craftlink.in', password: 'CraftLink@123', form: { identifier: 'mithila@sample.craftlink.in', password: 'CraftLink@123' } },
-  admin: { label: 'MOSJE-101', password: 'CraftLink@123', form: { admin_id: 'MOSJE-101', officer_name: 'MoSJE Programme Officer', access_key: 'CraftLink@123' } },
 };
 
 export default function AuthModal({ isOpen, onClose, initialTab = 'buyer', onLoginSuccess, onNavigateToSellerOnboarding }) {
@@ -39,14 +34,19 @@ export default function AuthModal({ isOpen, onClose, initialTab = 'buyer', onLog
 
   const update = (field) => (event) => setForm((current) => ({ ...current, [field]: event.target.value }));
   const switchRole = (next) => { setRole(next); setRegister(false); setError(''); };
-  const fillDemo = () => setForm((current) => ({ ...current, ...DEMO_ACCOUNTS[role].form }));
   const finish = (user, userRole) => { onLoginSuccess?.(user, userRole); onClose(); };
+  const signInDemo = () => finish({ ...DEMO_ACCOUNTS[role].user }, role);
 
   const submit = async (event) => {
     event.preventDefault();
     setError('');
     setLoading(true);
     try {
+      const offlineDemo = !register && authenticateOfflineDemo(role, form);
+      if (offlineDemo) {
+        finish(offlineDemo, role);
+        return;
+      }
       if (role === 'buyer' && register) {
         const res = await api.registerBuyer({ name: form.name.trim(), email: form.identifier.trim(), phone: form.phone.trim(), password: form.password });
         finish(res.user, 'buyer');
@@ -124,9 +124,9 @@ export default function AuthModal({ isOpen, onClose, initialTab = 'buyer', onLog
           <h2 id="auth-title" className="mt-6 text-2xl font-semibold text-ink-950">{t(copy[0])}</h2>
           <p className="mt-1 text-sm text-ink-500">{t(copy[1])}</p>
           {!register && (
-            <button type="button" onClick={fillDemo} className="mt-4 flex min-h-14 w-full items-center justify-between gap-3 rounded-xl border border-brand-200 bg-brand-50 px-4 py-3 text-left transition hover:border-brand-400 hover:bg-brand-100">
+            <button type="button" onClick={signInDemo} className="mt-4 flex min-h-14 w-full items-center justify-between gap-3 rounded-xl border border-brand-200 bg-brand-50 px-4 py-3 text-left transition hover:border-brand-400 hover:bg-brand-100">
               <span><span className="block text-xs font-semibold uppercase tracking-wide text-brand-700">{t('Demo account')}</span><span className="mt-0.5 block text-sm font-semibold text-ink-900">{DEMO_ACCOUNTS[role].label}</span></span>
-              <span className="text-right"><span className="block text-xs text-ink-500">{t('Password')}</span><span className="block text-sm font-semibold text-ink-800">{DEMO_ACCOUNTS[role].password}</span><span className="mt-0.5 block text-[11px] font-semibold text-brand-700">{t('Tap to fill')}</span></span>
+              <span className="text-right"><span className="block text-xs text-ink-500">{t('Password')}</span><span className="block text-sm font-semibold text-ink-800">{DEMO_ACCOUNTS[role].password}</span><span className="mt-0.5 block text-[11px] font-semibold text-brand-700">{t('Tap to sign in')}</span></span>
             </button>
           )}
         </div>

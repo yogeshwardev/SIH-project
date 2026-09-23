@@ -780,4 +780,5 @@ export default {
   'Open all navigation': 'എല്ലാ നാവിഗേഷനും തുറക്കുക',
   'Demo account': 'ഡെമോ അക്കൗണ്ട്',
   'Tap to fill': 'പൂരിപ്പിക്കാൻ ടാപ്പ് ചെയ്യുക',
+  'Tap to sign in': 'സൈൻ ഇൻ ചെയ്യാൻ ടാപ്പ് ചെയ്യുക',
 };

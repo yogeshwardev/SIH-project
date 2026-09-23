@@ -16,7 +16,15 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(BASE_DIR.parent))
 
 REPO_ID = "JustFrederik/nllb-200-distilled-600M-ct2-int8"
-TARGET = BASE_DIR / "saved_models" / "nllb-200-distilled-600M-ct2-int8"
+# During a Docker build MODELS_DIR is the default inside the image; on a server
+# it is the mounted disk, where the download survives a redeploy. Following the
+# setting means the model lands where the app will look for it.
+try:
+    from backend.app.config import settings
+
+    TARGET = settings.MODELS_DIR / "nllb-200-distilled-600M-ct2-int8"
+except Exception:
+    TARGET = BASE_DIR / "saved_models" / "nllb-200-distilled-600M-ct2-int8"
 REQUIRED = ("model.bin", "config.json", "shared_vocabulary.txt", "tokenizer.json")
 
 

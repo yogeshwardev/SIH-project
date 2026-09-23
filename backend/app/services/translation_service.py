@@ -35,7 +35,25 @@ FLORES_CODES: Dict[str, str] = {
     "ml": "mal_Mlym",
 }
 
-MODEL_DIR = settings.MODELS_DIR / "nllb-200-distilled-600M-ct2-int8"
+MODEL_NAME = "nllb-200-distilled-600M-ct2-int8"
+
+# Two places the model can live. A deployment points MODELS_DIR at a mounted
+# disk so a download survives a redeploy; a container built with
+# --build-arg WITH_TRANSLATION_MODEL=true carries it in the image instead, and
+# that copy sits beside the code, not on the disk. Look in both, or a baked-in
+# model is invisible the moment MODELS_DIR is overridden.
+MODEL_CANDIDATES = (
+    settings.MODELS_DIR / MODEL_NAME,
+    settings.BASE_DIR / "saved_models" / MODEL_NAME,
+)
+
+
+def _model_dir():
+    """The first candidate holding a usable model, or None."""
+    for candidate in MODEL_CANDIDATES:
+        if (candidate / "model.bin").exists() and (candidate / "tokenizer.json").exists():
+            return candidate
+    return None
 
 # Craft vocabulary. Used to keep domain terms intact in generated copy, and as
 # the last-resort engine when no model is installed.
@@ -81,7 +99,7 @@ class TranslationService:
     # ── Public API ───────────────────────────────────────────────────────────
 
     def local_model_available(self) -> bool:
-        return (MODEL_DIR / "model.bin").exists() and (MODEL_DIR / "tokenizer.json").exists()
+        return _model_dir() is not None
 
     def engine_name(self) -> str:
         if self._llm_key():
@@ -271,9 +289,10 @@ class TranslationService:
                 import ctranslate2
                 from tokenizers import Tokenizer
 
-                self._tokenizer = Tokenizer.from_file(str(MODEL_DIR / "tokenizer.json"))
+                model_dir = _model_dir()
+                self._tokenizer = Tokenizer.from_file(str(model_dir / "tokenizer.json"))
                 self._translator = ctranslate2.Translator(
-                    str(MODEL_DIR), device="cpu", compute_type="int8", inter_threads=1
+                    str(model_dir), device="cpu", compute_type="int8", inter_threads=1
                 )
                 return True
             except Exception:

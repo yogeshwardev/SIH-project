@@ -13,6 +13,7 @@ import SellerInsights from './SellerInsights';
 import SellerStoreProfile from './SellerStoreProfile';
 import AiListingStudio from './AiListingStudio';
 import SellerBulkRequests from './SellerBulkRequests';
+import { OFFLINE_CATALOG } from '../../data/offlineCatalog';
 
 const TITLES = {
   overview: ['My shop today', 'A quick look at what is happening'],
@@ -58,6 +59,15 @@ export default function SellerPortalPage({ currentUser, onNavigateToAdmin, onNav
     if (storeId == null) { setLoading(false); return; }
     if (!quiet) setLoading(true);
     setError('');
+    if (currentUser?.offline_demo) {
+      setProducts(OFFLINE_CATALOG.filter((product) => product.artisan_id === storeId));
+      setOrders([]);
+      setBulkRequests([]);
+      setProfile(currentUser);
+      setLastUpdated(new Date());
+      if (!quiet) setLoading(false);
+      return;
+    }
     try {
       const [productList, orderList, artisan, bulkList] = await Promise.all([
         api.getProducts({ status: 'All', artisan_id: storeId }),
@@ -94,7 +104,7 @@ export default function SellerPortalPage({ currentUser, onNavigateToAdmin, onNav
     } finally {
       if (!quiet) setLoading(false);
     }
-  }, [storeId, t]);
+  }, [storeId, t, currentUser]);
 
   useEffect(() => { knownOrders.current = null; load(); }, [load]);
 

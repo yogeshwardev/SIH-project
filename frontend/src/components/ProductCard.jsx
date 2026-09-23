@@ -60,9 +60,17 @@ export default function ProductCard({ product, onAddToCart, onViewDetail, compac
       </div>
 
       <div className="flex flex-1 flex-col px-1 pt-3">
-        <p className="flex items-center gap-1 truncate text-xs font-medium text-ink-500">
-          {product.artisan_name || t('Artisan')}
-          {state && <><span className="text-ink-300">·</span><MapPin className="h-3 w-3 flex-shrink-0 text-clay-500" />{state}</>}
+        {/* Truncating the row cut the state in half - "Uttar Pra". The maker's
+            name gives way first, and the place stays whole. */}
+        <p className="flex items-center gap-1 text-xs font-medium text-ink-500">
+          <span className="min-w-0 truncate">{product.artisan_name || t('Artisan')}</span>
+          {state && (
+            <>
+              <span className="text-ink-300">·</span>
+              <MapPin className="h-3 w-3 flex-shrink-0 text-clay-500" />
+              <span className="flex-shrink-0">{state}</span>
+            </>
+          )}
         </p>
         <button type="button" onClick={() => onViewDetail?.(product)} className={cx('mt-1 text-left font-display font-semibold leading-snug text-ink-950 hover:text-brand-600', compact ? 'line-clamp-1 text-sm' : 'line-clamp-2 min-h-[2.6rem] text-[15px]')}>
           {title}
